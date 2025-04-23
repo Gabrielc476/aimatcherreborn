@@ -3,7 +3,8 @@ from rotas.usuario_rotas import usuario_bp
 from banco_de_dados.conexao import conectar_mongodb
 import os
 from dotenv import load_dotenv
-
+from rotas.curriculo_rotas import curriculo_bp
+from rotas.vaga_rotas import vaga_bp
 # Carrega variáveis de ambiente
 load_dotenv()
 
@@ -28,7 +29,8 @@ except Exception as e:
 
 # Registra o Blueprint de usuários
 app.register_blueprint(usuario_bp, url_prefix='/usuario')
-
+app.register_blueprint(curriculo_bp, url_prefix='/curriculo')
+app.register_blueprint(vaga_bp, url_prefix='/vaga')
 
 # Rota principal para verificar se a aplicação está funcionando
 @app.route('/')
@@ -39,13 +41,8 @@ def index():
         return "API de Matching de Currículos funcionando (sem conexão com MongoDB)!"
 
 
-# Função para encerrar conexões quando a aplicação for fechada
-@app.teardown_appcontext
-def encerrar_conexoes(exception=None):
-    cliente = app.config.get('MONGODB_CLIENT')
-    if cliente:
-        cliente.close()
-        print("Conexão com MongoDB encerrada")
+
+
 
 
 # Inicia o servidor quando executado diretamente
