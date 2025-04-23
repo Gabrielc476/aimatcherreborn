@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from rotas.curriculo_rotas import curriculo_bp
 from rotas.vaga_rotas import vaga_bp
+from rotas.matching_rotas import matching_bp
 # Carrega variáveis de ambiente
 load_dotenv()
 
@@ -13,6 +14,7 @@ app = Flask(__name__)
 
 # Configura o segredo para JWT
 app.config['JWT_SECRET'] = os.getenv('JWT_SECRET', 'chave_secreta_para_desenvolvimento')
+app.config['ANTHROPIC_API_KEY'] = os.getenv('ANTHROPIC_API_KEY')
 
 try:
     # Conecta ao MongoDB usando a URL do arquivo .env
@@ -31,6 +33,7 @@ except Exception as e:
 app.register_blueprint(usuario_bp, url_prefix='/usuario')
 app.register_blueprint(curriculo_bp, url_prefix='/curriculo')
 app.register_blueprint(vaga_bp, url_prefix='/vaga')
+app.register_blueprint(matching_bp, url_prefix='/matching')
 
 # Rota principal para verificar se a aplicação está funcionando
 @app.route('/')

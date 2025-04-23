@@ -63,8 +63,20 @@ class UsuarioRepositorio:
             dict: Documento do usuário ou None se não encontrado
         """
         try:
-            return self.colecao.find_one({"_id": ObjectId(usuario_id)})
-        except:
+            # Limpa o ID para remover possíveis aspas extras ou espaços
+            if isinstance(usuario_id, str):
+                # Remove aspas extras no início e fim, se existirem
+                usuario_id = usuario_id.strip().strip('"\'')
+                print(f"ID após limpeza: {usuario_id}")
+
+            # Tenta converter para ObjectId
+            obj_id = ObjectId(usuario_id)
+            print(f"ObjectId convertido com sucesso: {obj_id}")
+
+            # Busca no banco de dados
+            return self.colecao.find_one({"_id": obj_id})
+        except Exception as e:
+            print(f"Erro ao buscar usuário: {str(e)}")
             return None
 
     def atualizar(self, usuario_id, dados_atualizacao):

@@ -1,12 +1,28 @@
+from bson import ObjectId
 from flask import Blueprint, request, jsonify, current_app
 from servicos.validacao_servico import ValidacaoServico
 from servicos.autenticacao_servico import AutenticacaoServico
 from servicos.token_servico import TokenServico
 from banco_de_dados.repositorios.usuario_repositorio import UsuarioRepositorio
+import json
+from datetime import datetime
 from modelos.usuario_modelo import UsuarioModelo
 
 # Criando o Blueprint para rotas de usuário
 usuario_bp = Blueprint('usuario', __name__)
+
+# Classe auxiliar para converter ObjectId para string em JSON
+class MongoJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super(MongoJSONEncoder, self).default(obj)
+
+# Função auxiliar para converter dicionários com ObjectId para JSON
+def json_response(data):
+    return json.loads(json.dumps(data, cls=MongoJSONEncoder))
 
 
 @usuario_bp.route('/cadastro', methods=['POST'])
@@ -126,6 +142,67 @@ def verificar_token():
     }), 200
 
 
+@usuario_bp.route('/listar', methods=['GET'])
+def listar_usuarios():
+    """Rota para listar todos os usuários do sistema."""
+    # Obtém o token do cabeçalho de autorização
+    header_autorizacao = request.headers.get('Authorization')
+
+    if not header_autorizacao or not header_autorizacao.startswith('Bearer '):
+        return jsonify({'mensagem': 'Token não fornecido'}), 401
+
+    # Extrai o token
+    token = header_autorizacao.split(' ')[1]
+
+    # Cria o serviço de token
+    token_servico = TokenServico()
+
+    # Valida o token
+    valido, usuario_id, mensagem = token_servico.validar_token(token)
+
+    if not valido:
+        return jsonify({'mensagem': mensagem}), 401
+
+    # Parâmetros de paginação
+    pagina = int(request.args.get('pagina', 1))
+    limite = int(request.args.get('limite', 20))
+
+    try:
+        # Obtém a conexão com o banco de dados
+        db = current_app.config['MONGODB_DB']
+
+        # Imprime informações de debug
+        print(f"Nome do banco de dados: {db.name}")
+        print(f"Coleções disponíveis: {db.list_collection_names()}")
+
+        # Acessa a coleção diretamente para debug
+        colecao = db['usuarios']
+        print(f"Total de documentos na coleção: {colecao.count_documents({})}")
+
+        # Lista os primeiros documentos para verificar a estrutura
+        primeiro_usuario = colecao.find_one()
+        print(f"Exemplo de documento: {primeiro_usuario}")
+
+        # Busca usuários com paginação
+        skip = (pagina - 1) * limite
+        usuarios = list(colecao.find().skip(skip).limit(limite))
+
+        # Remove campos sensíveis
+        for usuario in usuarios:
+            if 'senha_hash' in usuario:
+                usuario['senha_hash'] = '***REMOVIDO***'
+
+        # Usa a função para converter ObjectId para string
+        return jsonify({
+            'total': colecao.count_documents({}),
+            'pagina': pagina,
+            'limite': limite,
+            'usuarios': json_response(usuarios)
+        }), 200
+
+    except Exception as e:
+        print(f"Erro ao listar usuários: {str(e)}")
+        return jsonify({'mensagem': f'Erro ao listar usuários: {str(e)}'}), 500
 @usuario_bp.route('/atualizar-token', methods=['POST'])
 def atualizar_token():
     """Rota para atualizar um token existente (refresh token)."""
