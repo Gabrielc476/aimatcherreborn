@@ -100,6 +100,8 @@ class MatchingAIServico:
 
         except Exception as e:
             print(f"Erro ao analisar compatibilidade: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def _criar_system_prompt(self):
@@ -149,135 +151,140 @@ class MatchingAIServico:
         else:
             vaga = vaga_dict
 
-        # Formata o prompt
-        prompt = f"""
-        # Análise de Compatibilidade entre Currículo e Vaga
-
-        Realize uma análise detalhada da compatibilidade entre este currículo e esta vaga. 
-        Use extended thinking para examinar todos os aspectos da compatibilidade, incluindo 
-        habilidades técnicas, experiência, formação, idiomas, localização e fit cultural.
-
-        ## CURRÍCULO DO CANDIDATO:
-        ```json
-        {json.dumps({
-            "perfil": usuario.get('perfil', {}),
-            "experiencias": experiencias,
-            "formacao": formacao,
-            "habilidades_tecnicas": habilidades,
-            "idiomas": idiomas,
-            "preferencias": usuario.get('preferencias', {}),
-            "palavras_chave": usuario.get('palavras_chave', [])
-        }, indent=2)}
-        ```
-
-        ## DESCRIÇÃO DA VAGA:
-        ```json
-        {json.dumps({
-            "titulo": vaga.get('titulo', ''),
-            "descricao": vaga.get('descricao', ''),
-            "empresa": vaga.get('empresa', {}),
-            "localizacao": vaga.get('localizacao', {}),
-            "modalidade": vaga.get('modalidade', ''),
-            "tipo_contrato": vaga.get('tipo_contrato', ''),
-            "nivel": vaga.get('nivel', ''),
-            "requisitos": vaga.get('requisitos', {}),
-            "palavras_chave": vaga.get('palavras_chave', [])
-        }, indent=2)}
-        ```
-
-        ## ANÁLISE SOLICITADA:
-
-        Forneça uma análise completa conforme o formato JSON abaixo. Todos os campos devem ser preenchidos:
-
-        ```json
-        {
-        "categorias": {
+        # Define o template JSON como uma string separada
+        json_template = r'''
+{
+    "categorias": {
         "habilidades_tecnicas": {
-        "score": 0.0,
-                    "correspondentes": [],
-                    "faltantes": [],
-                    "excedentes": [],
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                },
-                "experiencia": {
-        "score": 0.0,
-                    "tempo_atende": false,
-                    "areas_correspondentes": [],
-                    "areas_faltantes": [],
-                    "relevancia_experiencia": "",
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                },
-                "formacao": {
-        "score": 0.0,
-                    "nivel_atende": false,
-                    "area_atende": false,
-                    "formacao_alternativa_relevante": false,
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                },
-                "idiomas": {
-        "score": 0.0,
-                    "correspondentes": [],
-                    "faltantes": [],
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                },
-                "localizacao_disponibilidade": {
-        "score": 0.0,
-                    "localizacao_compativel": false,
-                    "disponibilidade_compativel": false,
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                },
-                "soft_skills_cultura": {
-        "score": 0.0,
-                    "correspondentes": [],
-                    "faltantes": [],
-                    "analise_qualitativa": "",
-                    "nivel_relevancia": ""
-                }
-            },
-            "score_matching": 0.0,
-            "resumo_candidato": "",
-            "resumo_vaga": "",
-            "diferenciais": {
-        "pontos_fortes": [],
-                "pontos_fracos": [],
-                "vantagens_competitivas": []
-            },
-            "recomendacoes": {
-        "gerais": "",
-                "habilidades_tecnicas": "",
-                "experiencia": "",
-                "formacao": "",
-                "desenvolvimento": "",
-                "abordagem_entrevista": "",
-                "prioridade_acao": []
-            },
-            "compatibilidade_cultural": {
-        "score": 0.0,
-                "fatores_positivos": [],
-                "fatores_negativos": [],
-                "analise": ""
-            },
-            "probabilidade_sucesso": {
-        "score": 0.0,
-                "justificativa": "",
-                "fatores_criticos": []
-            },
-            "meta_analise": {
-        "confiabilidade": 0.0,
-                "fatores_incertos": [],
-                "potencial_desenvolvimento": 0.0,
-                "observacoes": ""
-            }
+            "score": 0.0,
+            "correspondentes": [],
+            "faltantes": [],
+            "excedentes": [],
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
+        },
+        "experiencia": {
+            "score": 0.0,
+            "tempo_atende": false,
+            "areas_correspondentes": [],
+            "areas_faltantes": [],
+            "relevancia_experiencia": "",
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
+        },
+        "formacao": {
+            "score": 0.0,
+            "nivel_atende": false,
+            "area_atende": false,
+            "formacao_alternativa_relevante": false,
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
+        },
+        "idiomas": {
+            "score": 0.0,
+            "correspondentes": [],
+            "faltantes": [],
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
+        },
+        "localizacao_disponibilidade": {
+            "score": 0.0,
+            "localizacao_compativel": false,
+            "disponibilidade_compativel": false,
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
+        },
+        "soft_skills_cultura": {
+            "score": 0.0,
+            "correspondentes": [],
+            "faltantes": [],
+            "analise_qualitativa": "",
+            "nivel_relevancia": ""
         }
-        ```
+    },
+    "score_matching": 0.0,
+    "resumo_candidato": "",
+    "resumo_vaga": "",
+    "diferenciais": {
+        "pontos_fortes": [],
+        "pontos_fracos": [],
+        "vantagens_competitivas": []
+    },
+    "recomendacoes": {
+        "gerais": "",
+        "habilidades_tecnicas": "",
+        "experiencia": "",
+        "formacao": "",
+        "desenvolvimento": "",
+        "abordagem_entrevista": "",
+        "prioridade_acao": []
+    },
+    "compatibilidade_cultural": {
+        "score": 0.0,
+        "fatores_positivos": [],
+        "fatores_negativos": [],
+        "analise": ""
+    },
+    "probabilidade_sucesso": {
+        "score": 0.0,
+        "justificativa": "",
+        "fatores_criticos": []
+    },
+    "meta_analise": {
+        "confiabilidade": 0.0,
+        "fatores_incertos": [],
+        "potencial_desenvolvimento": 0.0,
+        "observacoes": ""
+    }
+}
+'''
 
-        Responda APENAS com o JSON contendo a análise, sem texto adicional antes ou depois.
-        """
+        # Formata o prompt usando o template JSON
+        prompt = f"""
+# Análise de Compatibilidade entre Currículo e Vaga
+
+Realize uma análise detalhada da compatibilidade entre este currículo e esta vaga. 
+Use extended thinking para examinar todos os aspectos da compatibilidade, incluindo 
+habilidades técnicas, experiência, formação, idiomas, localização e fit cultural.
+
+## CURRÍCULO DO CANDIDATO:
+```json
+{json.dumps({
+    "perfil": usuario.get('perfil', {}),
+    "experiencias": experiencias,
+    "formacao": formacao,
+    "habilidades_tecnicas": habilidades,
+    "idiomas": idiomas,
+    "preferencias": usuario.get('preferencias', {}),
+    "palavras_chave": usuario.get('palavras_chave', [])
+}, indent=2)}
+```
+
+## DESCRIÇÃO DA VAGA:
+```json
+{json.dumps({
+    "titulo": vaga.get('titulo', ''),
+    "descricao": vaga.get('descricao', ''),
+    "empresa": vaga.get('empresa', {}),
+    "localizacao": vaga.get('localizacao', {}),
+    "modalidade": vaga.get('modalidade', ''),
+    "tipo_contrato": vaga.get('tipo_contrato', ''),
+    "nivel": vaga.get('nivel', ''),
+    "requisitos": vaga.get('requisitos', {}),
+    "palavras_chave": vaga.get('palavras_chave', [])
+}, indent=2)}
+```
+
+## ANÁLISE SOLICITADA:
+
+Forneça uma análise completa conforme o formato JSON abaixo. Todos os campos devem ser preenchidos:
+
+```json
+{json_template}
+```
+
+Responda APENAS com o JSON contendo a análise, sem texto adicional antes ou depois.
+"""
 
         return prompt
 
@@ -286,20 +293,15 @@ class MatchingAIServico:
         Processa e extrai a estrutura JSON da resposta do Claude.
         """
         try:
-            # Sanitiza caracteres % para evitar problemas de formatação
-            resposta_texto = resposta_texto.replace('%', '%%')
-
-            # Extrai o JSON da resposta
+            # Extract JSON using regex without problematic replacements
             import re
             json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', resposta_texto)
 
             if json_match:
                 json_str = json_match.group(1)
-                # Sanitiza novamente o conteúdo JSON
-                json_str = json_str.replace('%', '%%')
                 return json.loads(json_str)
 
-            # Se não encontrou entre ``` ```, tenta extrair todo o texto como JSON
+            # If not found between backticks, try parsing the entire response
             return json.loads(resposta_texto)
 
         except Exception as e:

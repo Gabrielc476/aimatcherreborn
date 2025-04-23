@@ -103,7 +103,10 @@ def analisar_matching():
         )
 
         # Realiza a análise de compatibilidade
-        matching = matching_servico.analisar_compatibilidade(usuario_id_analise, vaga_id)
+        try:
+            matching = matching_servico.analisar_compatibilidade(usuario_id_analise, vaga_id)
+        except Exception as e:
+            return jsonify({'mensagem': f'Erro detalhado na análise: {str(e)}'}), 500
 
         if not matching:
             return jsonify({'mensagem': 'Erro ao realizar análise de compatibilidade'}), 500
