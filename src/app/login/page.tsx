@@ -11,7 +11,12 @@ export default function LoginPage() {
   // Check if user is already authenticated
   useEffect(() => {
     if (AuthApi.isAuthenticated()) {
-      router.push("/dashboard");
+      const userId = AuthApi.getCurrentUserId();
+
+      if (userId) {
+        // Redirect to the user's dashboard with their ID
+        router.push(`/${userId}/dashboard`);
+      }
     }
   }, [router]);
 
@@ -26,7 +31,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <LoginForm redirectPath="/dashboard" />
+      <LoginForm />
     </div>
   );
 }

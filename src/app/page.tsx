@@ -10,7 +10,16 @@ export default function HomePage() {
   useEffect(() => {
     // Check if user is already authenticated
     if (AuthApi.isAuthenticated()) {
-      router.push("/dashboard");
+      // Get the user ID string
+      const userId = AuthApi.getCurrentUserId();
+
+      if (userId) {
+        // Redirect to the user's dashboard with their ID
+        router.push(`/${userId}/dashboard`);
+      } else {
+        // If authenticated but no ID available (should be rare)
+        router.push("/login");
+      }
     } else {
       router.push("/login");
     }

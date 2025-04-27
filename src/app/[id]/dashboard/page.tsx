@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { AuthApi } from "@/lib/api/authApi";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { User } from "../../../types/user/User";
+import { User } from "@/types/user/User";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const params = useParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +31,18 @@ export default function DashboardPage() {
 
     // Get current user data from storage
     const userData = AuthApi.getCurrentUser();
-    if (userData) {
+    const userId = AuthApi.getCurrentUserId();
+
+    if (userData && userId) {
+      // Verify if the URL ID matches the logged-in user's ID
+      const urlId = params.id;
+
+      if (urlId !== userId) {
+        // If IDs don't match, redirect to the correct dashboard URL
+        router.push(`/${userId}/dashboard`);
+        return;
+      }
+
       setUser(userData);
     } else {
       // If no user data in storage, logout and redirect
@@ -39,7 +51,7 @@ export default function DashboardPage() {
     }
 
     setLoading(false);
-  }, [router]);
+  }, [router, params]);
 
   const handleLogout = () => {
     AuthApi.logout();

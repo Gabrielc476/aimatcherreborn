@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLogin } from "../../lib/hooks/useLogin";
 import { LoginRequest } from "@/types/auth/LoginRequest";
 import { Button } from "@/components/ui/button";
@@ -13,21 +14,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthApi } from "@/lib/api/authApi";
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-  redirectPath?: string;
-}
-
-export function LoginForm({
-  onSuccess,
-  redirectPath = "/dashboard",
-}: LoginFormProps) {
+export function LoginForm() {
   const [formData, setFormData] = useState<LoginRequest>({
     email: "",
     senha: "",
   });
 
+  const router = useRouter();
   const { login, isLoading, error } = useLogin();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,11 +39,15 @@ export function LoginForm({
     const success = await login(formData);
 
     if (success) {
-      if (onSuccess) {
-        onSuccess();
-      } else if (redirectPath) {
-        // Use window.location for navigation instead of router
-        window.location.href = redirectPath;
+      // Get the current user ID as a string
+      const userId = AuthApi.getCurrentUserId();
+
+      if (userId) {
+        // Navigate to the user's dashboard with their ID
+        router.push(`/${userId}/dashboard`);
+      } else {
+        // Fallback in case user ID is not available (should not normally happen)
+        router.push("/");
       }
     }
   };
