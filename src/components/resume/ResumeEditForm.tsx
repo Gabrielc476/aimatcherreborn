@@ -697,15 +697,35 @@ export function ResumeEditForm({
                                 <FormControl>
                                   <Input
                                     placeholder="Separe as tecnologias por vírgula (ex: React, Node.js, MongoDB)"
-                                    value={field.value.join(", ")}
+                                    value={
+                                      Array.isArray(field.value)
+                                        ? field.value.join(", ")
+                                        : field.value
+                                    }
                                     onChange={(e) => {
+                                      try {
+                                        const value = e.target.value;
+                                        // Only process as array when submitting or when focusing out
+                                        field.onChange(value);
+                                      } catch (error) {
+                                        console.error(
+                                          "Error processing input:",
+                                          error
+                                        );
+                                        field.onChange(e.target.value);
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      // Process as array when field loses focus
                                       const value = e.target.value;
-                                      field.onChange(
-                                        value
-                                          .split(",")
-                                          .map((item) => item.trim())
-                                          .filter(Boolean)
-                                      );
+                                      if (typeof value === "string") {
+                                        field.onChange(
+                                          value
+                                            .split(",")
+                                            .map((item) => item.trim())
+                                            .filter(Boolean)
+                                        );
+                                      }
                                     }}
                                   />
                                 </FormControl>
@@ -727,15 +747,22 @@ export function ResumeEditForm({
                                   <textarea
                                     className="w-full min-h-[100px] rounded-md border border-input px-3 py-2 text-sm"
                                     placeholder="Uma realização por linha"
-                                    value={field.value.join("\n")}
+                                    // Use a controlled component approach
+                                    value={
+                                      Array.isArray(field.value)
+                                        ? field.value.join("\n")
+                                        : ""
+                                    }
+                                    // Make this a regular input that doesn't process on every keystroke
                                     onChange={(e) => {
-                                      const value = e.target.value;
-                                      field.onChange(
-                                        value
-                                          .split("\n")
-                                          .map((item) => item.trim())
-                                          .filter(Boolean)
-                                      );
+                                      // Get the raw input value
+                                      const rawValue = e.target.value;
+
+                                      // Store the raw lines
+                                      const lines = rawValue.split("\n");
+
+                                      // Update the field with minimal processing
+                                      field.onChange(lines);
                                     }}
                                   />
                                 </FormControl>
@@ -1069,15 +1096,28 @@ export function ResumeEditForm({
                                   <textarea
                                     className="w-full min-h-[60px] rounded-md border border-input px-3 py-2 text-sm"
                                     placeholder="Um projeto por linha"
-                                    value={field.value.join("\n")}
+                                    value={
+                                      Array.isArray(field.value)
+                                        ? field.value.join("\n")
+                                        : ""
+                                    }
+                                    // Use keyDown event to handle Enter key properly
+                                    onKeyDown={(e) => {
+                                      // Allow normal Enter key behavior
+                                      if (e.key === "Enter") {
+                                        // Don't prevent default - let the textarea handle the newline
+                                        return;
+                                      }
+                                    }}
                                     onChange={(e) => {
-                                      const value = e.target.value;
-                                      field.onChange(
-                                        value
-                                          .split("\n")
-                                          .map((item) => item.trim())
-                                          .filter(Boolean)
-                                      );
+                                      // Get the raw text with all spaces and line breaks preserved
+                                      const rawText = e.target.value;
+
+                                      // Simply split by newlines without additional processing
+                                      const projects = rawText.split("\n");
+
+                                      // Update the field value
+                                      field.onChange(projects);
                                     }}
                                   />
                                 </FormControl>
