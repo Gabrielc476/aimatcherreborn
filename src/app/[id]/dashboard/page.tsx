@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/card";
 import { User } from "@/types/user/User";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield } from "lucide-react";
+import { Shield, FileUp, FileEdit, Briefcase, Search } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
   const params = useParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasResume, setHasResume] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -44,6 +45,14 @@ export default function DashboardPage() {
       }
 
       setUser(userData);
+
+      // Check if user has uploaded a resume
+      // This is a simplified check - in a real implementation, you would fetch the user data from the API
+      // and check if curriculo_processado exists and has data
+      setHasResume(
+        !!userData.perfil?.titulo ||
+          !!(userData.experiencias && userData.experiencias.length > 0)
+      );
     } else {
       // If no user data in storage, logout and redirect
       AuthApi.logout();
@@ -89,11 +98,11 @@ export default function DashboardPage() {
           <CardContent>
             <Alert>
               <Shield className="h-4 w-4" />
-              <AlertTitle>Login bem-sucedido!</AlertTitle>
+              <AlertTitle>Status do seu currículo</AlertTitle>
               <AlertDescription>
-                Esta é uma página de placeholder para o dashboard. Em uma
-                implementação completa, você veria aqui suas vagas compatíveis,
-                status de candidaturas e recomendações.
+                {hasResume
+                  ? "Seu currículo foi processado e está pronto para matching com vagas."
+                  : "Você ainda não fez upload do seu currículo. Faça o upload para começar a encontrar vagas compatíveis."}
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -107,29 +116,112 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
 
-        {/* Placeholder content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <CardTitle>Recurso {i}</CardTitle>
-                <CardDescription>
-                  Demonstração de funcionalidade
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>
-                  Este é um card de placeholder que representaria uma
-                  funcionalidade real no dashboard completo do sistema.
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  Ação {i}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+        {/* Curriculum Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileUp className="h-5 w-5 text-primary" />
+                Upload de Currículo
+              </CardTitle>
+              <CardDescription>Envie seu currículo em PDF</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                Faça upload do seu currículo em PDF e nosso sistema usará IA
+                para extrair informações relevantes automaticamente.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                onClick={() => router.push(`/${params.id}/resume/upload`)}
+              >
+                Fazer Upload
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-primary" />
+                Editar Currículo
+              </CardTitle>
+              <CardDescription>Revise e edite suas informações</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                {hasResume
+                  ? "Revise e edite as informações extraídas do seu currículo para melhorar suas chances de matching."
+                  : "Após fazer o upload do seu currículo, você poderá revisar e editar as informações extraídas."}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                onClick={() => router.push(`/${params.id}/resume/edit`)}
+                disabled={!hasResume}
+              >
+                Editar Currículo
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                Vagas Compatíveis
+              </CardTitle>
+              <CardDescription>
+                Encontre as melhores vagas para seu perfil
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                {hasResume
+                  ? "Veja as vagas mais compatíveis com seu perfil, ranqueadas por grau de matching."
+                  : "Após cadastrar seu currículo, você poderá ver vagas compatíveis com seu perfil."}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                onClick={() => router.push(`/${params.id}/jobs/matching`)}
+                disabled={!hasResume}
+              >
+                Ver Vagas Compatíveis
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* Placeholder content for other features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pesquisar Vagas</CardTitle>
+              <CardDescription>
+                Busque vagas por título, empresa ou localização
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>
+                Use filtros avançados para encontrar exatamente o que você está
+                procurando no mercado de trabalho.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push(`/${params.id}/jobs/search`)}
+              >
+                <Search className="h-4 w-4 mr-2" /> Pesquisar Vagas
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </div>
