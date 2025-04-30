@@ -6,11 +6,14 @@ from dotenv import load_dotenv
 from rotas.curriculo_rotas import curriculo_bp
 from rotas.vaga_rotas import vaga_bp
 from rotas.matching_rotas import matching_bp
+from flask_cors import CORS
 # Carrega variáveis de ambiente
 load_dotenv()
 
 # Cria a aplicação Flask
 app = Flask(__name__)
+
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000", "allow_headers": ["Content-Type", "Authorization"]}})
 
 # Configura o segredo para JWT
 app.config['JWT_SECRET'] = os.getenv('JWT_SECRET', 'chave_secreta_para_desenvolvimento')

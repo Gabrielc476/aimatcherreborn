@@ -227,3 +227,122 @@ def atualizar_token():
         'mensagem': 'Token atualizado com sucesso',
         'token': novo_token
     }), 200
+
+@usuario_bp.route('/<usuario_id>', methods=['GET'])
+def obter_usuario(usuario_id):
+    """Rota para obter os detalhes de um usuário específico."""
+    # Verificar autenticação via token
+    header_autorizacao = request.headers.get('Authorization')
+
+    if not header_autorizacao or not header_autorizacao.startswith('Bearer '):
+        return jsonify({'mensagem': 'Token não fornecido'}), 401
+
+    # Extrai o token
+    token = header_autorizacao.split(' ')[1]
+
+    # Cria o serviço de token
+    token_servico = TokenServico()
+
+    # Valida o token
+    valido, token_usuario_id, mensagem = token_servico.validar_token(token)
+
+    if not valido:
+        return jsonify({'mensagem': mensagem}), 401
+
+    # Verificar se o usuário está acessando seus próprios dados ou se é admin
+    # Para simplificar, permitimos que um usuário acesse apenas seus próprios dados
+    if token_usuario_id != usuario_id and not request.args.get('admin'):
+        return jsonify({'mensagem': 'Acesso não autorizado'}), 403
+
+    try:
+        # Obtém a conexão com o banco de dados
+        db = current_app.config['MONGODB_DB']
+
+        # Cria o repositório
+        repositorio = UsuarioRepositorio(db)
+
+        # Busca o usuário pelo ID
+        usuario = repositorio.buscar_por_id(usuario_id)
+
+        if not usuario:
+            return jsonify({'mensagem': 'Usuário não encontrado'}), 404
+
+        # Remove campos sensíveis
+        if 'senha_hash' in usuario:
+            usuario['senha_hash'] = '***REMOVIDO***'
+
+        # Retorna os dados do usuário
+        return jsonify(json_response(usuario)), 200
+
+    except Exception as e:
+        print(f"Erro ao obter usuário: {str(e)}")
+        return jsonify({'mensagem': f'Erro ao obter usuário: {str(e)}'}), 500
+
+
+@usuario_bp.route('/<usuario_id>', methods=['PUT'])
+def atualizar_usuario(usuario_id):
+    """Rota para atualizar os dados de um usuário."""
+    # Verificar autenticação via token
+    header_autorizacao = request.headers.get('Authorization')
+
+    if not header_autorizacao or not header_autorizacao.startswith('Bearer '):
+        return jsonify({'mensagem': 'Token não fornecido'}), 401
+
+    # Extrai o token
+    token = header_autorizacao.split(' ')[1]
+
+    # Cria o serviço de token
+    token_servico = TokenServico()
+
+    # Valida o token
+    valido, token_usuario_id, mensagem = token_servico.validar_token(token)
+
+    if not valido:
+        return jsonify({'mensagem': mensagem}), 401
+
+    # Verificar se o usuário está atualizando seus próprios dados ou se é admin
+    if token_usuario_id != usuario_id and not request.args.get('admin'):
+        return jsonify({'mensagem': 'Acesso não autorizado'}), 403
+
+    try:
+        # Obtém dados da requisição
+        dados = request.get_json()
+
+        if not dados:
+            return jsonify({'mensagem': 'Dados não fornecidos'}), 400
+
+        # Obtém a conexão com o banco de dados
+        db = current_app.config['MONGODB_DB']
+
+        # Cria o repositório
+        repositorio = UsuarioRepositorio(db)
+
+        # Garantir que campos sensíveis não sejam atualizados
+        if 'senha_hash' in dados:
+            del dados['senha_hash']
+
+        # Adiciona timestamp de atualização
+        if 'configuracoes' not in dados:
+            dados['configuracoes'] = {}
+
+        dados['configuracoes']['ultima_atualizacao_perfil'] = datetime.now().isoformat()
+
+        # Atualiza os dados do usuário
+        sucesso = repositorio.atualizar(usuario_id, dados)
+
+        if not sucesso:
+            return jsonify({'mensagem': 'Erro ao atualizar usuário'}), 500
+
+        # Busca o usuário atualizado
+        usuario_atualizado = repositorio.buscar_por_id(usuario_id)
+
+        # Remove campos sensíveis
+        if 'senha_hash' in usuario_atualizado:
+            usuario_atualizado['senha_hash'] = '***REMOVIDO***'
+
+        # Retorna os dados atualizados
+        return jsonify(json_response(usuario_atualizado)), 200
+
+    except Exception as e:
+        print(f"Erro ao atualizar usuário: {str(e)}")
+        return jsonify({'mensagem': f'Erro ao atualizar usuário: {str(e)}'}), 500
