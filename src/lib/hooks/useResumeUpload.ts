@@ -9,6 +9,7 @@ interface UseResumeUploadReturn {
   error: string | null;
   success: boolean;
   uploadResponse: ResumeUploadResponse | null;
+  resetState: () => void;
 }
 
 /**
@@ -24,12 +25,26 @@ export const useResumeUpload = (): UseResumeUploadReturn => {
     useState<ResumeUploadResponse | null>(null);
 
   /**
+   * Reset the state of the hook
+   */
+  const resetState = () => {
+    setIsLoading(false);
+    setError(null);
+    setSuccess(false);
+    setUploadResponse(null);
+  };
+
+  /**
    * Upload resume/CV file
    *
    * @param file PDF file to upload
    * @returns Promise that resolves to true if upload was successful
    */
   const uploadResume = async (file: File): Promise<boolean> => {
+    // Reset error and success states before starting a new upload
+    setError(null);
+    setSuccess(false);
+
     // Validate file type
     if (file.type !== "application/pdf") {
       setError("O arquivo deve ser um PDF.");
@@ -44,10 +59,11 @@ export const useResumeUpload = (): UseResumeUploadReturn => {
     }
 
     setIsLoading(true);
-    setError(null);
-    setSuccess(false);
 
     try {
+      // Add a small delay to ensure the loading state is visible
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const response = await ResumeApi.uploadResume(file);
 
       if (response.status === 201 && response.data) {
@@ -63,6 +79,7 @@ export const useResumeUpload = (): UseResumeUploadReturn => {
         return false;
       }
     } catch (err) {
+      console.error("Error uploading resume:", err);
       setError(
         err instanceof Error
           ? err.message
@@ -79,6 +96,7 @@ export const useResumeUpload = (): UseResumeUploadReturn => {
     error,
     success,
     uploadResponse,
+    resetState,
   };
 };
 

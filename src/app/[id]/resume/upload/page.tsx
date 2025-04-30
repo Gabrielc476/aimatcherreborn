@@ -5,12 +5,14 @@ import { useRouter, useParams } from "next/navigation";
 import { AuthApi } from "@/lib/api/authApi";
 import { ResumeUploadForm } from "@/components/resume/ResumeUploadForm";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft } from "lucide-react";
 
 export default function ResumeUploadPage() {
   const router = useRouter();
   const params = useParams();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -66,6 +68,12 @@ export default function ResumeUploadPage() {
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
         </Button>
 
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="w-full max-w-md mx-auto mb-8">
           <h1 className="text-3xl font-bold text-center mb-2">
             Upload de Currículo
@@ -77,7 +85,10 @@ export default function ResumeUploadPage() {
         </div>
 
         <div className="w-full max-w-md mx-auto">
-          <ResumeUploadForm onSuccess={handleSuccess} />
+          <ResumeUploadForm
+            onSuccess={handleSuccess}
+            redirectPath={`/${params.id}/resume/edit`}
+          />
 
           <div className="mt-6 text-center text-sm text-muted-foreground max-w-md">
             <p>

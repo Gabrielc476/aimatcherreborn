@@ -5,12 +5,15 @@ import { useRouter, useParams } from "next/navigation";
 import { AuthApi } from "@/lib/api/authApi";
 import { ResumeEditForm } from "@/components/resume/ResumeEditForm";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 export default function ResumeEditPage() {
   const router = useRouter();
   const params = useParams();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -31,14 +34,62 @@ export default function ResumeEditPage() {
         router.push(`/${userId}/resume/edit`);
         return;
       }
+
+      // Ensure we have the latest user data
+      const fetchUserData = async () => {
+        try {
+          const response = await AuthApi.getUserDetails(userId);
+          if (response.status === 200 && response.data) {
+            // Update local storage with the latest data
+            localStorage.setItem(
+              AuthApi.USER_KEY,
+              JSON.stringify(response.data)
+            );
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          setError(
+            "Não foi possível atualizar os dados do usuário. Algumas informações podem estar desatualizadas."
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchUserData();
     } else {
       // If no user data in storage, logout and redirect
       AuthApi.logout();
       router.push("/login");
     }
-
-    setLoading(false);
   }, [router, params]);
+
+  // Handle data refresh
+  const handleRefresh = async () => {
+    const userId = AuthApi.getCurrentUserId();
+    if (!userId) return;
+
+    setRefreshing(true);
+    try {
+      const response = await AuthApi.getUserDetails(userId);
+      if (response.status === 200 && response.data) {
+        // Update local storage with the latest data
+        localStorage.setItem(AuthApi.USER_KEY, JSON.stringify(response.data));
+        setError(null);
+        // Force a reload of the page to refresh the form with the new data
+        window.location.reload();
+      } else {
+        setError(
+          "Não foi possível atualizar os dados do usuário. Tente novamente."
+        );
+      }
+    } catch (err) {
+      console.error("Error refreshing user data:", err);
+      setError("Erro ao atualizar dados do usuário. Tente novamente.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Handle form success
   const handleSuccess = () => {
@@ -58,13 +109,32 @@ export default function ResumeEditPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => router.push(`/${params.id}/dashboard`)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-        </Button>
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/${params.id}/dashboard`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Atualizar dados do usuário"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Atualizar Dados
+          </Button>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Editar Currículo</h1>
@@ -78,6 +148,7 @@ export default function ResumeEditPage() {
         <ResumeEditForm
           userId={params.id as string}
           onSuccess={handleSuccess}
+          key={refreshing ? "refreshed" : "normal"} // Force re-render of form on refresh
         />
       </div>
     </div>

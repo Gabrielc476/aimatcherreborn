@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUp, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { AuthApi } from "@/lib/api/authApi";
+import { useRouter } from "next/navigation";
 
 interface ResumeUploadFormProps {
   onSuccess?: () => void;
@@ -26,6 +28,7 @@ export function ResumeUploadForm({
 }: ResumeUploadFormProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const { uploadResume, isLoading, error, success, uploadResponse } =
     useResumeUpload();
@@ -43,17 +46,52 @@ export function ResumeUploadForm({
       return;
     }
 
-    const uploadSuccess = await uploadResume(selectedFile);
+    try {
+      const uploadSuccess = await uploadResume(selectedFile);
 
-    if (uploadSuccess) {
-      if (onSuccess) {
-        onSuccess();
-      } else if (redirectPath) {
-        // Wait a moment to show success message
+      if (uploadSuccess && uploadResponse) {
+        // Ensure the user data gets refreshed upon successful upload
+        // Wait a bit for server-side processing to complete
+        const userId = AuthApi.getCurrentUserId();
+        if (userId) {
+          try {
+            // Attempt to fetch the updated user data
+            const response = await AuthApi.getUserDetails(userId);
+            if (response.status === 200 && response.data) {
+              // Update local storage with the new user data
+              localStorage.setItem(
+                AuthApi.USER_KEY,
+                JSON.stringify(response.data)
+              );
+            }
+          } catch (err) {
+            console.error("Failed to refresh user data after upload:", err);
+          }
+        }
+
+        // Wait a moment to show success message before redirecting
         setTimeout(() => {
-          window.location.href = redirectPath;
+          if (onSuccess) {
+            onSuccess();
+          } else if (redirectPath) {
+            // Get the current user ID for the redirect
+            const userId = AuthApi.getCurrentUserId();
+            if (userId) {
+              // Construct the full path with the user ID
+              const fullRedirectPath = redirectPath.startsWith("/")
+                ? `/${userId}${redirectPath}`
+                : `/${userId}/${redirectPath}`;
+
+              router.push(fullRedirectPath);
+            } else {
+              // Fallback to window.location if router is not available or userId can't be found
+              window.location.href = redirectPath;
+            }
+          }
         }, 3000);
       }
+    } catch (error) {
+      console.error("Error during upload:", error);
     }
   };
 

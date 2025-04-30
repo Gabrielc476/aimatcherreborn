@@ -10,7 +10,8 @@ import { ObjectId } from "mongodb";
  */
 export class AuthApi {
   private static BASE_PATH = "/usuario";
-  private static USER_KEY = "current_user";
+  // Changed from private to public to be accessible outside the class
+  public static USER_KEY = "current_user";
 
   /**
    * Register a new user
@@ -149,6 +150,17 @@ export class AuthApi {
       console.error("Error getting user ID:", error);
       return null;
     }
+  }
+
+  /**
+   * Get details of a specific user
+   * @param userId User ID
+   * @returns ApiResponse with user data
+   */
+  public static async getUserDetails(
+    userId: string
+  ): Promise<ApiResponse<User>> {
+    return apiClient.get<User>(`${this.BASE_PATH}/${userId}`);
   }
 }
 

@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/card";
 import { User } from "@/types/user/User";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, FileUp, FileEdit, Briefcase, Search } from "lucide-react";
+import {
+  Shield,
+  FileUp,
+  FileEdit,
+  Briefcase,
+  Search,
+  RefreshCw,
+} from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,6 +29,69 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasResume, setHasResume] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchUserData = async (userId: string) => {
+    setRefreshing(true);
+    try {
+      // Fetch fresh user data from the server
+      const response = await AuthApi.getUserDetails(userId);
+
+      if (response.status === 200 && response.data) {
+        // Update the user state with fresh data
+        setUser(response.data);
+
+        // Update localStorage with fresh data to keep it in sync
+        localStorage.setItem(AuthApi.USER_KEY, JSON.stringify(response.data));
+
+        // Check if user has a resume based on server data
+        setHasResume(
+          !!response.data?.perfil?.titulo ||
+            !!(
+              response.data?.experiencias &&
+              response.data?.experiencias.length > 0
+            ) ||
+            !!response.data?.curriculo_processado
+        );
+        setError(null);
+      } else {
+        setError(response.erro || "Erro ao carregar dados do usuário");
+
+        // Fall back to localStorage data
+        const localUserData = AuthApi.getCurrentUser();
+        if (localUserData) {
+          setUser(localUserData);
+          setHasResume(
+            !!localUserData?.perfil?.titulo ||
+              !!(
+                localUserData?.experiencias &&
+                localUserData?.experiencias.length > 0
+              )
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+      setError("Erro ao atualizar dados do usuário. Tente novamente.");
+
+      // Fall back to localStorage data
+      const localUserData = AuthApi.getCurrentUser();
+      if (localUserData) {
+        setUser(localUserData);
+        setHasResume(
+          !!localUserData?.perfil?.titulo ||
+            !!(
+              localUserData?.experiencias &&
+              localUserData?.experiencias.length > 0
+            )
+        );
+      }
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is authenticated
@@ -30,13 +100,12 @@ export default function DashboardPage() {
       return;
     }
 
-    // Get current user data from storage
-    const userData = AuthApi.getCurrentUser();
+    // Get current user ID from storage
     const userId = AuthApi.getCurrentUserId();
 
-    if (userData && userId) {
+    if (userId) {
       // Verify if the URL ID matches the logged-in user's ID
-      const urlId = params.id;
+      const urlId = params.id as string;
 
       if (urlId !== userId) {
         // If IDs don't match, redirect to the correct dashboard URL
@@ -44,23 +113,34 @@ export default function DashboardPage() {
         return;
       }
 
-      setUser(userData);
+      // Initialize with local storage data first (for faster UI rendering)
+      const localUserData = AuthApi.getCurrentUser();
+      if (localUserData) {
+        setUser(localUserData);
+        setHasResume(
+          !!localUserData?.perfil?.titulo ||
+            !!(
+              localUserData?.experiencias &&
+              localUserData?.experiencias.length > 0
+            )
+        );
+      }
 
-      // Check if user has uploaded a resume
-      // This is a simplified check - in a real implementation, you would fetch the user data from the API
-      // and check if curriculo_processado exists and has data
-      setHasResume(
-        !!userData.perfil?.titulo ||
-          !!(userData.experiencias && userData.experiencias.length > 0)
-      );
+      // Then fetch fresh data from the server
+      fetchUserData(userId);
     } else {
-      // If no user data in storage, logout and redirect
+      // If no user ID in storage, logout and redirect
       AuthApi.logout();
       router.push("/login");
     }
-
-    setLoading(false);
   }, [router, params]);
+
+  const handleRefresh = () => {
+    const userId = AuthApi.getCurrentUserId();
+    if (userId) {
+      fetchUserData(userId);
+    }
+  };
 
   const handleLogout = () => {
     AuthApi.logout();
@@ -80,12 +160,31 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <Button variant="outline" onClick={handleLogout}>
-            Sair
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Atualizar dados do usuário"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              <span className="ml-2">Atualizar</span>
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              Sair
+            </Button>
+          </div>
         </div>
 
-        {/* Welcome card */}
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* User info card */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>
@@ -96,15 +195,74 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertTitle>Status do seu currículo</AlertTitle>
-              <AlertDescription>
-                {hasResume
-                  ? "Seu currículo foi processado e está pronto para matching com vagas."
-                  : "Você ainda não fez upload do seu currículo. Faça o upload para começar a encontrar vagas compatíveis."}
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-4">
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertTitle>Status do seu currículo</AlertTitle>
+                <AlertDescription>
+                  {hasResume
+                    ? "Seu currículo foi processado e está pronto para matching com vagas."
+                    : "Você ainda não fez upload do seu currículo. Faça o upload para começar a encontrar vagas compatíveis."}
+                </AlertDescription>
+              </Alert>
+
+              {/* User info summary */}
+              {user && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Email:
+                    </h3>
+                    <p>{user.email}</p>
+                  </div>
+                  {user.telefone && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Telefone:
+                      </h3>
+                      <p>{user.telefone}</p>
+                    </div>
+                  )}
+                  {user.perfil?.titulo && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Cargo:
+                      </h3>
+                      <p>{user.perfil.titulo}</p>
+                    </div>
+                  )}
+                  {user.perfil?.anos_experiencia > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Experiência:
+                      </h3>
+                      <p>{user.perfil.anos_experiencia} anos</p>
+                    </div>
+                  )}
+                  {user.experiencias && user.experiencias.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Última empresa:
+                      </h3>
+                      <p>
+                        {user.experiencias[0].empresa} -{" "}
+                        {user.experiencias[0].cargo}
+                      </p>
+                    </div>
+                  )}
+                  {user.formacao && user.formacao.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Formação:
+                      </h3>
+                      <p>
+                        {user.formacao[0].grau} em {user.formacao[0].curso}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </CardContent>
           <CardFooter>
             <p className="text-sm text-muted-foreground">
@@ -157,7 +315,7 @@ export default function DashboardPage() {
                   : "Após fazer o upload do seu currículo, você poderá revisar e editar as informações extraídas."}
               </p>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-2">
               <Button
                 className="w-full"
                 onClick={() => router.push(`/${params.id}/resume/edit`)}
@@ -165,6 +323,17 @@ export default function DashboardPage() {
               >
                 Editar Currículo
               </Button>
+
+              {/* Direct access button as a fallback */}
+              {!hasResume && (
+                <Button
+                  className="w-full"
+                  variant="secondary"
+                  onClick={() => router.push(`/${params.id}/resume/edit`)}
+                >
+                  Acessar Editor Diretamente
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
@@ -172,26 +341,25 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-primary" />
-                Vagas Compatíveis
+                Vagas Disponíveis
               </CardTitle>
               <CardDescription>
-                Encontre as melhores vagas para seu perfil
+                Explore oportunidades de trabalho disponíveis
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
                 {hasResume
-                  ? "Veja as vagas mais compatíveis com seu perfil, ranqueadas por grau de matching."
-                  : "Após cadastrar seu currículo, você poderá ver vagas compatíveis com seu perfil."}
+                  ? "Encontre as melhores oportunidades para sua carreira e cadastre-se para vagas que correspondam ao seu perfil profissional."
+                  : "Explore as vagas disponíveis e comece sua jornada de busca por oportunidades."}
               </p>
             </CardContent>
             <CardFooter>
               <Button
                 className="w-full"
-                onClick={() => router.push(`/${params.id}/jobs/matching`)}
-                disabled={!hasResume}
+                onClick={() => router.push(`/${params.id}/jobs`)}
               >
-                Ver Vagas Compatíveis
+                Ver Vagas
               </Button>
             </CardFooter>
           </Card>
@@ -216,9 +384,9 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/${params.id}/jobs/search`)}
+                onClick={() => router.push(`/${params.id}/jobs`)}
               >
-                <Search className="h-4 w-4 mr-2" /> Pesquisar Vagas
+                <Search className="h-4 w-4 mr-2" /> Explorar Vagas
               </Button>
             </CardFooter>
           </Card>
