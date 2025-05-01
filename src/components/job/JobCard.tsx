@@ -66,10 +66,27 @@ export function JobCard({
     }
   };
 
-  // Handle matching analysis click
+  // Handle matching analysis click - ADICIONADO LOGS DE DEBUG
   const handleMatchAnalysis = () => {
+    console.log("Botão de análise clicado", job._id);
+
     if (onMatchAnalysis && job._id) {
-      onMatchAnalysis(job._id.toString());
+      // Converter _id para string de forma segura
+      const jobIdString =
+        typeof job._id === "string"
+          ? job._id
+          : job._id.toString
+          ? job._id.toString()
+          : String(job._id);
+
+      console.log("Chamando onMatchAnalysis com ID:", jobIdString);
+      onMatchAnalysis(jobIdString);
+    } else {
+      console.log("onMatchAnalysis ou job._id não definidos", {
+        hasMatchHandler: !!onMatchAnalysis,
+        jobId: job._id,
+        jobType: job._id ? typeof job._id : "undefined/null",
+      });
     }
   };
 
@@ -140,7 +157,7 @@ export function JobCard({
           </div>
         )}
 
-        {/* Skills tags */}
+        {/* Skills tags - CORRIGIDO KEY PROP */}
         {job.requisitos.habilidades_tecnicas &&
           job.requisitos.habilidades_tecnicas.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
@@ -148,14 +165,17 @@ export function JobCard({
                 .slice(0, 5)
                 .map((skill, index) => (
                   <span
-                    key={index}
+                    key={`skill-${index}-${skill.nome}`}
                     className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
                   >
                     {skill.nome}
                   </span>
                 ))}
               {job.requisitos.habilidades_tecnicas.length > 5 && (
-                <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs font-medium">
+                <span
+                  key="skill-more"
+                  className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs font-medium"
+                >
                   +{job.requisitos.habilidades_tecnicas.length - 5}
                 </span>
               )}
@@ -174,7 +194,12 @@ export function JobCard({
             Candidatar-se
           </Button>
 
-          <Button variant="default" size="sm" onClick={handleMatchAnalysis}>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleMatchAnalysis}
+            id="match-analysis-button" // Adicionado ID para facilitar depuração
+          >
             Analisar compatibilidade
           </Button>
         </CardFooter>

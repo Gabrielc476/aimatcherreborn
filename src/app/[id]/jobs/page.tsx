@@ -59,6 +59,9 @@ export default function JobsPage() {
   } = useJobMatching();
 
   useEffect(() => {
+    console.log("Jobs carregados:", jobs);
+  }, [jobs]);
+  useEffect(() => {
     // Check if user is authenticated
     if (!AuthApi.isAuthenticated()) {
       router.push("/login");
