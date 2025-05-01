@@ -132,13 +132,13 @@ class VagaModelo:
     def from_dict(self, dados):
         """
         Atualiza o modelo a partir de um dicionário
-
-        Args:
-            dados (dict): Dicionário com dados para atualizar o modelo
         """
-        # Atualiza apenas os campos que existem no modelo
+        # Preservar _id sempre que existir
+        if '_id' in dados:
+            self.modelo['_id'] = dados['_id']
+
+        # Atualiza os campos que existem no modelo
         for chave, valor in dados.items():
             if chave in self.modelo:
                 self.modelo[chave] = valor
-
         return self
