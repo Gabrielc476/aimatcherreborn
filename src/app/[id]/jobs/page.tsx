@@ -9,7 +9,7 @@ import { PageSizeSelector } from "@/components/ui/page-size-selector";
 import { useJobs } from "@/lib/hooks/useJobs";
 import { useJobMatching } from "@/lib/hooks/useJobMatching";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Search, Filter, RefreshCw } from "lucide-react";
+import { ArrowLeft, Search, Filter, RefreshCw, BarChart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Matching } from "@/types/matching/Matching";
 
 export default function JobsPage() {
   const router = useRouter();
@@ -34,6 +35,12 @@ export default function JobsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [matchingDialogOpen, setMatchingDialogOpen] = useState(false);
+  const [jobMatchings, setJobMatchings] = useState<Record<string, Matching>>(
+    {}
+  );
+  const [matchingInProgress, setMatchingInProgress] = useState<string | null>(
+    null
+  );
 
   // Initialize the jobs hook with default values
   const {
@@ -58,9 +65,16 @@ export default function JobsPage() {
     analyzeJobMatching,
   } = useJobMatching();
 
+  // Update job matchings when a new match analysis is completed
   useEffect(() => {
-    console.log("Jobs carregados:", jobs);
-  }, [jobs]);
+    if (matchingSuccess && matching && selectedJobId) {
+      setJobMatchings((prev) => ({
+        ...prev,
+        [selectedJobId]: matching,
+      }));
+    }
+  }, [matching, matchingSuccess, selectedJobId]);
+
   useEffect(() => {
     // Check if user is authenticated
     if (!AuthApi.isAuthenticated()) {
@@ -103,7 +117,51 @@ export default function JobsPage() {
   const handleMatchAnalysis = async (jobId: string) => {
     setSelectedJobId(jobId);
     setMatchingDialogOpen(true);
+
+    // Check if we already have matching data
+    if (jobMatchings[jobId]) {
+      // If we already have matching data, just show it
+      return;
+    }
+
+    // Show loading state for this specific job
+    setMatchingInProgress(jobId);
+
+    // Perform the matching analysis
     await analyzeJobMatching(jobId);
+
+    // Clear loading state
+    setMatchingInProgress(null);
+  };
+
+  // Handle batch analysis of all visible jobs
+  const handleAnalyzeAllJobs = async () => {
+    // Create a copy of jobs that don't have matching data yet
+    const jobsToAnalyze = jobs.filter((job) => {
+      const jobId = job._id?.toString() || "";
+      return jobId && !jobMatchings[jobId];
+    });
+
+    if (jobsToAnalyze.length === 0) {
+      return;
+    }
+
+    // Analyze each job sequentially
+    for (const job of jobsToAnalyze) {
+      const jobId = job._id?.toString() || "";
+      if (!jobId) continue;
+
+      setSelectedJobId(jobId);
+      setMatchingInProgress(jobId);
+
+      // Wait for analysis to complete
+      await analyzeJobMatching(jobId);
+
+      // Small delay to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setMatchingInProgress(null);
   };
 
   // Handle search submission
@@ -188,18 +246,41 @@ export default function JobsPage() {
           </div>
         )}
 
+        {/* Batch analysis button */}
+        {jobs.length > 0 && (
+          <div className="mb-4">
+            <Button
+              variant="secondary"
+              onClick={handleAnalyzeAllJobs}
+              disabled={isMatchingLoading || !!matchingInProgress}
+            >
+              <BarChart className="h-4 w-4 mr-2" />
+              {matchingInProgress
+                ? "Analisando compatibilidade..."
+                : "Analisar compatibilidade de todas as vagas"}
+            </Button>
+          </div>
+        )}
+
         {/* Jobs list */}
         {jobs.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 mb-6">
-            {jobs.map((job) => (
-              <JobCard
-                key={job._id?.toString()}
-                job={job}
-                onViewDetails={handleViewJobDetails}
-                onApply={handleApplyToJob}
-                onMatchAnalysis={handleMatchAnalysis}
-              />
-            ))}
+            {jobs.map((job) => {
+              const jobId = job._id?.toString() || "";
+              const isAnalyzing = matchingInProgress === jobId;
+
+              return (
+                <JobCard
+                  key={jobId}
+                  job={job}
+                  onViewDetails={handleViewJobDetails}
+                  onApply={handleApplyToJob}
+                  onMatchAnalysis={handleMatchAnalysis}
+                  matching={jobMatchings[jobId] || null}
+                  showActions={true}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -233,7 +314,7 @@ export default function JobsPage() {
           </div>
         )}
 
-        {/* Matching Analysis Dialog */}
+        {/* Matching Analysis Dialog - for full detailed view */}
         <Dialog open={matchingDialogOpen} onOpenChange={setMatchingDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -267,189 +348,10 @@ export default function JobsPage() {
                   Tentar novamente
                 </Button>
               </div>
-            ) : matching ? (
+            ) : selectedJobId && jobMatchings[selectedJobId] ? (
               <div className="space-y-6">
-                {/* Overview score */}
-                <div className="flex justify-between items-center border rounded-lg p-4">
-                  <div>
-                    <h3 className="text-lg font-medium">
-                      Compatibilidade geral
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {matching.resumo_candidato}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">
-                      {Math.round(matching.score_matching)}%
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Score de compatibilidade
-                    </div>
-                  </div>
-                </div>
-
-                {/* Categories breakdown */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">
-                    Detalhamento por categorias
-                  </h3>
-
-                  {/* Habilidades técnicas */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <CardTitle className="text-base">
-                          Habilidades Técnicas
-                        </CardTitle>
-                        <div className="text-lg font-semibold">
-                          {Math.round(
-                            matching.categorias.habilidades_tecnicas.score
-                          )}
-                          %
-                        </div>
-                      </div>
-                      <CardDescription>
-                        {
-                          matching.categorias.habilidades_tecnicas
-                            .nivel_relevancia
-                        }
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {matching.categorias.habilidades_tecnicas
-                          .correspondentes.length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium text-green-600">
-                              Pontos fortes:
-                            </p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {matching.categorias.habilidades_tecnicas.correspondentes.map(
-                                (skill, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
-                                  >
-                                    {skill}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {matching.categorias.habilidades_tecnicas.faltantes
-                          .length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium text-red-600">
-                              Áreas para desenvolvimento:
-                            </p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {matching.categorias.habilidades_tecnicas.faltantes.map(
-                                (skill, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
-                                  >
-                                    {skill}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        <p className="text-sm mt-2">
-                          {
-                            matching.categorias.habilidades_tecnicas
-                              .analise_qualitativa
-                          }
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Experiência */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <CardTitle className="text-base">Experiência</CardTitle>
-                        <div className="text-lg font-semibold">
-                          {Math.round(matching.categorias.experiencia.score)}%
-                        </div>
-                      </div>
-                      <CardDescription>
-                        {matching.categorias.experiencia.nivel_relevancia}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                      <p>
-                        <span className="font-medium">
-                          Tempo de experiência:
-                        </span>{" "}
-                        {matching.categorias.experiencia.tempo_atende ? (
-                          <span className="text-green-600">
-                            Atende aos requisitos
-                          </span>
-                        ) : (
-                          <span className="text-red-600">
-                            Não atende aos requisitos
-                          </span>
-                        )}
-                      </p>
-                      <p className="mt-2">
-                        {matching.categorias.experiencia.analise_qualitativa}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Recommendations */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Recomendações</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{matching.recomendacoes.gerais}</p>
-
-                    {matching.recomendacoes.prioridade_acao.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium">
-                          Ações prioritárias:
-                        </p>
-                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                          {matching.recomendacoes.prioridade_acao.map(
-                            (action, index) => (
-                              <li key={index} className="text-sm">
-                                {action}
-                              </li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Success probability */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between">
-                      <CardTitle className="text-base">
-                        Probabilidade de sucesso
-                      </CardTitle>
-                      <div className="text-lg font-semibold">
-                        {Math.round(matching.probabilidade_sucesso.score)}%
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">
-                      {matching.probabilidade_sucesso.justificativa}
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Use the matching data from our state map */}
+                {renderMatchingDetails(jobMatchings[selectedJobId])}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
@@ -466,5 +368,197 @@ export default function JobsPage() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+// Helper function to render matching details in the dialog
+function renderMatchingDetails(matching: Matching) {
+  return (
+    <>
+      {/* Overview score */}
+      <div className="flex justify-between items-center border rounded-lg p-4">
+        <div>
+          <h3 className="text-lg font-medium">Compatibilidade geral</h3>
+          <p className="text-sm text-muted-foreground">
+            {matching.resumo_candidato}
+          </p>
+        </div>
+        <div className="text-center">
+          <div className="text-3xl font-bold">
+            {Math.round(matching.score_matching)}%
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Score de compatibilidade
+          </div>
+        </div>
+      </div>
+
+      {/* Categories breakdown */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Detalhamento por categorias</h3>
+
+        {/* Habilidades técnicas */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between">
+              <CardTitle className="text-base">Habilidades Técnicas</CardTitle>
+              <div className="text-lg font-semibold">
+                {Math.round(matching.categorias.habilidades_tecnicas.score)}%
+              </div>
+            </div>
+            <CardDescription>
+              {matching.categorias.habilidades_tecnicas.nivel_relevancia}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {matching.categorias.habilidades_tecnicas.correspondentes.length >
+                0 && (
+                <div>
+                  <p className="text-sm font-medium text-green-600">
+                    Pontos fortes:
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {matching.categorias.habilidades_tecnicas.correspondentes.map(
+                      (skill, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
+                        >
+                          {skill}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {matching.categorias.habilidades_tecnicas.faltantes.length >
+                0 && (
+                <div>
+                  <p className="text-sm font-medium text-red-600">
+                    Áreas para desenvolvimento:
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {matching.categorias.habilidades_tecnicas.faltantes.map(
+                      (skill, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
+                        >
+                          {skill}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-sm mt-2">
+                {matching.categorias.habilidades_tecnicas.analise_qualitativa}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Experiência */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between">
+              <CardTitle className="text-base">Experiência</CardTitle>
+              <div className="text-lg font-semibold">
+                {Math.round(matching.categorias.experiencia.score)}%
+              </div>
+            </div>
+            <CardDescription>
+              {matching.categorias.experiencia.nivel_relevancia}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p>
+              <span className="font-medium">Tempo de experiência:</span>{" "}
+              {matching.categorias.experiencia.tempo_atende ? (
+                <span className="text-green-600">Atende aos requisitos</span>
+              ) : (
+                <span className="text-red-600">Não atende aos requisitos</span>
+              )}
+            </p>
+            <p className="mt-2">
+              {matching.categorias.experiencia.analise_qualitativa}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Formação */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between">
+              <CardTitle className="text-base">Formação</CardTitle>
+              <div className="text-lg font-semibold">
+                {Math.round(matching.categorias.formacao.score)}%
+              </div>
+            </div>
+            <CardDescription>
+              {matching.categorias.formacao.nivel_relevancia}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p>
+              <span className="font-medium">Nível acadêmico:</span>{" "}
+              {matching.categorias.formacao.nivel_atende ? (
+                <span className="text-green-600">Atende aos requisitos</span>
+              ) : (
+                <span className="text-red-600">Não atende aos requisitos</span>
+              )}
+            </p>
+            <p className="mt-2">
+              {matching.categorias.formacao.analise_qualitativa}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recommendations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recomendações</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm">{matching.recomendacoes.gerais}</p>
+
+          {matching.recomendacoes.prioridade_acao.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium">Ações prioritárias:</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                {matching.recomendacoes.prioridade_acao.map((action, index) => (
+                  <li key={index} className="text-sm">
+                    {action}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Success probability */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between">
+            <CardTitle className="text-base">
+              Probabilidade de sucesso
+            </CardTitle>
+            <div className="text-lg font-semibold">
+              {Math.round(matching.probabilidade_sucesso.score)}%
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm">
+            {matching.probabilidade_sucesso.justificativa}
+          </p>
+        </CardContent>
+      </Card>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Job } from "@/types/job/Job";
+import { Matching } from "@/types/matching/Matching";
 import {
   Card,
   CardContent,
@@ -16,10 +17,14 @@ import {
   Calendar,
   Award,
   ExternalLink,
+  Check,
+  X,
+  BarChart,
 } from "lucide-react";
 
 interface JobCardProps {
   job: Job;
+  matching?: Matching | null;
   onViewDetails?: (jobId: string) => void;
   onApply?: (jobId: string) => void;
   onMatchAnalysis?: (jobId: string) => void;
@@ -28,6 +33,7 @@ interface JobCardProps {
 
 export function JobCard({
   job,
+  matching,
   onViewDetails,
   onApply,
   onMatchAnalysis,
@@ -66,12 +72,10 @@ export function JobCard({
     }
   };
 
-  // Handle matching analysis click - ADICIONADO LOGS DE DEBUG
+  // Handle matching analysis click
   const handleMatchAnalysis = () => {
-    console.log("Botão de análise clicado", job._id);
-
     if (onMatchAnalysis && job._id) {
-      // Converter _id para string de forma segura
+      // Convert _id to string safely
       const jobIdString =
         typeof job._id === "string"
           ? job._id
@@ -79,30 +83,44 @@ export function JobCard({
           ? job._id.toString()
           : String(job._id);
 
-      console.log("Chamando onMatchAnalysis com ID:", jobIdString);
       onMatchAnalysis(jobIdString);
-    } else {
-      console.log("onMatchAnalysis ou job._id não definidos", {
-        hasMatchHandler: !!onMatchAnalysis,
-        jobId: job._id,
-        jobType: job._id ? typeof job._id : "undefined/null",
-      });
     }
+  };
+
+  // Get matching score color based on the score value
+  const getScoreColor = (score: number) => {
+    if (score >= 75) return "text-green-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-red-600";
   };
 
   return (
     <Card className="w-full hover:shadow-md transition-shadow duration-200">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <h3 className="text-lg font-bold line-clamp-2">{job.titulo}</h3>
             <div className="flex items-center mt-1 text-sm text-muted-foreground">
               <Building className="h-4 w-4 mr-1" />
               <span>{job.empresa.nome}</span>
             </div>
           </div>
-          {job.empresa.logo_url && (
-            <div className="h-10 w-10 flex-shrink-0">
+
+          {matching && (
+            <div className="flex flex-col items-center ml-4">
+              <div
+                className={`text-xl font-bold ${getScoreColor(
+                  matching.score_matching
+                )}`}
+              >
+                {Math.round(matching.score_matching)}%
+              </div>
+              <div className="text-xs text-muted-foreground">Match</div>
+            </div>
+          )}
+
+          {job.empresa.logo_url && !matching && (
+            <div className="h-10 w-10 flex-shrink-0 ml-4">
               <img
                 src={job.empresa.logo_url}
                 alt={`${job.empresa.nome} logo`}
@@ -142,23 +160,98 @@ export function JobCard({
           </div>
         </div>
 
-        {/* Job summary or snippet */}
-        {job.resumo && (
+        {/* Matching information - Only show if matching data exists */}
+        {matching && (
+          <div className="mt-4 border-t pt-3">
+            <div className="text-sm font-medium mb-2">
+              Análise de compatibilidade:
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+              {/* Technical skills match */}
+              <div className="flex flex-col">
+                <div className="text-xs text-muted-foreground">Habilidades</div>
+                <div
+                  className={getScoreColor(
+                    matching.categorias.habilidades_tecnicas.score
+                  )}
+                >
+                  {Math.round(matching.categorias.habilidades_tecnicas.score)}%
+                </div>
+              </div>
+
+              {/* Experience match */}
+              <div className="flex flex-col">
+                <div className="text-xs text-muted-foreground">Experiência</div>
+                <div
+                  className={getScoreColor(
+                    matching.categorias.experiencia.score
+                  )}
+                >
+                  {Math.round(matching.categorias.experiencia.score)}%
+                </div>
+              </div>
+
+              {/* Success probability */}
+              <div className="flex flex-col">
+                <div className="text-xs text-muted-foreground">
+                  Probabilidade
+                </div>
+                <div
+                  className={getScoreColor(
+                    matching.probabilidade_sucesso.score
+                  )}
+                >
+                  {Math.round(matching.probabilidade_sucesso.score)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Top strengths and weaknesses */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {matching.diferenciais.pontos_fortes.length > 0 && (
+                <div className="bg-green-50 p-2 rounded">
+                  <div className="text-xs text-green-600 font-medium flex items-center">
+                    <Check className="h-3 w-3 mr-1" /> Ponto forte:
+                  </div>
+                  <div className="text-xs text-green-800">
+                    {matching.diferenciais.pontos_fortes[0]}
+                  </div>
+                </div>
+              )}
+
+              {matching.diferenciais.pontos_fracos.length > 0 && (
+                <div className="bg-red-50 p-2 rounded">
+                  <div className="text-xs text-red-600 font-medium flex items-center">
+                    <X className="h-3 w-3 mr-1" /> Ponto a melhorar:
+                  </div>
+                  <div className="text-xs text-red-800">
+                    {matching.diferenciais.pontos_fracos[0]}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Job summary or snippet - only show when matching is not displayed */}
+        {!matching && job.resumo && (
           <div className="mt-4">
             <p className="text-sm line-clamp-3">{job.resumo}</p>
           </div>
         )}
 
-        {/* Salary information if available */}
-        {job.faixa_salarial && (
+        {/* Salary information if available - only show when matching is not displayed */}
+        {!matching && job.faixa_salarial && (
           <div className="mt-3">
             <div className="text-sm font-medium">Faixa salarial:</div>
             <div className="text-sm">{formattedSalary}</div>
           </div>
         )}
 
-        {/* Skills tags - CORRIGIDO KEY PROP */}
-        {job.requisitos.habilidades_tecnicas &&
+        {/* Skills tags - only show when matching is not displayed */}
+        {!matching &&
+          job.requisitos.habilidades_tecnicas &&
           job.requisitos.habilidades_tecnicas.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
               {job.requisitos.habilidades_tecnicas
@@ -194,18 +287,20 @@ export function JobCard({
             Candidatar-se
           </Button>
 
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleMatchAnalysis}
-            id="match-analysis-button" // Adicionado ID para facilitar depuração
-          >
-            Analisar compatibilidade
-          </Button>
+          {!matching && (
+            <Button variant="default" size="sm" onClick={handleMatchAnalysis}>
+              Analisar compatibilidade
+            </Button>
+          )}
+
+          {matching && (
+            <Button variant="default" size="sm" onClick={handleMatchAnalysis}>
+              <BarChart className="h-4 w-4 mr-1" />
+              Ver análise completa
+            </Button>
+          )}
         </CardFooter>
       )}
     </Card>
   );
 }
-
-export default JobCard;
