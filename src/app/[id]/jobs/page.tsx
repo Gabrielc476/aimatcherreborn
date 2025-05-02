@@ -56,13 +56,14 @@ export default function JobsPage() {
     refreshJobs,
   } = useJobs(1, 10);
 
-  // Initialize the job matching hook
+  // Initialize the job matching hook with the new fetchUserMatchings function
   const {
     matching,
     isLoading: isMatchingLoading,
     error: matchingError,
     success: matchingSuccess,
     analyzeJobMatching,
+    fetchUserMatchings,
   } = useJobMatching();
 
   // Update job matchings when a new match analysis is completed
@@ -75,6 +76,7 @@ export default function JobsPage() {
     }
   }, [matching, matchingSuccess, selectedJobId]);
 
+  // Authentication check
   useEffect(() => {
     // Check if user is authenticated
     if (!AuthApi.isAuthenticated()) {
@@ -102,6 +104,23 @@ export default function JobsPage() {
 
     setLoading(false);
   }, [router, params]);
+
+  // Fetch existing matchings when the page loads
+  useEffect(() => {
+    const loadExistingMatchings = async () => {
+      if (loading) return; // Don't fetch if still loading
+
+      try {
+        // Fetch existing matchings using the hook's function
+        const existingMatchings = await fetchUserMatchings();
+        setJobMatchings(existingMatchings);
+      } catch (error) {
+        console.error("Error fetching existing matchings:", error);
+      }
+    };
+
+    loadExistingMatchings();
+  }, [loading, fetchUserMatchings]);
 
   // Handle view job details
   const handleViewJobDetails = (jobId: string) => {

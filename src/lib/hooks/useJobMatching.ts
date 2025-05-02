@@ -2,6 +2,7 @@ import { useState } from "react";
 import { VagasApi } from "../api/vagasApi";
 import { Matching } from "@/types/matching/Matching";
 import { AuthApi } from "../api/authApi";
+import { MatchingApi } from "../api/matchingApi";
 
 interface UseJobMatchingReturn {
   matching: Matching | null;
@@ -9,6 +10,7 @@ interface UseJobMatchingReturn {
   error: string | null;
   success: boolean;
   analyzeJobMatching: (jobId: string, userId?: string) => Promise<boolean>;
+  fetchUserMatchings: () => Promise<Record<string, Matching>>;
 }
 
 /**
@@ -77,12 +79,54 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     }
   };
 
+  /**
+   * Fetch all matchings for the current user
+   *
+   * @returns Promise that resolves to a map of job IDs to matchings
+   */
+  const fetchUserMatchings = async (): Promise<Record<string, Matching>> => {
+    // If no userId provided, use the current user's ID
+    const currentUserId = AuthApi.getCurrentUserId();
+
+    if (!currentUserId) {
+      setError("Usuário não identificado. Faça login novamente.");
+      return {};
+    }
+
+    try {
+      const response = await MatchingApi.getUserMatchings(currentUserId);
+
+      if (response.status === 200 && response.data) {
+        // Convert list to map by job ID
+        const matchingsMap: Record<string, Matching> = {};
+        response.data.data.forEach((matching) => {
+          matchingsMap[matching.vaga_id] = matching;
+        });
+        return matchingsMap;
+      } else {
+        setError(
+          response.erro ||
+            "Erro ao buscar compatibilidades. Tente novamente mais tarde."
+        );
+        return {};
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao buscar compatibilidades."
+      );
+      return {};
+    }
+  };
+
   return {
     matching,
     isLoading,
     error,
     success,
     analyzeJobMatching,
+    fetchUserMatchings,
   };
 };
 
