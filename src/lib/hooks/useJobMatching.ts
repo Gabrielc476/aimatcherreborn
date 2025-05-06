@@ -11,6 +11,7 @@ interface UseJobMatchingReturn {
   success: boolean;
   analyzeJobMatching: (jobId: string, userId?: string) => Promise<boolean>;
   fetchUserMatchings: () => Promise<Record<string, Matching>>;
+  fetchExistingMatching: (userId: string, jobId: string) => Promise<boolean>;
 }
 
 /**
@@ -120,6 +121,34 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     }
   };
 
+  const fetchExistingMatching = async (
+    userId: string,
+    jobId: string
+  ): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await MatchingApi.getExistingMatching(userId, jobId);
+
+      if (response.status === 200 && response.data) {
+        setMatching(response.data.matching);
+        setSuccess(true);
+        setIsLoading(false);
+        return true;
+      } else {
+        // Não definir erro, apenas indicar que não existe análise
+        setIsLoading(false);
+        return false;
+      }
+    } catch (err) {
+      // Tratamento silencioso para não alarmar o usuário
+      console.error("Erro ao buscar análise existente:", err);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
   return {
     matching,
     isLoading,
@@ -127,6 +156,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     success,
     analyzeJobMatching,
     fetchUserMatchings,
+    fetchExistingMatching,
   };
 };
 

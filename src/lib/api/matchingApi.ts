@@ -11,6 +11,36 @@ export class MatchingApi {
   private static BASE_PATH = "/matching";
 
   /**
+   * Get existing matching analysis for a user and job
+   *
+   * @param userId User ID
+   * @param jobId Job ID
+   * @returns Existing matching analysis if available
+   */
+  public static async getExistingMatching(
+    userId: string,
+    jobId: string
+  ): Promise<ApiResponse<{ matching: any }>> {
+    try {
+      // Esta URL pode variar de acordo com sua API
+      const response = await apiClient.get<{
+        matching: any;
+      }>(`/matching/${userId}/${jobId}`);
+
+      return response;
+    } catch (error) {
+      console.error("Error fetching existing matching:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao buscar análise existente",
+        status: 500,
+      };
+    }
+  }
+
+  /**
    * Fetch all matchings for a specific user
    *
    * @param userId User ID to fetch matchings for
