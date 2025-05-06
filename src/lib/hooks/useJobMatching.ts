@@ -121,11 +121,19 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     }
   };
 
+  /**
+   * Fetch existing matching analysis by user ID and job ID
+   *
+   * @param userId User ID
+   * @param jobId Job ID
+   * @returns Promise that resolves to true if matching was found
+   */
   const fetchExistingMatching = async (
     userId: string,
     jobId: string
   ): Promise<boolean> => {
-    setIsLoading(true);
+    // Don't set loading state when checking for existing matches
+    // This prevents the UI glitch in components using this hook
     setError(null);
 
     try {
@@ -134,17 +142,14 @@ export const useJobMatching = (): UseJobMatchingReturn => {
       if (response.status === 200 && response.data) {
         setMatching(response.data.matching);
         setSuccess(true);
-        setIsLoading(false);
         return true;
       } else {
-        // Não definir erro, apenas indicar que não existe análise
-        setIsLoading(false);
+        // Quiet failure - don't set error for this operation
         return false;
       }
     } catch (err) {
-      // Tratamento silencioso para não alarmar o usuário
+      // Just log the error but don't set error state
       console.error("Erro ao buscar análise existente:", err);
-      setIsLoading(false);
       return false;
     }
   };

@@ -27,7 +27,8 @@ export default function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [matchingDialogOpen, setMatchingDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [matchingLoaded, setMatchingLoaded] = useState(false);
+
+  // Removed unused matchingLoaded state
 
   // Get the job ID from the URL
   const jobId = params.jobid as string;
@@ -43,14 +44,7 @@ export default function JobDetailsPage() {
     fetchExistingMatching,
   } = useJobMatching();
 
-  useEffect(() => {
-    // Se já temos o job carregado e não estamos em loading
-    if (job && !loading) {
-      // Buscar matching existente
-      fetchExistingMatching(userId, jobId);
-    }
-  }, [job, loading, userId, jobId, fetchExistingMatching]);
-
+  // Authentication check and job data fetching
   useEffect(() => {
     // Check if user is authenticated
     if (!AuthApi.isAuthenticated()) {
@@ -104,14 +98,20 @@ export default function JobDetailsPage() {
     };
 
     fetchJobDetails();
-  }, [router, params, jobId, userId]);
+  }, [router, jobId, userId]); // Better dependency array
+
+  // Fetch existing matching data when job loads
+  useEffect(() => {
+    if (job && !loading && userId && jobId) {
+      // Fetch existing matching data without affecting loading state
+      fetchExistingMatching(userId, jobId);
+    }
+  }, [job, loading, userId, jobId, fetchExistingMatching]);
 
   // Handle back button click
   const handleBack = () => {
     router.push(`/${userId}/jobs`);
   };
-
-  // Function removed for apply and save
 
   // Handle share job
   const handleShare = () => {
@@ -119,12 +119,12 @@ export default function JobDetailsPage() {
   };
 
   // Handle matching analysis
-  const handleMatchAnalysis = async () => {
+  const handleMatchAnalysis = () => {
     setMatchingDialogOpen(true);
 
-    // Perform the matching analysis if we don't have a result yet
-    if (!matching) {
-      await analyzeJobMatching(jobId);
+    // No need to attempt a new analysis if we already have matching data
+    if (!matching && !isMatchingLoading) {
+      analyzeJobMatching(jobId);
     }
   };
 
@@ -169,7 +169,7 @@ export default function JobDetailsPage() {
           <JobDetails
             job={job}
             matching={matching}
-            isLoading={isMatchingLoading}
+            isLoading={false} // Never show loading state for buttons
             onShare={handleShare}
             onMatchAnalysis={handleMatchAnalysis}
             onBack={handleBack}
@@ -183,7 +183,7 @@ export default function JobDetailsPage() {
           </div>
         )}
 
-        {/* Matching Analysis Dialog */}
+        {/* Matching Analysis Dialog - Fixed order of conditions for better flow */}
         <Dialog open={matchingDialogOpen} onOpenChange={setMatchingDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -193,7 +193,11 @@ export default function JobDetailsPage() {
               </DialogDescription>
             </DialogHeader>
 
-            {isMatchingLoading ? (
+            {matching ? (
+              // Prioritize showing existing data
+              <div className="space-y-6">{renderMatchingDetails(matching)}</div>
+            ) : isMatchingLoading ? (
+              // Show loading indicator only when actually loading a new analysis
               <div className="flex justify-center items-center py-12">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
@@ -205,6 +209,7 @@ export default function JobDetailsPage() {
                 </div>
               </div>
             ) : matchingError ? (
+              // Show error state
               <div className="bg-red-50 text-red-800 p-4 rounded-md my-4">
                 <p className="font-medium">Erro ao analisar compatibilidade</p>
                 <p className="mt-1">{matchingError}</p>
@@ -216,9 +221,8 @@ export default function JobDetailsPage() {
                   Tentar novamente
                 </Button>
               </div>
-            ) : matching ? (
-              <div className="space-y-6">{renderMatchingDetails(matching)}</div>
             ) : (
+              // Default state when no matching data available
               <div className="text-center py-8 text-muted-foreground">
                 Nenhuma análise disponível
               </div>
