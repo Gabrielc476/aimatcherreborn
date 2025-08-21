@@ -25,7 +25,7 @@ def conectar_mongodb():
 
 
         # Acessa o banco de dados
-        db = cliente.get_database()
+        db = cliente["cluster0"]
 
         print(f"Conexão estabelecida com o MongoDB")
         return cliente, db
