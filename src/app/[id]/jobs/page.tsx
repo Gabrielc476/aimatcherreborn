@@ -10,7 +10,7 @@ import { useJobs } from "@/lib/hooks/useJobs";
 import { useJobMatching } from "@/lib/hooks/useJobMatching";
 import { useJobFilters } from "@/lib/hooks/useJobFilters";
 import { JobFilterPanel } from "@/components/job/JobFilterPanel";
-import { KeywordInput } from "@/components/job/KeywordInput";
+
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
