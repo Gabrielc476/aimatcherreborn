@@ -13,7 +13,8 @@ load_dotenv()
 # Cria a aplicação Flask
 app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000", "allow_headers": ["Content-Type", "Authorization"]}})
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+CORS(app, resources={r"/*": {"origins": FRONTEND_URL, "allow_headers": ["Content-Type", "Authorization"]}})
 
 # Configura o segredo para JWT
 app.config['JWT_SECRET'] = os.getenv('JWT_SECRET', 'chave_secreta_para_desenvolvimento')
