@@ -24,6 +24,8 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  ArrowUpAZ,
+  ArrowDownAZ
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
