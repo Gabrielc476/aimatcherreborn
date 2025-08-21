@@ -8,7 +8,7 @@ export class ApiClient {
   private axiosInstance: AxiosInstance;
   private static TOKEN_KEY = "auth_token";
 
-  constructor(baseURL: string = "http://127.0.0.1:5000") {
+  constructor(baseURL: string = "https://aimatcherreborn-backend.onrender.com") {
     this.axiosInstance = axios.create({
       baseURL,
       headers: {
