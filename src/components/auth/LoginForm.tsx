@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // Importe o Link
 import { useLogin } from "../../lib/hooks/useLogin";
 import { LoginRequest } from "@/types/auth/LoginRequest";
 import { Button } from "@/components/ui/button";
@@ -39,18 +40,15 @@ export function LoginForm() {
     const success = await login(formData);
 
     if (success) {
-      // Get the current user ID as a string
       const userId = AuthApi.getCurrentUserId();
-
       if (userId) {
-        // Navigate to the user's dashboard with their ID
         router.push(`/${userId}/dashboard`);
       } else {
-        // Fallback in case user ID is not available (should not normally happen)
         router.push("/");
       }
     }
   };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -83,12 +81,13 @@ export function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="senha">Senha</Label>
-              <a
+              {/* Link corrigido */}
+              <Link
                 href="/esqueci-senha"
                 className="text-sm text-primary hover:underline"
               >
                 Esqueceu a senha?
-              </a>
+              </Link>
             </div>
             <Input
               id="senha"
@@ -109,9 +108,10 @@ export function LoginForm() {
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
           Não tem uma conta?{" "}
-          <a href="/registrar" className="text-primary hover:underline">
+          {/* Link corrigido */}
+          <Link href="/register" className="text-primary hover:underline">
             Registre-se
-          </a>
+          </Link>
         </p>
       </CardFooter>
     </Card>
