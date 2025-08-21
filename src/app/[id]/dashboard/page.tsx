@@ -231,12 +231,12 @@ export default function DashboardPage() {
                       <p>{user.perfil.titulo}</p>
                     </div>
                   )}
-                  {user.perfil?.anos_experiencia > 0 && (
+                  {(user.perfil?.anos_experiencia ?? 0) > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground">
                         Experiência:
                       </h3>
-                      <p>{user.perfil.anos_experiencia} anos</p>
+                      <p>{user.perfil?.anos_experiencia} anos</p>
                     </div>
                   )}
                   {user.experiencias && user.experiencias.length > 0 && (
