@@ -1,0 +1,185 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum StatusUsuario {
+  ATIVO
+  INATIVO
+  BLOQUEADO
+}
+
+enum ModalidadeTrabalho {
+  REMOTO
+  HIBRIDO
+  PRESENCIAL
+}
+
+model Usuario {
+  id                String         @id @default(uuid()) @db.Uuid
+  nomeCompleto      String         @map("nome_completo")
+  email             String         @unique
+  senhaHash         String         @map("senha_hash")
+  telefone          String?
+  dataNascimento    DateTime?      @map("data_nascimento")
+  status            StatusUsuario  @default(ATIVO)
+  dataCriacao       DateTime       @default(now()) @map("data_criacao")
+  ultimoAcesso      DateTime?      @map("ultimo_acesso")
+  
+  // Perfil Profissional & Currículo
+  perfil            Perfil?
+  experiencias      Experiencia[]
+  formacoes         Formacao[]
+  habilidades       Habilidade[]
+  certificacoes     Certificacao[]
+  idiomas           Idioma[]
+  preferencias      Preferencia?
+  
+  // Armazenamento do PDF no Supabase
+  curriculoUrl      String?        @map("curriculo_url") // Link do PDF no Bucket
+  curriculoTexto    String?        @map("curriculo_texto") @db.Text
+  curriculoExtraido Json?          @map("curriculo_extraido") // Dados estruturados pela IA
+  
+  // Relacionamentos
+  matchings         Matching[]
+  vagasCriadas      Vaga[]         @relation("RecrutadorVagas")
+
+  @@map("usuarios")
+}
+
+model Perfil {
+  id                 String   @id @default(uuid()) @db.Uuid
+  usuarioId          String   @unique @map("usuario_id") @db.Uuid
+  usuario            Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  titulo             String?  // Ex: "Desenvolvedor Full Stack"
+  resumoProfissional String?  @map("resumo_profissional") @db.Text
+  anosExperiencia    Int      @default(0) @map("anos_experiencia")
+  pretensaoSalarial  Decimal? @map("pretensao_salarial") @db.Decimal(10, 2)
+  disponibilidade    String?
+
+  @@map("perfis")
+}
+
+model Experiencia {
+  id          String   @id @default(uuid()) @db.Uuid
+  usuarioId   String   @map("usuario_id") @db.Uuid
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa     String
+  cargo       String
+  descricao   String?  @db.Text
+  dataInicio  DateTime @map("data_inicio")
+  dataFim     DateTime? @map("data_fim")
+  atual       Boolean  @default(false)
+  tecnologias String[] @map("tecnologias")
+
+  @@map("experiencias")
+}
+
+model Formacao {
+  id          String    @id @default(uuid()) @db.Uuid
+  usuarioId   String    @map("usuario_id") @db.Uuid
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  instituicao String
+  curso       String
+  grau        String?   // Superior, Pós, etc.
+  area        String?
+  dataInicio  DateTime? @map("data_inicio")
+  dataFim     DateTime? @map("data_fim")
+  concluido   Boolean   @default(true)
+
+  @@map("formacoes")
+}
+
+model Habilidade {
+  id              String  @id @default(uuid()) @db.Uuid
+  usuarioId       String  @map("usuario_id") @db.Uuid
+  usuario         Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome            String
+  nivel           String? // Básico, Intermediário, Avançado
+  anosExperiencia Int     @default(0) @map("anos_experiencia")
+
+  @@map("habilidades")
+}
+
+model Certificacao {
+  id             String    @id @default(uuid()) @db.Uuid
+  usuarioId      String    @map("usuario_id") @db.Uuid
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome           String
+  emissor        String
+  dataObtencao   DateTime? @map("data_obtencao")
+  dataValidade   DateTime? @map("data_validade")
+  codigoValidade String?   @map("codigo_validade")
+
+  @@map("certificacoes")
+}
+
+model Idioma {
+  id               String  @id @default(uuid()) @db.Uuid
+  usuarioId        String  @map("usuario_id") @db.Uuid
+  usuario         Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome             String
+  nivelLeitura     String? @map("nivel_leitura")
+  nivelEscrita     String? @map("nivel_escrita")
+  nivelConversacao String? @map("nivel_conversacao")
+
+  @@map("idiomas")
+}
+
+model Preferencia {
+  id            String               @id @default(uuid()) @db.Uuid
+  usuarioId     String               @unique @map("usuario_id") @db.Uuid
+  usuario       Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  modalidades   ModalidadeTrabalho[]
+  cidades       String[]
+  cargos        String[]
+  tipoContrato  String[]             @map("tipo_contrato") // CLT, PJ
+  mudanca       Boolean              @default(false)
+
+  @@map("preferencias")
+}
+
+model Vaga {
+  id             String             @id @default(uuid()) @db.Uuid
+  recrutadorId   String             @map("recrutador_id") @db.Uuid
+  recrutador     Usuario            @relation("RecrutadorVagas", fields: [recrutadorId], references: [id])
+  titulo         String
+  descricao      String             @db.Text
+  resumo         String?            @db.Text
+  status         String             @default("ativa") // ativa, encerrada
+  empresaNome    String             @map("empresa_nome")
+  localizacao    String?
+  modalidade     ModalidadeTrabalho
+  tipoContrato   String             @map("tipo_contrato")
+  nivel          String             // Junior, Pleno, Senior
+  salarioMin     Decimal?           @map("salario_min") @db.Decimal(10, 2)
+  salarioMax     Decimal?           @map("salario_max") @db.Decimal(10, 2)
+  requisitos     Json?              // Estrutura de requisitos extraídos pela IA
+  palavrasChave  String[]           @map("palavras_chave")
+  dataCriacao    DateTime           @default(now()) @map("data_criacao")
+  
+  matchings      Matching[]
+
+  @@map("vagas")
+}
+
+model Matching {
+  id           String   @id @default(uuid()) @db.Uuid
+  usuarioId    String   @map("usuario_id") @db.Uuid
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  vagaId       String   @map("vaga_id") @db.Uuid
+  vaga         Vaga     @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+  score        Decimal  @db.Decimal(5, 2)
+  analise      Json     // Relatório estruturado gerado pela IA
+  dataMatching DateTime @default(now()) @map("data_matching")
+
+  @@unique([usuarioId, vagaId])
+  @@map("matchings")
+}
