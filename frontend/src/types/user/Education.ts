@@ -3,11 +3,12 @@
  * Interface representing education
  */
 export interface Education {
+  id?: string;
   instituicao: string;
   curso: string;
   grau: string;
   area: string;
-  data_inicio: string;
-  data_fim?: string;
+  dataInicio: string;
+  dataFim?: string;
   concluido: boolean;
 }

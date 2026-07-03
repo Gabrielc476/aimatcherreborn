@@ -52,7 +52,7 @@ export default function DashboardPage() {
               response.data?.experiencias &&
               response.data?.experiencias.length > 0
             ) ||
-            !!response.data?.curriculo_processado
+            !!response.data?.curriculoExtraido
         );
         setError(null);
       } else {
@@ -191,7 +191,7 @@ export default function DashboardPage() {
               Bem-vindo ao Sistema de Matching de Currículos
             </CardTitle>
             <CardDescription>
-              Você está conectado como {user?.nome_completo || "Usuário"}
+              Você está conectado como {user?.nomeCompleto || "Usuário"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -231,12 +231,12 @@ export default function DashboardPage() {
                       <p>{user.perfil.titulo}</p>
                     </div>
                   )}
-                  {user.perfil?.anos_experiencia > 0 && (
+                  {user.perfil?.anosExperiencia !== undefined && user.perfil.anosExperiencia > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground">
                         Experiência:
                       </h3>
-                      <p>{user.perfil.anos_experiencia} anos</p>
+                      <p>{user.perfil.anosExperiencia} anos</p>
                     </div>
                   )}
                   {user.experiencias && user.experiencias.length > 0 && (
@@ -250,13 +250,13 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   )}
-                  {user.formacao && user.formacao.length > 0 && (
+                  {user.formacoes && user.formacoes.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground">
                         Formação:
                       </h3>
                       <p>
-                        {user.formacao[0].grau} em {user.formacao[0].curso}
+                        {user.formacoes[0].grau} em {user.formacoes[0].curso}
                       </p>
                     </div>
                   )}
@@ -267,9 +267,9 @@ export default function DashboardPage() {
           <CardFooter>
             <p className="text-sm text-muted-foreground">
               Seu último acesso foi em:{" "}
-              {user?.ultimo_acesso
-                ? new Date(user.ultimo_acesso).toLocaleString()
-                : "N/A"}
+            {user?.ultimoAcesso
+              ? new Date(user.ultimoAcesso).toLocaleString()
+              : "N/A"}
             </p>
           </CardFooter>
         </Card>

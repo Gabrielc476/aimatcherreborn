@@ -40,10 +40,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // executa sem definir a variável de sessão (ou com valor vazio)
     return this.$transaction(async (tx) => {
       if (userId) {
-        // Define a variável de sessão 'request.jwt.claims' na transação atual para que a função auth.uid() do Supabase funcione
-        await tx.$executeRawUnsafe(`SELECT set_config('request.jwt.claims', '{"sub": "${userId}", "role": "authenticated"}', true);`);
+        // Define a variável de sessão 'app.current_user_id' na transação atual para que as políticas de RLS funcionem
+        await tx.$executeRawUnsafe(`SELECT set_config('app.current_user_id', '${userId}', true);`);
       } else {
-        await tx.$executeRawUnsafe(`SELECT set_config('request.jwt.claims', '{}', true);`);
+        await tx.$executeRawUnsafe(`SELECT set_config('app.current_user_id', '', true);`);
       }
       return operations(tx);
     });

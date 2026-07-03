@@ -15,20 +15,15 @@ export default function HomePage() {
 
       if (userId) {
         // Redirect to the user's dashboard with their ID
-        router.push(`/${userId}/dashboard`);
+        router.replace(`/${userId}/dashboard`);
       } else {
         // If authenticated but no ID available (should be rare)
-        router.push("/login");
+        router.replace("/login");
       }
     } else {
-      router.push("/login");
+      router.replace("/login");
     }
   }, [router]);
 
-  // Simple loading state while redirect happens
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-lg">Redirecionando...</p>
-    </div>
-  );
+  return null;
 }

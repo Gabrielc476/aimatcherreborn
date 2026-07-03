@@ -287,12 +287,12 @@ function renderMatchingDetails(matching: any) {
         <div>
           <h3 className="text-lg font-medium">Compatibilidade geral</h3>
           <p className="text-sm text-muted-foreground">
-            {matching.resumo_candidato}
+            {matching.analise.resumoCandidato}
           </p>
         </div>
         <div className="text-center">
           <div className="text-3xl font-bold">
-            {Math.round(matching.score_matching)}%
+            {Math.round(matching.score)}%
           </div>
           <div className="text-sm text-muted-foreground">
             Score de compatibilidade
@@ -309,22 +309,22 @@ function renderMatchingDetails(matching: any) {
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Habilidades Técnicas</h4>
             <div className="font-semibold">
-              {Math.round(matching.categorias.habilidades_tecnicas.score)}%
+              {Math.round(matching.analise.categorias.habilidadesTecnicas.score)}%
             </div>
           </div>
 
           <p className="text-sm mb-3">
-            {matching.categorias.habilidades_tecnicas.analise_qualitativa}
+            {matching.analise.categorias.habilidadesTecnicas.analiseQualitativa}
           </p>
 
-          {matching.categorias.habilidades_tecnicas.correspondentes.length >
+          {matching.analise.categorias.habilidadesTecnicas.correspondentes.length >
             0 && (
             <div className="mb-2">
               <p className="text-sm font-medium text-green-600">
                 Pontos fortes:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.categorias.habilidades_tecnicas.correspondentes.map(
+                {matching.analise.categorias.habilidadesTecnicas.correspondentes.map(
                   (skill: string, index: number) => (
                     <span
                       key={index}
@@ -338,13 +338,13 @@ function renderMatchingDetails(matching: any) {
             </div>
           )}
 
-          {matching.categorias.habilidades_tecnicas.faltantes.length > 0 && (
+          {matching.analise.categorias.habilidadesTecnicas.faltantes.length > 0 && (
             <div>
               <p className="text-sm font-medium text-red-600">
                 Áreas para desenvolvimento:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.categorias.habilidades_tecnicas.faltantes.map(
+                {matching.analise.categorias.habilidadesTecnicas.faltantes.map(
                   (skill: string, index: number) => (
                     <span
                       key={index}
@@ -364,30 +364,30 @@ function renderMatchingDetails(matching: any) {
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Experiência</h4>
             <div className="font-semibold">
-              {Math.round(matching.categorias.experiencia.score)}%
+              {Math.round(matching.analise.categorias.experiencia.score)}%
             </div>
           </div>
 
           <p className="text-sm mb-2">
-            {matching.categorias.experiencia.analise_qualitativa}
+            {matching.analise.categorias.experiencia.analiseQualitativa}
           </p>
 
           <p className="text-sm">
             <span className="font-medium">Tempo de experiência:</span>{" "}
-            {matching.categorias.experiencia.tempo_atende ? (
+            {matching.analise.categorias.experiencia.tempoAtende ? (
               <span className="text-green-600">Atende aos requisitos</span>
             ) : (
               <span className="text-red-600">Não atende aos requisitos</span>
             )}
           </p>
 
-          {matching.categorias.experiencia.areas_correspondentes.length > 0 && (
+          {matching.analise.categorias.experiencia.areasCorrespondentes.length > 0 && (
             <div className="mt-2">
               <p className="text-sm font-medium text-green-600">
                 Áreas de experiência compatíveis:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.categorias.experiencia.areas_correspondentes.map(
+                {matching.analise.categorias.experiencia.areasCorrespondentes.map(
                   (area: string, index: number) => (
                     <span
                       key={index}
@@ -407,18 +407,18 @@ function renderMatchingDetails(matching: any) {
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Formação</h4>
             <div className="font-semibold">
-              {Math.round(matching.categorias.formacao.score)}%
+              {Math.round(matching.analise.categorias.formacao.score)}%
             </div>
           </div>
 
           <p className="text-sm mb-2">
-            {matching.categorias.formacao.analise_qualitativa}
+            {matching.analise.categorias.formacao.analiseQualitativa}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             <div>
               <span className="font-medium">Nível acadêmico:</span>{" "}
-              {matching.categorias.formacao.nivel_atende ? (
+              {matching.analise.categorias.formacao.nivelAtende ? (
                 <span className="text-green-600">Adequado</span>
               ) : (
                 <span className="text-red-600">Não adequado</span>
@@ -426,7 +426,7 @@ function renderMatchingDetails(matching: any) {
             </div>
             <div>
               <span className="font-medium">Área de formação:</span>{" "}
-              {matching.categorias.formacao.area_atende ? (
+              {matching.analise.categorias.formacao.areaAtende ? (
                 <span className="text-green-600">Compatível</span>
               ) : (
                 <span className="text-red-600">Não compatível</span>
@@ -439,13 +439,13 @@ function renderMatchingDetails(matching: any) {
       {/* Recommendations */}
       <div className="border rounded-lg p-4">
         <h3 className="text-lg font-medium mb-2">Recomendações</h3>
-        <p className="text-sm mb-3">{matching.recomendacoes.gerais}</p>
+        <p className="text-sm mb-3">{matching.analise.recomendacoes.gerais}</p>
 
-        {matching.recomendacoes.prioridade_acao.length > 0 && (
+        {matching.analise.recomendacoes.prioridadeAcao.length > 0 && (
           <div>
             <p className="text-sm font-medium">Ações prioritárias:</p>
             <ul className="list-disc pl-5 mt-1 space-y-1">
-              {matching.recomendacoes.prioridade_acao.map(
+              {matching.analise.recomendacoes.prioridadeAcao.map(
                 (action: string, index: number) => (
                   <li key={index} className="text-sm">
                     {action}
@@ -462,11 +462,11 @@ function renderMatchingDetails(matching: any) {
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-medium">Probabilidade de sucesso</h3>
           <div className="text-xl font-bold">
-            {Math.round(matching.probabilidade_sucesso.score)}%
+            {Math.round(matching.analise.probabilidadeSucesso.score)}%
           </div>
         </div>
         <p className="text-sm">
-          {matching.probabilidade_sucesso.justificativa}
+          {matching.analise.probabilidadeSucesso.justificativa}
         </p>
       </div>
     </>

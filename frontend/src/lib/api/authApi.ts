@@ -3,14 +3,12 @@ import { LoginRequest } from "@/types/auth/LoginRequest";
 import { RegisterRequest } from "@/types/auth/RegisterRequest";
 import { User } from "@/types/user/User";
 import { ApiResponse } from "@/types/api/ApiResponse";
-import { ObjectId } from "mongodb";
 
 /**
  * Authentication API service
  */
 export class AuthApi {
   private static BASE_PATH = "/usuario";
-  // Changed from private to public to be accessible outside the class
   public static USER_KEY = "current_user";
 
   /**
@@ -18,8 +16,8 @@ export class AuthApi {
    */
   public static async register(
     userData: RegisterRequest
-  ): Promise<ApiResponse<{ usuario_id: string }>> {
-    return apiClient.post<{ usuario_id: string }>(
+  ): Promise<ApiResponse<{ usuarioId: string }>> {
+    return apiClient.post<{ usuarioId: string }>(
       `${this.BASE_PATH}/cadastro`,
       userData
     );
@@ -41,23 +39,9 @@ export class AuthApi {
     if (response.status === 200 && response.data?.token) {
       apiClient.setToken(response.data.token);
 
-      // Create a serializable version of the user data for localStorage
+      // Store user data in localStorage
       if (response.data.usuario) {
-        const userForStorage = { ...response.data.usuario };
-
-        // Convert ObjectId to string for storage and keep track of the ID string separately
-        if (userForStorage._id) {
-          // Use type assertion to access toString() method
-          const idString = (userForStorage._id as any).toString
-            ? (userForStorage._id as any).toString()
-            : String(userForStorage._id);
-
-          // Add a string version of the ID for easy access
-          (userForStorage as any).id = idString;
-        }
-
-        // Store user data in localStorage
-        localStorage.setItem(this.USER_KEY, JSON.stringify(userForStorage));
+        localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.usuario));
       }
     }
 
@@ -68,30 +52,11 @@ export class AuthApi {
    * Verify token validity
    */
   public static async verifyToken(): Promise<
-    ApiResponse<{ usuario_id: string }>
+    ApiResponse<{ usuarioId: string }>
   > {
-    return apiClient.get<{ usuario_id: string }>(
+    return apiClient.get<{ usuarioId: string }>(
       `${this.BASE_PATH}/verificar-token`
     );
-  }
-
-  /**
-   * Refresh token
-   */
-  public static async refreshToken(
-    token: string
-  ): Promise<ApiResponse<{ token: string }>> {
-    const response = await apiClient.post<{ token: string }>(
-      `${this.BASE_PATH}/atualizar-token`,
-      { token }
-    );
-
-    // If refresh was successful, store the new token
-    if (response.status === 200 && response.data?.token) {
-      apiClient.setToken(response.data.token);
-    }
-
-    return response;
   }
 
   /**
@@ -127,7 +92,6 @@ export class AuthApi {
 
   /**
    * Get the current user's ID as a string
-   * This is a helper method to safely get the user ID in string format
    */
   public static getCurrentUserId(): string | null {
     const userData = localStorage.getItem(this.USER_KEY);
@@ -135,17 +99,7 @@ export class AuthApi {
 
     try {
       const user = JSON.parse(userData);
-      // First try to get the string ID we stored
-      if (user.id) return user.id;
-      // Fallback to converting _id if it exists
-      if (user._id) {
-        return typeof user._id === "string"
-          ? user._id
-          : user._id.toString
-          ? user._id.toString()
-          : String(user._id);
-      }
-      return null;
+      return user.id || null;
     } catch (error) {
       console.error("Error getting user ID:", error);
       return null;

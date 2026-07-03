@@ -3,9 +3,10 @@
  * Interface representing certifications
  */
 export interface Certification {
+  id?: string;
   nome: string;
   emissor: string;
-  data_obtencao: string;
-  data_validade?: string;
-  codigo_validacao?: string;
+  dataObtencao: string;
+  dataValidade?: string;
+  codigoValidade?: string;
 }

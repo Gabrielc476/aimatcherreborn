@@ -3,9 +3,9 @@
  * Interface for registration request
  */
 export interface RegisterRequest {
-  nome_completo: string;
+  nomeCompleto: string;
   email: string;
   senha: string;
   telefone?: string;
-  data_nascimento?: string;
+  dataNascimento?: string;
 }

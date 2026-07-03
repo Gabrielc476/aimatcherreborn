@@ -3,8 +3,9 @@
  * Interface representing language proficiency
  */
 export interface Language {
+  id?: string;
   nome: string;
-  nivel_leitura: "Básico" | "Intermediário" | "Avançado" | "Fluente";
-  nivel_escrita: "Básico" | "Intermediário" | "Avançado" | "Fluente";
-  nivel_conversacao: "Básico" | "Intermediário" | "Avançado" | "Fluente";
+  nivelLeitura: "Básico" | "Intermediário" | "Avançado" | "Fluente";
+  nivelEscrita: "Básico" | "Intermediário" | "Avançado" | "Fluente";
+  nivelConversacao: "Básico" | "Intermediário" | "Avançado" | "Fluente";
 }

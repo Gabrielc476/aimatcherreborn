@@ -40,48 +40,38 @@ export function JobCard({
   showActions = true,
 }: JobCardProps) {
   // Format posted date as "Posted X days ago"
-  const formattedDate = job.data_publicacao
-    ? formatDistanceToNow(new Date(job.data_publicacao), {
+  const formattedDate = job.dataCriacao
+    ? formatDistanceToNow(new Date(job.dataCriacao), {
         addSuffix: true,
         locale: ptBR,
       })
     : "Data desconhecida";
 
   // Format salary range if available
-  const formattedSalary = job.faixa_salarial
-    ? `${job.faixa_salarial.minimo.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: job.faixa_salarial.moeda,
-      })} - ${job.faixa_salarial.maximo.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: job.faixa_salarial.moeda,
-      })}`
-    : "Não informado";
+  const formattedSalary =
+    job.salarioMin !== undefined || job.salarioMax !== undefined
+      ? `${job.salarioMin !== undefined ? job.salarioMin.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""} - ${job.salarioMax !== undefined ? job.salarioMax.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}`
+      : "Não informado";
 
   // Handle view details click
   const handleViewDetails = () => {
-    if (onViewDetails && job._id) {
-      onViewDetails(job._id.toString());
+    if (onViewDetails && job.id) {
+      onViewDetails(job.id.toString());
     }
   };
 
   // Handle apply click
   const handleApply = () => {
-    if (onApply && job._id) {
-      onApply(job._id.toString());
+    if (onApply && job.id) {
+      onApply(job.id.toString());
     }
   };
 
   // Handle matching analysis click
   const handleMatchAnalysis = () => {
-    if (onMatchAnalysis && job._id) {
+    if (onMatchAnalysis && job.id) {
       // Convert _id to string safely
-      const jobIdString =
-        typeof job._id === "string"
-          ? job._id
-          : job._id.toString
-          ? job._id.toString()
-          : String(job._id);
+      const jobIdString = job.id || "";
 
       onMatchAnalysis(jobIdString);
     }
@@ -102,7 +92,7 @@ export function JobCard({
             <h3 className="text-lg font-bold line-clamp-2">{job.titulo}</h3>
             <div className="flex items-center mt-1 text-sm text-muted-foreground">
               <Building className="h-4 w-4 mr-1" />
-              <span>{job.empresa.nome}</span>
+              <span>{job.empresaNome}</span>
             </div>
           </div>
 
@@ -110,24 +100,16 @@ export function JobCard({
             <div className="flex flex-col items-center ml-4">
               <div
                 className={`text-xl font-bold ${getScoreColor(
-                  matching.score_matching
+                  matching.score
                 )}`}
               >
-                {Math.round(matching.score_matching)}%
+                {Math.round(matching.score)}%
               </div>
               <div className="text-xs text-muted-foreground">Match</div>
             </div>
           )}
 
-          {job.empresa.logo_url && !matching && (
-            <div className="h-10 w-10 flex-shrink-0 ml-4">
-              <img
-                src={job.empresa.logo_url}
-                alt={`${job.empresa.nome} logo`}
-                className="h-full w-full object-contain"
-              />
-            </div>
-          )}
+
         </div>
       </CardHeader>
 
@@ -136,16 +118,14 @@ export function JobCard({
           <div className="flex items-center">
             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
             <span>
-              {job.localizacao.cidade && job.localizacao.estado
-                ? `${job.localizacao.cidade}, ${job.localizacao.estado}`
-                : job.modalidade}
+              {job.localizacao || job.modalidade}
             </span>
           </div>
 
           <div className="flex items-center">
             <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
             <span>
-              {job.tipo_contrato} • {job.modalidade}
+              {job.tipoContrato} • {job.modalidade}
             </span>
           </div>
 
@@ -173,10 +153,10 @@ export function JobCard({
                 <div className="text-xs text-muted-foreground">Habilidades</div>
                 <div
                   className={getScoreColor(
-                    matching.categorias.habilidades_tecnicas.score
+                    matching.analise.categorias.habilidadesTecnicas.score
                   )}
                 >
-                  {Math.round(matching.categorias.habilidades_tecnicas.score)}%
+                  {Math.round(matching.analise.categorias.habilidadesTecnicas.score)}%
                 </div>
               </div>
 
@@ -185,10 +165,10 @@ export function JobCard({
                 <div className="text-xs text-muted-foreground">Experiência</div>
                 <div
                   className={getScoreColor(
-                    matching.categorias.experiencia.score
+                    matching.analise.categorias.experiencia.score
                   )}
                 >
-                  {Math.round(matching.categorias.experiencia.score)}%
+                  {Math.round(matching.analise.categorias.experiencia.score)}%
                 </div>
               </div>
 
@@ -199,34 +179,34 @@ export function JobCard({
                 </div>
                 <div
                   className={getScoreColor(
-                    matching.probabilidade_sucesso.score
+                    matching.analise.probabilidadeSucesso.score
                   )}
                 >
-                  {Math.round(matching.probabilidade_sucesso.score)}%
+                  {Math.round(matching.analise.probabilidadeSucesso.score)}%
                 </div>
               </div>
             </div>
 
             {/* Top strengths and weaknesses */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {matching.diferenciais.pontos_fortes.length > 0 && (
+              {matching.analise.diferenciais.pontosFortes.length > 0 && (
                 <div className="bg-green-50 p-2 rounded">
                   <div className="text-xs text-green-600 font-medium flex items-center">
                     <Check className="h-3 w-3 mr-1" /> Ponto forte:
                   </div>
                   <div className="text-xs text-green-800">
-                    {matching.diferenciais.pontos_fortes[0]}
+                    {matching.analise.diferenciais.pontosFortes[0]}
                   </div>
                 </div>
               )}
 
-              {matching.diferenciais.pontos_fracos.length > 0 && (
+              {matching.analise.diferenciais.pontosFracos.length > 0 && (
                 <div className="bg-red-50 p-2 rounded">
                   <div className="text-xs text-red-600 font-medium flex items-center">
                     <X className="h-3 w-3 mr-1" /> Ponto a melhorar:
                   </div>
                   <div className="text-xs text-red-800">
-                    {matching.diferenciais.pontos_fracos[0]}
+                    {matching.analise.diferenciais.pontosFracos[0]}
                   </div>
                 </div>
               )}
@@ -242,7 +222,7 @@ export function JobCard({
         )}
 
         {/* Salary information if available - only show when matching is not displayed */}
-        {!matching && job.faixa_salarial && (
+        {!matching && job.salarioMin !== undefined || job.salarioMax !== undefined && (
           <div className="mt-3">
             <div className="text-sm font-medium">Faixa salarial:</div>
             <div className="text-sm">{formattedSalary}</div>
@@ -251,10 +231,10 @@ export function JobCard({
 
         {/* Skills tags - only show when matching is not displayed */}
         {!matching &&
-          job.requisitos.habilidades_tecnicas &&
-          job.requisitos.habilidades_tecnicas.length > 0 && (
+          job.requisitos?.habilidadesTecnicas &&
+          job.requisitos?.habilidadesTecnicas.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
-              {job.requisitos.habilidades_tecnicas
+              {job.requisitos?.habilidadesTecnicas
                 .slice(0, 5)
                 .map((skill, index) => (
                   <span
@@ -264,12 +244,12 @@ export function JobCard({
                     {skill.nome}
                   </span>
                 ))}
-              {job.requisitos.habilidades_tecnicas.length > 5 && (
+              {job.requisitos?.habilidadesTecnicas.length > 5 && (
                 <span
                   key="skill-more"
                   className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs font-medium"
                 >
-                  +{job.requisitos.habilidades_tecnicas.length - 5}
+                  +{job.requisitos?.habilidadesTecnicas.length - 5}
                 </span>
               )}
             </div>

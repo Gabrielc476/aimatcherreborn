@@ -34,7 +34,7 @@ interface RegisterFormProps {
 // Form validation schema
 const registerFormSchema = z
   .object({
-    nome_completo: z.string().min(3, {
+    nomeCompleto: z.string().min(3, {
       message: "O nome deve ter pelo menos 3 caracteres.",
     }),
     email: z.string().email({
@@ -62,7 +62,7 @@ export function RegisterForm({
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
-      nome_completo: "",
+      nomeCompleto: "",
       email: "",
       senha: "",
       confirmacao_senha: "",
@@ -114,7 +114,7 @@ export function RegisterForm({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="nome_completo"
+              name="nomeCompleto"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome completo</FormLabel>

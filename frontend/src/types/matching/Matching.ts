@@ -1,5 +1,3 @@
-// types/matching/Matching.ts
-import { ObjectId } from "mongodb";
 import {
   MatchingCategory,
   ExperienceMatchingCategory,
@@ -8,72 +6,61 @@ import {
 } from "./MatchingCategory";
 
 /**
- * Interface representing matching data between a user and a job
- * Based on the MatchingModelo from the backend
+ * Interface representing a detailed matching analysis
  */
-export interface Matching {
-  _id?: ObjectId;
-  usuario_id: string;
-  vaga_id: string;
-  data_matching: string;
-  criado_em?: string;
-  atualizado_em?: string;
-
-  // Resumos para contextualização rápida
-  resumo_candidato: string;
-  resumo_vaga: string;
-
-  // Score geral de matching
-  score_matching: number;
-
-  // Análise detalhada por categorias
+export interface DetalhesMatching {
   categorias: {
-    habilidades_tecnicas: MatchingCategory;
+    habilidadesTecnicas: MatchingCategory;
     experiencia: ExperienceMatchingCategory;
     formacao: EducationMatchingCategory;
     idiomas: MatchingCategory;
-    localizacao_disponibilidade: LocationMatchingCategory;
-    soft_skills_cultura: MatchingCategory;
+    localizacaoDisponibilidade: LocationMatchingCategory;
+    softSkillsCultura: MatchingCategory;
   };
-
-  // Análise dos fatores de diferenciação
+  resumoCandidato: string;
+  resumoVaga: string;
   diferenciais: {
-    pontos_fortes: string[];
-    pontos_fracos: string[];
-    vantagens_competitivas: string[];
+    pontosFortes: string[];
+    pontosFracos: string[];
+    vantagensCompetitivas: string[];
   };
-
-  // Recomendações personalizadas
   recomendacoes: {
     gerais: string;
-    habilidades_tecnicas: string;
+    habilidadesTecnicas: string;
     experiencia: string;
     formacao: string;
     desenvolvimento: string;
-    abordagem_entrevista: string;
-    prioridade_acao: string[];
+    abordagemEntrevista: string;
+    prioridadeAcao: string[];
   };
-
-  // Análise de compatibilidade cultural e organizacional
-  compatibilidade_cultural: {
+  compatibilidadeCultural: {
     score: number;
-    fatores_positivos: string[];
-    fatores_negativos: string[];
+    fatoresPositivos: string[];
+    fatoresNegativos: string[];
     analise: string;
   };
-
-  // Probabilidade de sucesso na candidatura
-  probabilidade_sucesso: {
+  probabilidadeSucesso: {
     score: number;
     justificativa: string;
-    fatores_criticos: string[];
+    fatoresCriticos: string[];
   };
-
-  // Meta-análise do matching
-  meta_analise: {
+  metaAnalise: {
     confiabilidade: number;
-    fatores_incertos: string[];
-    potencial_desenvolvimento: number;
-    observacoes: string;
+    fatoresIncertos: string[];
+    potencialDesenvolvimento: number;
+    observacoes?: string;
   };
+}
+
+/**
+ * Interface representing matching data between a user and a job
+ * Based on the Matching model from the backend
+ */
+export interface Matching {
+  id: string;
+  usuarioId: string;
+  vagaId: string;
+  score: number;
+  analise: DetalhesMatching;
+  dataMatching: string;
 }

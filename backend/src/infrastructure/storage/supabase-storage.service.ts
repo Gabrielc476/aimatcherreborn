@@ -28,18 +28,36 @@ export class SupabaseStorageService implements StorageService {
     const timestamp = Date.now();
     const path = `${userId}/${timestamp}_${fileName}`;
 
-    const { data, error } = await this.supabase.storage
+    let uploadResponse = await this.supabase.storage
       .from(this.bucketName)
       .upload(path, fileBuffer, {
         contentType: 'application/pdf',
         upsert: true,
       });
 
-    if (error) {
-      throw new Error(`Erro ao subir currículo para o Supabase Storage: ${error.message}`);
+    if (uploadResponse.error) {
+      // Se o bucket não existe, tenta criá-lo e refazer o upload
+      if (uploadResponse.error.message.includes('Bucket not found') || uploadResponse.error.message.includes('bucket')) {
+        const createResult = await this.supabase.storage.createBucket(this.bucketName, { public: false });
+        if (createResult.error) {
+          throw new Error(`Erro ao criar o bucket '${this.bucketName}': ${createResult.error.message}`);
+        }
+
+        // Tenta fazer o upload novamente
+        uploadResponse = await this.supabase.storage
+          .from(this.bucketName)
+          .upload(path, fileBuffer, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+      }
     }
 
-    return data.path;
+    if (uploadResponse.error) {
+      throw new Error(`Erro ao subir currículo para o Supabase Storage: ${uploadResponse.error.message}`);
+    }
+
+    return uploadResponse.data.path;
   }
 
   async obterUrlDownload(path: string): Promise<string> {

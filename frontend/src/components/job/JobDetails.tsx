@@ -56,30 +56,25 @@ export function JobDetails({
   });
 
   // Format posted date
-  const formattedDate = job.data_publicacao
-    ? formatDistanceToNow(new Date(job.data_publicacao), {
+  const formattedDate = job.dataCriacao
+    ? formatDistanceToNow(new Date(job.dataCriacao), {
         addSuffix: true,
         locale: ptBR,
       })
     : "Data desconhecida";
 
   // Format full date
-  const fullDate = job.data_publicacao
-    ? format(new Date(job.data_publicacao), "dd 'de' MMMM 'de' yyyy", {
+  const fullDate = job.dataCriacao
+    ? format(new Date(job.dataCriacao), "dd 'de' MMMM 'de' yyyy", {
         locale: ptBR,
       })
     : "Data desconhecida";
 
   // Format salary range if available
-  const formattedSalary = job.faixa_salarial
-    ? `${job.faixa_salarial.minimo.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: job.faixa_salarial.moeda,
-      })} - ${job.faixa_salarial.maximo.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: job.faixa_salarial.moeda,
-      })}`
-    : "Não informado";
+  const formattedSalary =
+    job.salarioMin !== undefined || job.salarioMax !== undefined
+      ? `${job.salarioMin !== undefined ? job.salarioMin.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""} - ${job.salarioMax !== undefined ? job.salarioMax.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}`
+      : "Não informado";
 
   // Toggle section expansion
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -113,7 +108,7 @@ export function JobDetails({
               <CardTitle className="text-2xl">{job.titulo}</CardTitle>
               <div className="flex items-center mt-2">
                 <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="font-medium">{job.empresa.nome}</span>
+                <span className="font-medium">{job.empresaNome}</span>
               </div>
             </div>
 
@@ -121,10 +116,10 @@ export function JobDetails({
               <div className="bg-primary/10 rounded-lg p-3 text-center">
                 <div
                   className={`text-3xl font-bold ${getScoreColor(
-                    matching.score_matching
+                    matching.score
                   )}`}
                 >
-                  {Math.round(matching.score_matching)}%
+                  {Math.round(matching.score)}%
                 </div>
                 <div className="text-sm font-medium">Compatibilidade</div>
               </div>
@@ -137,16 +132,14 @@ export function JobDetails({
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
               <span>
-                {job.localizacao.cidade && job.localizacao.estado
-                  ? `${job.localizacao.cidade}, ${job.localizacao.estado}`
-                  : job.modalidade}
+                {job.localizacao || job.modalidade}
               </span>
             </div>
 
             <div className="flex items-center">
               <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
               <span>
-                {job.tipo_contrato} • {job.modalidade}
+                {job.tipoContrato} • {job.modalidade}
               </span>
             </div>
 
@@ -160,14 +153,14 @@ export function JobDetails({
               <span title={fullDate}>Publicada {formattedDate}</span>
             </div>
 
-            {job.jornada && (
+            {job.modalidade && (
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Jornada: {job.jornada}</span>
+                <span>Modalidade: {job.modalidade}</span>
               </div>
             )}
 
-            {job.faixa_salarial && job.faixa_salarial.minimo > 0 && (
+            {(job.salarioMin !== undefined || job.salarioMax !== undefined) && (
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span>{formattedSalary}</span>
@@ -207,16 +200,16 @@ export function JobDetails({
               <BarChart className="h-4 w-4" />
               <AlertTitle>Compatibilidade com seu perfil</AlertTitle>
               <AlertDescription className="text-sm">
-                {matching.diferenciais.pontos_fortes.length > 0 && (
+                {matching.analise.diferenciais.pontosFortes.length > 0 && (
                   <div className="mt-2">
                     <span className="font-medium">Pontos fortes:</span>{" "}
-                    {matching.diferenciais.pontos_fortes[0]}
+                    {matching.analise.diferenciais.pontosFortes[0]}
                   </div>
                 )}
-                {matching.diferenciais.pontos_fracos.length > 0 && (
+                {matching.analise.diferenciais.pontosFracos.length > 0 && (
                   <div className="mt-1">
                     <span className="font-medium">Pontos a melhorar:</span>{" "}
-                    {matching.diferenciais.pontos_fracos[0]}
+                    {matching.analise.diferenciais.pontosFracos[0]}
                   </div>
                 )}
                 <div className="mt-2">
@@ -251,14 +244,14 @@ export function JobDetails({
             {expandedSections.requirements && (
               <div className="space-y-4">
                 {/* Technical skills */}
-                {job.requisitos.habilidades_tecnicas &&
-                  job.requisitos.habilidades_tecnicas.length > 0 && (
+                {job.requisitos?.habilidadesTecnicas &&
+                  job.requisitos?.habilidadesTecnicas.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">
                         Habilidades Técnicas
                       </h4>
                       <div className="flex flex-wrap gap-1.5">
-                        {job.requisitos.habilidades_tecnicas.map(
+                        {job.requisitos?.habilidadesTecnicas.map(
                           (skill, index) => (
                             <Badge
                               key={`skill-${index}`}
@@ -280,33 +273,33 @@ export function JobDetails({
                   )}
 
                 {/* Experience */}
-                {job.requisitos.experiencia && (
+                {job.requisitos?.experiencia && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Experiência</h4>
                     <div className="text-sm">
                       <p>
-                        {job.requisitos.experiencia.tempo_minimo > 0 && (
+                        {job.requisitos?.experiencia.tempoMinimo > 0 && (
                           <>
-                            Mínimo de {job.requisitos.experiencia.tempo_minimo}{" "}
-                            {job.requisitos.experiencia.tempo_minimo === 1
+                            Mínimo de {job.requisitos?.experiencia.tempoMinimo}{" "}
+                            {job.requisitos?.experiencia.tempoMinimo === 1
                               ? "ano"
                               : "anos"}{" "}
                             de experiência
                           </>
                         )}
-                        {job.requisitos.experiencia.nivel && (
-                          <> (Nível: {job.requisitos.experiencia.nivel})</>
+                        {job.requisitos?.experiencia.nivel && (
+                          <> (Nível: {job.requisitos?.experiencia.nivel})</>
                         )}
                       </p>
 
-                      {job.requisitos.experiencia.areas &&
-                        job.requisitos.experiencia.areas.length > 0 && (
+                      {job.requisitos?.experiencia.areas &&
+                        job.requisitos?.experiencia.areas.length > 0 && (
                           <div className="mt-1">
                             <p className="font-medium">
                               Áreas de experiência necessárias:
                             </p>
                             <ul className="list-disc pl-5 mt-1">
-                              {job.requisitos.experiencia.areas.map(
+                              {job.requisitos?.experiencia.areas.map(
                                 (area, index) => (
                                   <li key={`area-${index}`}>{area}</li>
                                 )
@@ -319,14 +312,14 @@ export function JobDetails({
                 )}
 
                 {/* Education */}
-                {job.requisitos.formacao && (
+                {job.requisitos?.formacao && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Formação</h4>
                     <div className="text-sm">
                       <p>
-                        {job.requisitos.formacao.nivel} em{" "}
-                        {job.requisitos.formacao.area}
-                        {job.requisitos.formacao.obrigatorio && (
+                        {job.requisitos?.formacao.nivel} em{" "}
+                        {job.requisitos?.formacao.area}
+                        {job.requisitos?.formacao.obrigatorio && (
                           <span className="ml-1 text-red-500">*</span>
                         )}
                       </p>
@@ -335,12 +328,12 @@ export function JobDetails({
                 )}
 
                 {/* Languages */}
-                {job.requisitos.idiomas &&
-                  job.requisitos.idiomas.length > 0 && (
+                {job.requisitos?.idiomas &&
+                  job.requisitos?.idiomas.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Idiomas</h4>
                       <div className="flex flex-wrap gap-2">
-                        {job.requisitos.idiomas.map((idioma, index) => (
+                        {job.requisitos?.idiomas.map((idioma, index) => (
                           <Badge
                             key={`idioma-${index}`}
                             variant={idioma.obrigatorio ? "default" : "outline"}
@@ -357,14 +350,14 @@ export function JobDetails({
                   )}
 
                 {/* Soft skills */}
-                {job.requisitos.habilidades_comportamentais &&
-                  job.requisitos.habilidades_comportamentais.length > 0 && (
+                {job.requisitos?.habilidadesComportamentais &&
+                  job.requisitos?.habilidadesComportamentais.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">
                         Habilidades Comportamentais
                       </h4>
                       <div className="flex flex-wrap gap-1.5">
-                        {job.requisitos.habilidades_comportamentais.map(
+                        {job.requisitos?.habilidadesComportamentais.map(
                           (skill, index) => (
                             <Badge
                               key={`soft-${index}`}
@@ -380,46 +373,46 @@ export function JobDetails({
                   )}
 
                 {/* Availability */}
-                {job.requisitos.disponibilidade && (
+                {job.requisitos?.disponibilidade && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">
                       Requisitos de disponibilidade
                     </h4>
                     <div className="flex flex-wrap gap-4 text-sm">
                       <div className="flex items-center">
-                        {job.requisitos.disponibilidade.viagens ? (
+                        {job.requisitos?.disponibilidade.viagens ? (
                           <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
                         )}
                         <span>
-                          {job.requisitos.disponibilidade.viagens
+                          {job.requisitos?.disponibilidade.viagens
                             ? "Disponibilidade para viagens"
                             : "Sem necessidade de viagens"}
                         </span>
                       </div>
 
                       <div className="flex items-center">
-                        {job.requisitos.disponibilidade.mudanca ? (
+                        {job.requisitos?.disponibilidade.mudanca ? (
                           <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
                         )}
                         <span>
-                          {job.requisitos.disponibilidade.mudanca
+                          {job.requisitos?.disponibilidade.mudanca
                             ? "Disponibilidade para mudança"
                             : "Sem necessidade de mudança"}
                         </span>
                       </div>
 
                       <div className="flex items-center">
-                        {job.requisitos.disponibilidade.inicio_imediato ? (
+                        {job.requisitos?.disponibilidade.inicioImediato ? (
                           <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
                         ) : (
                           <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
                         )}
                         <span>
-                          {job.requisitos.disponibilidade.inicio_imediato
+                          {job.requisitos?.disponibilidade.inicioImediato
                             ? "Disponibilidade para início imediato"
                             : "Sem necessidade de início imediato"}
                         </span>
@@ -498,43 +491,43 @@ export function JobDetails({
             )}
 
           {/* Company info */}
-          {job.empresa.descricao && (
+          {job.empresa?.descricao && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Sobre a empresa</h3>
-              <p className="text-sm">{job.empresa.descricao}</p>
+              <p className="text-sm">{job.empresa?.descricao}</p>
               <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                {job.empresa.tamanho && (
+                {job.empresa?.tamanho && (
                   <div>
                     <span className="font-medium">Tamanho:</span>{" "}
-                    {job.empresa.tamanho}
+                    {job.empresa?.tamanho}
                   </div>
                 )}
-                {job.empresa.setor && (
+                {job.empresa?.setor && (
                   <div>
                     <span className="font-medium">Setor:</span>{" "}
-                    {job.empresa.setor}
+                    {job.empresa?.setor}
                   </div>
                 )}
               </div>
-              {(job.empresa.site || job.empresa.linkedin) && (
+              {(job.empresa?.site || job.empresa?.linkedin) && (
                 <div className="flex gap-2 mt-3">
-                  {job.empresa.site && (
+                  {job.empresa?.site && (
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-xs"
-                      onClick={() => window.open(job.empresa.site, "_blank")}
+                      onClick={() => window.open(job.empresa?.site, "_blank")}
                     >
                       Visitar site
                     </Button>
                   )}
-                  {job.empresa.linkedin && (
+                  {job.empresa?.linkedin && (
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-xs"
                       onClick={() =>
-                        window.open(job.empresa.linkedin, "_blank")
+                        window.open(job.empresa?.linkedin, "_blank")
                       }
                     >
                       LinkedIn

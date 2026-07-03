@@ -16,9 +16,22 @@ ALTER TABLE matchings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vagas ENABLE ROW LEVEL SECURITY;
 
 -- 2. Criar políticas para a tabela 'usuarios'
+-- Qualquer pessoa pode se registrar (inserir na tabela)
+CREATE POLICY usuario_insert_policy ON usuarios
+    FOR INSERT
+    WITH CHECK (true);
+
 -- Um usuário só pode ver, atualizar ou excluir seu próprio registro.
-CREATE POLICY usuario_rls_policy ON usuarios
-    FOR ALL
+CREATE POLICY usuario_select_policy ON usuarios
+    FOR SELECT
+    USING (id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
+
+CREATE POLICY usuario_update_policy ON usuarios
+    FOR UPDATE
+    USING (id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
+
+CREATE POLICY usuario_delete_policy ON usuarios
+    FOR DELETE
     USING (id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
 
 -- 3. Criar políticas para a tabela 'perfis'
@@ -63,7 +76,22 @@ CREATE POLICY matching_candidato_policy ON matchings
     USING (usuario_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
 
 -- 11. Criar políticas para a tabela 'vagas'
--- O recrutador pode gerenciar as vagas que criou.
-CREATE POLICY vaga_recrutador_policy ON vagas
-    FOR ALL
+-- Qualquer pessoa autenticada (candidato ou recrutador) pode ver vagas ativas.
+CREATE POLICY vaga_select_policy ON vagas
+    FOR SELECT
+    USING (status = 'ativa' OR recrutador_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
+
+-- Apenas o recrutador criador da vaga pode inseri-la.
+CREATE POLICY vaga_insert_policy ON vagas
+    FOR INSERT
+    WITH CHECK (recrutador_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
+
+-- Apenas o recrutador criador da vaga pode atualizá-la.
+CREATE POLICY vaga_update_policy ON vagas
+    FOR UPDATE
+    USING (recrutador_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);
+
+-- Apenas o recrutador criador da vaga pode excluí-la.
+CREATE POLICY vaga_delete_policy ON vagas
+    FOR DELETE
     USING (recrutador_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);

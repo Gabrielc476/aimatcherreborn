@@ -8,8 +8,8 @@ export interface MatchingCategory {
   correspondentes: string[];
   faltantes: string[];
   excedentes?: string[];
-  analise_qualitativa: string;
-  nivel_relevancia: string;
+  analiseQualitativa: string;
+  nivelRelevancia: string;
 }
 
 /**
@@ -20,10 +20,10 @@ export interface ExperienceMatchingCategory
     MatchingCategory,
     "correspondentes" | "faltantes" | "excedentes"
   > {
-  tempo_atende: boolean;
-  areas_correspondentes: string[];
-  areas_faltantes: string[];
-  relevancia_experiencia: string;
+  tempoAtende: boolean;
+  areasCorrespondentes: string[];
+  areasFaltantes: string[];
+  relevanciaExperiencia: string;
 }
 
 /**
@@ -34,9 +34,9 @@ export interface EducationMatchingCategory
     MatchingCategory,
     "correspondentes" | "faltantes" | "excedentes"
   > {
-  nivel_atende: boolean;
-  area_atende: boolean;
-  formacao_alternativa_relevante: boolean;
+  nivelAtende: boolean;
+  areaAtende: boolean;
+  formacaoAlternativaRelevante: boolean;
 }
 
 /**
@@ -47,6 +47,6 @@ export interface LocationMatchingCategory
     MatchingCategory,
     "correspondentes" | "faltantes" | "excedentes"
   > {
-  localizacao_compativel: boolean;
-  disponibilidade_compativel: boolean;
+  localizacaoCompativel: boolean;
+  disponibilidadeCompativel: boolean;
 }

@@ -41,18 +41,18 @@ import { User as UserType } from "@/types/user/User";
 
 // Define a schema for personal info section
 const personalInfoSchema = z.object({
-  nome_completo: z
+  nomeCompleto: z
     .string()
     .min(3, "Nome completo deve ter pelo menos 3 caracteres"),
   telefone: z.string().optional(),
-  data_nascimento: z.string().optional(),
+  dataNascimento: z.string().optional(),
   perfil: z.object({
     titulo: z
       .string()
       .min(3, "Título profissional deve ter pelo menos 3 caracteres"),
-    resumo_profissional: z.string().optional(),
-    anos_experiencia: z.coerce.number().min(0),
-    pretensao_salarial: z.coerce.number().min(0).optional(),
+    resumoProfissional: z.string().optional(),
+    anosExperiencia: z.coerce.number().min(0),
+    pretensaoSalarial: z.coerce.number().min(0).optional(),
     disponibilidade: z.string().optional(),
   }),
   links: z.object({
@@ -69,10 +69,10 @@ const experienceSchema = z.object({
       empresa: z.string().min(2, "Nome da empresa é obrigatório"),
       cargo: z.string().min(2, "Cargo é obrigatório"),
       descricao: z.string().optional(),
-      data_inicio: z.string().min(1, "Data de início é obrigatória"),
-      data_fim: z.string().optional().or(z.literal("")),
+      dataInicio: z.string().min(1, "Data de início é obrigatória"),
+      dataFim: z.string().optional().or(z.literal("")),
       atual: z.boolean().default(false),
-      tecnologias_utilizadas: z.array(z.string()).default([]),
+      tecnologias: z.array(z.string()).default([]),
       realizacoes: z.array(z.string()).default([]),
     })
   ),
@@ -80,14 +80,14 @@ const experienceSchema = z.object({
 
 // Education schema
 const educationSchema = z.object({
-  formacao: z.array(
+  formacoes: z.array(
     z.object({
       instituicao: z.string().min(2, "Instituição é obrigatória"),
       curso: z.string().min(2, "Curso é obrigatório"),
       grau: z.string().min(2, "Grau é obrigatório"),
       area: z.string().optional(),
-      data_inicio: z.string().min(1, "Data de início é obrigatória"),
-      data_fim: z.string().optional().or(z.literal("")),
+      dataInicio: z.string().min(1, "Data de início é obrigatória"),
+      dataFim: z.string().optional().or(z.literal("")),
       concluido: z.boolean().default(true),
     })
   ),
@@ -95,12 +95,12 @@ const educationSchema = z.object({
 
 // Skills schema
 const skillsSchema = z.object({
-  habilidades_tecnicas: z.array(
+  habilidades: z.array(
     z.object({
       nome: z.string().min(1, "Nome da habilidade é obrigatório"),
       nivel: z.string().min(1, "Nível é obrigatório"),
-      anos_experiencia: z.coerce.number().min(0),
-      projetos_relevantes: z.array(z.string()).default([]),
+      anosExperiencia: z.coerce.number().min(0),
+      projetosRelevantes: z.array(z.string()).default([]),
     })
   ),
 });
@@ -110,9 +110,9 @@ const languagesSchema = z.object({
   idiomas: z.array(
     z.object({
       nome: z.string().min(1, "Nome do idioma é obrigatório"),
-      nivel_leitura: z.string().min(1, "Nível de leitura é obrigatório"),
-      nivel_escrita: z.string().min(1, "Nível de escrita é obrigatório"),
-      nivel_conversacao: z
+      nivelLeitura: z.string().min(1, "Nível de leitura é obrigatório"),
+      nivelEscrita: z.string().min(1, "Nível de escrita é obrigatório"),
+      nivelConversacao: z
         .string()
         .min(1, "Nível de conversação é obrigatório"),
     })
@@ -125,9 +125,9 @@ const certificationsSchema = z.object({
     z.object({
       nome: z.string().min(1, "Nome da certificação é obrigatório"),
       emissor: z.string().min(1, "Emissor é obrigatório"),
-      data_obtencao: z.string().min(1, "Data de obtenção é obrigatória"),
-      data_validade: z.string().optional().or(z.literal("")),
-      codigo_validacao: z.string().optional(),
+      dataObtencao: z.string().min(1, "Data de obtenção é obrigatória"),
+      dataValidade: z.string().optional().or(z.literal("")),
+      codigoValidade: z.string().optional(),
     })
   ),
 });
@@ -161,14 +161,14 @@ export function ResumeEditForm({
   const form = useForm<ResumeFormValues>({
     resolver: zodResolver(resumeFormSchema) as any,
     defaultValues: {
-      nome_completo: "",
+      nomeCompleto: "",
       telefone: "",
-      data_nascimento: "",
+      dataNascimento: "",
       perfil: {
         titulo: "",
-        resumo_profissional: "",
-        anos_experiencia: 0,
-        pretensao_salarial: 0,
+        resumoProfissional: "",
+        anosExperiencia: 0,
+        pretensaoSalarial: 0,
         disponibilidade: "",
       },
       links: {
@@ -177,8 +177,8 @@ export function ResumeEditForm({
         portfolio: "",
       },
       experiencias: [],
-      formacao: [],
-      habilidades_tecnicas: [],
+      formacoes: [],
+      habilidades: [],
       idiomas: [],
       certificacoes: [],
     },
@@ -195,7 +195,7 @@ export function ResumeEditForm({
     fields: educationFields,
     append: appendEducation,
     remove: removeEducation,
-  } = useFieldArray({ control: form.control as any, name: "formacao" });
+  } = useFieldArray({ control: form.control as any, name: "formacoes" });
 
   const {
     fields: skillFields,
@@ -203,7 +203,7 @@ export function ResumeEditForm({
     remove: removeSkill,
   } = useFieldArray({
     control: form.control as any,
-    name: "habilidades_tecnicas",
+    name: "habilidades",
   });
 
   const {
@@ -223,14 +223,14 @@ export function ResumeEditForm({
     if (userData) {
       // Reset form with user data
       form.reset({
-        nome_completo: userData.nome_completo || "",
+        nomeCompleto: userData.nomeCompleto || "",
         telefone: userData.telefone || "",
-        data_nascimento: userData.data_nascimento || "",
+        dataNascimento: userData.dataNascimento || "",
         perfil: {
           titulo: userData.perfil?.titulo || "",
-          resumo_profissional: userData.perfil?.resumo_profissional || "",
-          anos_experiencia: userData.perfil?.anos_experiencia || 0,
-          pretensao_salarial: userData.perfil?.pretensao_salarial || 0,
+          resumoProfissional: userData.perfil?.resumoProfissional || "",
+          anosExperiencia: userData.perfil?.anosExperiencia || 0,
+          pretensaoSalarial: userData.perfil?.pretensaoSalarial || 0,
           disponibilidade: userData.perfil?.disponibilidade || "",
         },
         links: {
@@ -239,8 +239,8 @@ export function ResumeEditForm({
           portfolio: userData.links?.portfolio || "",
         },
         experiencias: userData.experiencias || [],
-        formacao: userData.formacao || [],
-        habilidades_tecnicas: userData.habilidades_tecnicas || [],
+        formacoes: userData.formacoes || [],
+        habilidades: userData.habilidades || [],
         idiomas: userData.idiomas || [],
         certificacoes: userData.certificacoes || [],
       });
@@ -273,10 +273,10 @@ export function ResumeEditForm({
     empresa: "",
     cargo: "",
     descricao: "",
-    data_inicio: "",
-    data_fim: "",
+    dataInicio: "",
+    dataFim: "",
     atual: false,
-    tecnologias_utilizadas: [],
+    tecnologias: [],
     realizacoes: [],
   };
 
@@ -285,31 +285,31 @@ export function ResumeEditForm({
     curso: "",
     grau: "",
     area: "",
-    data_inicio: "",
-    data_fim: "",
+    dataInicio: "",
+    dataFim: "",
     concluido: true,
   };
 
   const emptySkill = {
     nome: "",
     nivel: "Intermediário",
-    anos_experiencia: 0,
-    projetos_relevantes: [],
+    anosExperiencia: 0,
+    projetosRelevantes: [],
   };
 
   const emptyLanguage = {
     nome: "",
-    nivel_leitura: "Intermediário",
-    nivel_escrita: "Intermediário",
-    nivel_conversacao: "Intermediário",
+    nivelLeitura: "Intermediário",
+    nivelEscrita: "Intermediário",
+    nivelConversacao: "Intermediário",
   };
 
   const emptyCertification = {
     nome: "",
     emissor: "",
-    data_obtencao: "",
-    data_validade: "",
-    codigo_validacao: "",
+    dataObtencao: "",
+    dataValidade: "",
+    codigoValidade: "",
   };
 
   return (
@@ -361,7 +361,7 @@ export function ResumeEditForm({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="nome_completo"
+                      name="nomeCompleto"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nome completo</FormLabel>
@@ -389,7 +389,7 @@ export function ResumeEditForm({
 
                     <FormField
                       control={form.control}
-                      name="data_nascimento"
+                      name="dataNascimento"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Data de nascimento</FormLabel>
@@ -421,7 +421,7 @@ export function ResumeEditForm({
 
                   <FormField
                     control={form.control}
-                    name="perfil.resumo_profissional"
+                    name="perfil.resumoProfissional"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Resumo profissional</FormLabel>
@@ -440,7 +440,7 @@ export function ResumeEditForm({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name="perfil.anos_experiencia"
+                      name="perfil.anosExperiencia"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Anos de experiência</FormLabel>
@@ -454,7 +454,7 @@ export function ResumeEditForm({
 
                     <FormField
                       control={form.control}
-                      name="perfil.pretensao_salarial"
+                      name="perfil.pretensaoSalarial"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Pretensão salarial</FormLabel>
@@ -636,7 +636,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <FormField
                               control={form.control}
-                              name={`experiencias.${index}.data_inicio`}
+                              name={`experiencias.${index}.dataInicio`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de início</FormLabel>
@@ -650,7 +650,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`experiencias.${index}.data_fim`}
+                              name={`experiencias.${index}.dataFim`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de término</FormLabel>
@@ -690,7 +690,7 @@ export function ResumeEditForm({
 
                           <FormField
                             control={form.control}
-                            name={`experiencias.${index}.tecnologias_utilizadas`}
+                            name={`experiencias.${index}.tecnologias`}
                             render={({ field }) => (
                               <FormItem className="mb-4">
                                 <FormLabel>Tecnologias utilizadas</FormLabel>
@@ -831,7 +831,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.instituicao`}
+                              name={`formacoes.${index}.instituicao`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Instituição</FormLabel>
@@ -848,7 +848,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.curso`}
+                              name={`formacoes.${index}.curso`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Curso</FormLabel>
@@ -867,7 +867,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.grau`}
+                              name={`formacoes.${index}.grau`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Grau</FormLabel>
@@ -896,7 +896,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.area`}
+                              name={`formacoes.${index}.area`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Área</FormLabel>
@@ -915,7 +915,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.data_inicio`}
+                              name={`formacoes.${index}.dataInicio`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de início</FormLabel>
@@ -929,7 +929,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.data_fim`}
+                              name={`formacoes.${index}.dataFim`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de conclusão</FormLabel>
@@ -939,7 +939,7 @@ export function ResumeEditForm({
                                       {...field}
                                       disabled={
                                         !form.getValues(
-                                          `formacao.${index}.concluido`
+                                          `formacoes.${index}.concluido`
                                         )
                                       }
                                     />
@@ -951,7 +951,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`formacao.${index}.concluido`}
+                              name={`formacoes.${index}.concluido`}
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-end space-x-3 rounded-md">
                                   <FormControl>
@@ -1025,7 +1025,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <FormField
                               control={form.control}
-                              name={`habilidades_tecnicas.${index}.nome`}
+                              name={`habilidades.${index}.nome`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Habilidade</FormLabel>
@@ -1042,7 +1042,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`habilidades_tecnicas.${index}.nivel`}
+                              name={`habilidades.${index}.nivel`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Nível</FormLabel>
@@ -1068,7 +1068,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`habilidades_tecnicas.${index}.anos_experiencia`}
+                              name={`habilidades.${index}.anosExperiencia`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Anos de experiência</FormLabel>
@@ -1088,7 +1088,7 @@ export function ResumeEditForm({
 
                           <FormField
                             control={form.control}
-                            name={`habilidades_tecnicas.${index}.projetos_relevantes`}
+                            name={`habilidades.${index}.projetosRelevantes`}
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Projetos relevantes</FormLabel>
@@ -1200,7 +1200,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`idiomas.${index}.nivel_leitura`}
+                              name={`idiomas.${index}.nivelLeitura`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Leitura</FormLabel>
@@ -1224,7 +1224,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`idiomas.${index}.nivel_escrita`}
+                              name={`idiomas.${index}.nivelEscrita`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Escrita</FormLabel>
@@ -1248,7 +1248,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`idiomas.${index}.nivel_conversacao`}
+                              name={`idiomas.${index}.nivelConversacao`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Conversação</FormLabel>
@@ -1361,7 +1361,7 @@ export function ResumeEditForm({
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                               control={form.control}
-                              name={`certificacoes.${index}.data_obtencao`}
+                              name={`certificacoes.${index}.dataObtencao`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de obtenção</FormLabel>
@@ -1375,7 +1375,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`certificacoes.${index}.data_validade`}
+                              name={`certificacoes.${index}.dataValidade`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Data de validade</FormLabel>
@@ -1389,7 +1389,7 @@ export function ResumeEditForm({
 
                             <FormField
                               control={form.control}
-                              name={`certificacoes.${index}.codigo_validacao`}
+                              name={`certificacoes.${index}.codigoValidade`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Código de validação</FormLabel>

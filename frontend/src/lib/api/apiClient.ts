@@ -8,7 +8,11 @@ export class ApiClient {
   private axiosInstance: AxiosInstance;
   private static TOKEN_KEY = "auth_token";
 
-  constructor(baseURL: string = "https://aimatcherreborn-backend.onrender.com") {
+  constructor(
+    baseURL: string = typeof window !== "undefined"
+      ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000")
+      : "http://localhost:5000"
+  ) {
     this.axiosInstance = axios.create({
       baseURL,
       headers: {
@@ -39,7 +43,9 @@ export class ApiClient {
           // If token is invalid or expired
           if (status === 401) {
             this.clearToken();
-            // Optionally redirect to login page or trigger an event
+            if (typeof window !== "undefined") {
+              window.location.href = "/login?session_expired=true";
+            }
           }
         }
         return Promise.reject(error);

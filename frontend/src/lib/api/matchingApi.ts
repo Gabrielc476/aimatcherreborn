@@ -20,11 +20,10 @@ export class MatchingApi {
   public static async getExistingMatching(
     userId: string,
     jobId: string
-  ): Promise<ApiResponse<{ matching: any }>> {
+  ): Promise<ApiResponse<{ matching: Matching }>> {
     try {
-      // Esta URL pode variar de acordo com sua API
       const response = await apiClient.get<{
-        matching: any;
+        matching: Matching;
       }>(`/matching/${userId}/${jobId}`);
 
       return response;

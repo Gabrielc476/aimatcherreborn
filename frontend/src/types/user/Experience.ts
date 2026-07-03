@@ -3,12 +3,12 @@
  * Interface representing work experience
  */
 export interface Experience {
+  id?: string;
   empresa: string;
   cargo: string;
   descricao: string;
-  data_inicio: string;
-  data_fim?: string;
+  dataInicio: string;
+  dataFim?: string;
   atual: boolean;
-  tecnologias_utilizadas: string[];
-  realizacoes: string[];
+  tecnologias: string[];
 }

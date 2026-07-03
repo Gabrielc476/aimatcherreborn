@@ -260,18 +260,18 @@ export function JobFilterPanel({
           <h4 className="text-sm font-medium mb-2">Ordenar por</h4>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={sortField === "data_publicacao" ? "default" : "outline"}
+              variant={sortField === "dataCriacao" ? "default" : "outline"}
               size="sm"
-              onClick={() => setSortField("data_publicacao")}
+              onClick={() => setSortField("dataCriacao")}
               className="h-8"
             >
               <CalendarDays className="h-4 w-4 mr-1" />
               Data
             </Button>
             <Button
-              variant={sortField === "empresa.nome" ? "default" : "outline"}
+              variant={sortField === "empresaNome" ? "default" : "outline"}
               size="sm"
-              onClick={() => setSortField("empresa.nome")}
+              onClick={() => setSortField("empresaNome")}
               className="h-8"
             >
               <Building className="h-4 w-4 mr-1" />
@@ -342,7 +342,7 @@ export function JobFilterPanel({
               <Button
                 key={tipo}
                 variant={
-                  filters.tipo_contrato?.includes(tipo) ? "default" : "outline"
+                  filters.tipoContrato?.includes(tipo) ? "default" : "outline"
                 }
                 size="sm"
                 onClick={() => toggleTipoContrato(tipo)}

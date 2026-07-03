@@ -99,14 +99,13 @@ export class VagasApi {
    * @returns Added job details
    */
   public static async adicionarVaga(jobData: {
-    texto_vaga: string;
-    empresa?: object;
-    fonte?: string;
-    recrutador_id?: string;
-  }): Promise<ApiResponse<{ vaga_id: string; vaga: Job }>> {
+    textoVaga: string;
+    empresaNome?: string;
+    localizacao?: string;
+  }): Promise<ApiResponse<{ vagaId: string; vaga: Job }>> {
     try {
       const response = await apiClient.post<{
-        vaga_id: string;
+        vagaId: string;
         vaga: Job;
         mensagem: string;
       }>(`${this.BASE_PATH}/adicionar`, jobData);
@@ -114,7 +113,7 @@ export class VagasApi {
       if (response.status === 201 && response.data) {
         return {
           data: {
-            vaga_id: response.data.vaga_id,
+            vagaId: response.data.vagaId,
             vaga: response.data.vaga,
           },
           status: response.status,
@@ -138,68 +137,6 @@ export class VagasApi {
   }
 
   /**
-   * Search for jobs by keyword or filtering criteria
-   * Note: This would need a corresponding backend endpoint implementation
-   *
-   * @param searchParams Search parameters
-   * @returns Matching jobs
-   */
-  public static async buscarVagas(searchParams: {
-    keywords?: string;
-    location?: string;
-    jobType?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<ApiResponse<PaginatedResponse<Job>>> {
-    const { page = 1, limit = 20, ...filters } = searchParams;
-
-    // Create query string from filters
-    const queryParams = new URLSearchParams();
-    queryParams.append("pagina", page.toString());
-    queryParams.append("limite", limit.toString());
-
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) queryParams.append(key, value.toString());
-    });
-
-    try {
-      // Note: This endpoint doesn't exist yet in the backend
-      const response = await apiClient.get<{
-        total: number;
-        pagina: number;
-        limite: number;
-        vagas: Job[];
-      }>(`${this.BASE_PATH}/buscar?${queryParams.toString()}`);
-
-      if (response.status === 200 && response.data) {
-        return {
-          data: {
-            total: response.data.total,
-            pagina: response.data.pagina,
-            limite: response.data.limite,
-            data: response.data.vagas,
-          },
-          status: response.status,
-        };
-      } else {
-        return {
-          erro: response.erro || "Erro ao buscar vagas",
-          status: response.status,
-        };
-      }
-    } catch (error) {
-      console.error("Error searching jobs:", error);
-      return {
-        erro:
-          error instanceof Error
-            ? error.message
-            : "Erro desconhecido ao buscar vagas",
-        status: 500,
-      };
-    }
-  }
-
-  /**
    * Analyze compatibility between a user and a specific job
    *
    * @param userId User ID
@@ -212,8 +149,8 @@ export class VagasApi {
   ): Promise<ApiResponse<{ matching: any }>> {
     try {
       const requestData = {
-        usuario_id: userId,
-        vaga_id: jobId,
+        usuarioId: userId,
+        vagaId: jobId,
       };
 
       const response = await apiClient.post<{

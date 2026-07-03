@@ -5,8 +5,8 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 // Define the possible sort fields
 export type SortField =
-  | "data_publicacao"
-  | "empresa.nome"
+  | "dataCriacao"
+  | "empresaNome"
   | "titulo"
   | "matching_score";
 
@@ -18,7 +18,7 @@ export interface JobFilters {
   search?: string;
   keywords?: string[]; // Added keywords array for specific keyword search
   modalidade?: string[];
-  tipo_contrato?: string[];
+  tipoContrato?: string[];
   nivel?: string[];
   localizacao?: {
     cidade?: string;
@@ -87,15 +87,15 @@ export const useJobFilters = (
 
   // Initialize filter state
   const [filters, setFilters] = useState<JobFilters>({});
-  const [sortField, setSortField] = useState<SortField>("data_publicacao");
+  const [sortField, setSortField] = useState<SortField>("dataCriacao");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Extract all available keywords from jobs
   const availableKeywords = useMemo(() => {
     const keywordsSet = new Set<string>();
     jobs.forEach((job) => {
-      if (job.palavras_chave && Array.isArray(job.palavras_chave)) {
-        job.palavras_chave.forEach((keyword) => {
+      if (job.palavrasChave && Array.isArray(job.palavrasChave)) {
+        job.palavrasChave.forEach((keyword) => {
           if (keyword) keywordsSet.add(keyword.toLowerCase());
         });
       }
@@ -123,8 +123,8 @@ export const useJobFilters = (
       urlFilters.modalidade = searchParams.get("modalidade")?.split(",");
     }
 
-    if (searchParams.has("tipo_contrato")) {
-      urlFilters.tipo_contrato = searchParams.get("tipo_contrato")?.split(",");
+    if (searchParams.has("tipoContrato")) {
+      urlFilters.tipoContrato = searchParams.get("tipoContrato")?.split(",");
     }
 
     if (searchParams.has("nivel")) {
@@ -155,8 +155,8 @@ export const useJobFilters = (
       const sortParam = searchParams.get("sort") as SortField;
       if (
         [
-          "data_publicacao",
-          "empresa.nome",
+          "dataCriacao",
+          "empresaNome",
           "titulo",
           "matching_score",
         ].includes(sortParam)
@@ -198,8 +198,8 @@ export const useJobFilters = (
       params.set("modalidade", filters.modalidade.join(","));
     }
 
-    if (filters.tipo_contrato?.length) {
-      params.set("tipo_contrato", filters.tipo_contrato.join(","));
+    if (filters.tipoContrato?.length) {
+      params.set("tipoContrato", filters.tipoContrato.join(","));
     }
 
     if (filters.nivel?.length) {
@@ -241,7 +241,7 @@ export const useJobFilters = (
       !!filters.search ||
       !!filters.keywords?.length ||
       !!filters.modalidade?.length ||
-      !!filters.tipo_contrato?.length ||
+      !!filters.tipoContrato?.length ||
       !!filters.nivel?.length ||
       !!filters.localizacao?.cidade ||
       !!filters.localizacao?.estado ||
@@ -262,25 +262,23 @@ export const useJobFilters = (
       result = result.filter(
         (job) =>
           job.titulo.toLowerCase().includes(searchTerm) ||
-          job.empresa.nome.toLowerCase().includes(searchTerm) ||
+          job.empresaNome.toLowerCase().includes(searchTerm) ||
           job.descricao.toLowerCase().includes(searchTerm) ||
-          (job.localizacao.cidade &&
-            job.localizacao.cidade.toLowerCase().includes(searchTerm)) ||
-          (job.localizacao.estado &&
-            job.localizacao.estado.toLowerCase().includes(searchTerm))
+          (job.localizacao &&
+            job.localizacao.toLowerCase().includes(searchTerm))
       );
     }
 
-    // Keywords filter - search in palavras_chave array
+    // Keywords filter - search in palavrasChave array
     if (filters.keywords?.length) {
       result = result.filter((job) => {
         // If job has no keywords, filter it out
-        if (!job.palavras_chave || !Array.isArray(job.palavras_chave))
+        if (!job.palavrasChave || !Array.isArray(job.palavrasChave))
           return false;
 
         // Check if any of the job's keywords match the filter keywords
         return filters.keywords!.some((keyword) =>
-          job.palavras_chave.some((jobKeyword) =>
+          job.palavrasChave.some((jobKeyword) =>
             jobKeyword.toLowerCase().includes(keyword.toLowerCase())
           )
         );
@@ -295,9 +293,9 @@ export const useJobFilters = (
     }
 
     // Contract type filter (CLT, PJ, etc.)
-    if (filters.tipo_contrato?.length) {
+    if (filters.tipoContrato?.length) {
       result = result.filter((job) =>
-        filters.tipo_contrato!.includes(job.tipo_contrato)
+        filters.tipoContrato!.includes(job.tipoContrato)
       );
     }
 
@@ -311,16 +309,14 @@ export const useJobFilters = (
       if (filters.localizacao.cidade) {
         result = result.filter(
           (job) =>
-            job.localizacao.cidade?.toLowerCase() ===
-            filters.localizacao?.cidade?.toLowerCase()
+            job.localizacao?.toLowerCase().includes(filters.localizacao!.cidade!.toLowerCase())
         );
       }
 
       if (filters.localizacao.estado) {
         result = result.filter(
           (job) =>
-            job.localizacao.estado?.toLowerCase() ===
-            filters.localizacao?.estado?.toLowerCase()
+            job.localizacao?.toLowerCase().includes(filters.localizacao!.estado!.toLowerCase())
         );
       }
     }
@@ -329,12 +325,13 @@ export const useJobFilters = (
     if (filters.salario_min || filters.salario_max) {
       result = result.filter((job) => {
         // Skip jobs without salary information
-        if (!job.faixa_salarial) return false;
+        if (job.salarioMin === undefined && job.salarioMax === undefined) return false;
 
         // Check minimum salary if set
         if (
           filters.salario_min &&
-          job.faixa_salarial.minimo < filters.salario_min
+          job.salarioMin !== undefined &&
+          Number(job.salarioMin) < filters.salario_min
         ) {
           return false;
         }
@@ -342,7 +339,8 @@ export const useJobFilters = (
         // Check maximum salary if set
         if (
           filters.salario_max &&
-          job.faixa_salarial.maximo > filters.salario_max
+          job.salarioMax !== undefined &&
+          Number(job.salarioMax) > filters.salario_max
         ) {
           return false;
         }
@@ -355,7 +353,7 @@ export const useJobFilters = (
     if (filters.habilidades?.length) {
       result = result.filter((job) => {
         // Get all technical skills from the job
-        const jobSkills = job.requisitos.habilidades_tecnicas.map((skill) =>
+        const jobSkills = (job.requisitos?.habilidadesTecnicas || []).map((skill) =>
           skill.nome.toLowerCase()
         );
 
@@ -379,12 +377,12 @@ export const useJobFilters = (
       if (sortField === "matching_score") {
         // Get the matching scores if available
         const scoreA =
-          matchings && a._id
-            ? matchings[a._id.toString()]?.score_matching || 0
+          matchings && a.id
+            ? matchings[a.id.toString()]?.score || 0
             : 0;
         const scoreB =
-          matchings && b._id
-            ? matchings[b._id.toString()]?.score_matching || 0
+          matchings && b.id
+            ? matchings[b.id.toString()]?.score || 0
             : 0;
 
         return sortDirection === "asc" ? scoreA - scoreB : scoreB - scoreA;
@@ -401,7 +399,7 @@ export const useJobFilters = (
       }
 
       // Handle date comparison
-      if (sortField === "data_publicacao") {
+      if (sortField === "dataCriacao") {
         const dateA = new Date(valueA || 0);
         const dateB = new Date(valueB || 0);
         return sortDirection === "asc"
@@ -473,11 +471,11 @@ export const useJobFilters = (
 
   const toggleTipoContrato = (tipo: string) => {
     setFilters((prev) => {
-      const currentTipos = prev.tipo_contrato || [];
+      const currentTipos = prev.tipoContrato || [];
 
       return {
         ...prev,
-        tipo_contrato: currentTipos.includes(tipo)
+        tipoContrato: currentTipos.includes(tipo)
           ? currentTipos.filter((t) => t !== tipo)
           : [...currentTipos, tipo],
       };
@@ -536,7 +534,7 @@ export const useJobFilters = (
   };
 
   const resetSort = () => {
-    setSortField("data_publicacao");
+    setSortField("dataCriacao");
     setSortDirection("desc");
   };
 

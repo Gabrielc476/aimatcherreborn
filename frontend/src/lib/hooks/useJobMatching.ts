@@ -101,7 +101,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
         // Convert list to map by job ID
         const matchingsMap: Record<string, Matching> = {};
         response.data.data.forEach((matching) => {
-          matchingsMap[matching.vaga_id] = matching;
+          matchingsMap[matching.vagaId] = matching;
         });
         return matchingsMap;
       } else {

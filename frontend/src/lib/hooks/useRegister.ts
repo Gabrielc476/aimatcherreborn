@@ -34,10 +34,9 @@ export const useRegister = (): UseRegisterReturn => {
 
     try {
       const response = await AuthApi.register(userData);
-
       if (response.status === 201 && response.data) {
         setSuccess(true);
-        setUserId(response.data.usuario_id);
+        setUserId(response.data.usuarioId);
         setIsLoading(false);
         return true;
       } else {

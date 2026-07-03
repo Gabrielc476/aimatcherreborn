@@ -25,10 +25,17 @@ export class GoogleGenAIService implements AIService {
 
   async extrairDadosCurriculo(textoCurriculo: string): Promise<any> {
     this.checkClientInitialized();
+    console.log(textoCurriculo)
 
     const systemInstruction = `Você é um sistema especializado em extração e estruturação de dados de currículos. 
 Sua tarefa é extrair as informações do texto do currículo fornecido e organizá-las no formato JSON especificado.
-Seja preciso e extraia exatamente o que está escrito. Não invente informações.`;
+
+Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados:
+1. Para cada habilidade em 'habilidades_tecnicas', calcule o campo 'anos_experiencia' de forma lógica: identifique todas as experiências profissionais ('experiencias') onde o candidato utilizou aquela tecnologia/ferramenta e some as durações dessas experiências. Se houver sobreposição de períodos, compute a duração da sobreposição apenas uma vez. Não chute valores aleatórios.
+2. Identifique as principais realizações, projetos relevantes, conquistas ou entregas de valor realizadas pelo candidato em cada experiência profissional e preencha a lista 'principais_realizacoes'.
+3. Mapeie as modalidades de trabalho desejadas ('preferencias.modalidades') estritamente para um ou mais dos seguintes valores: 'REMOTO', 'HIBRIDO', 'PRESENCIAL'. Se nenhuma for explícita ou não estiver presente no currículo, deixe o array vazio.
+4. Mapeie o nível de proficiência dos idiomas de forma realista. Se o candidato listar apenas um nível geral para um idioma (ex: 'Inglês Avançado'), replique esse nível de forma consistente nos campos de leitura, escrita e conversação (ex: 'AVANCADO').
+5. Seja preciso e extraia o que está escrito. Não invente informações fictícias.`;
 
     const prompt = `Extraia os dados do seguinte currículo:\n\n${textoCurriculo}`;
 
@@ -62,7 +69,8 @@ Seja preciso e extraia exatamente o que está escrito. Não invente informaçõe
               data_inicio: { type: Type.STRING, description: 'Formato YYYY-MM ou YYYY-MM-DD' },
               data_fim: { type: Type.STRING, description: 'Formato YYYY-MM ou YYYY-MM-DD se não for atual' },
               atual: { type: Type.BOOLEAN },
-              tecnologias_utilizadas: { type: Type.ARRAY, items: { type: Type.STRING } }
+              tecnologias_utilizadas: { type: Type.ARRAY, items: { type: Type.STRING } },
+              principais_realizacoes: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Lista de principais realizações, projetos e entregas de destaque nesta experiência' }
             },
             required: ['empresa', 'cargo', 'data_inicio', 'atual']
           }
@@ -125,7 +133,13 @@ Seja preciso e extraia exatamente o que está escrito. Não invente informaçõe
         preferencias: {
           type: Type.OBJECT,
           properties: {
-            modalidades: { type: Type.ARRAY, items: { type: Type.STRING } },
+            modalidades: { 
+              type: Type.ARRAY, 
+              items: { 
+                type: Type.STRING,
+                enum: ['REMOTO', 'HIBRIDO', 'PRESENCIAL']
+              } 
+            },
             cidades_interesse: { type: Type.ARRAY, items: { type: Type.STRING } },
             cargos_interesse: { type: Type.ARRAY, items: { type: Type.STRING } },
             tipo_contrato: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -393,7 +407,7 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     });
 
     const parsedResult = JSON.parse(response.text || '{}');
-    
+
     // Mapeamos a propriedade "score" da raiz para "score_matching" se necessário, 
     // mas na nossa entidade é "score". Retornamos o objeto mapeado para o formato da interface.
     return {

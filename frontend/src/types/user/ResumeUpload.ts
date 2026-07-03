@@ -4,8 +4,8 @@
  */
 export interface ResumeUploadResponse {
   mensagem: string;
-  nome_arquivo: string;
-  dados_extraidos: {
+  nomeArquivo: string;
+  dadosExtraidos: {
     nome: string;
     email: string;
     perfil: string;

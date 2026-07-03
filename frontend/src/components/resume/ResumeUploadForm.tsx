@@ -127,17 +127,17 @@ export function ResumeUploadForm({
                 <div className="mt-2">
                   <p>Dados extraídos:</p>
                   <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Nome: {uploadResponse.dados_extraidos.nome}</li>
-                    <li>Email: {uploadResponse.dados_extraidos.email}</li>
-                    <li>Perfil: {uploadResponse.dados_extraidos.perfil}</li>
+                    <li>Nome: {uploadResponse.dadosExtraidos.nome}</li>
+                    <li>Email: {uploadResponse.dadosExtraidos.email}</li>
+                    <li>Perfil: {uploadResponse.dadosExtraidos.perfil}</li>
                     <li>
-                      {uploadResponse.dados_extraidos.experiencias} experiências
+                      {uploadResponse.dadosExtraidos.experiencias} experiências
                     </li>
-                    <li>{uploadResponse.dados_extraidos.formacao} formações</li>
+                    <li>{uploadResponse.dadosExtraidos.formacao} formações</li>
                     <li>
-                      {uploadResponse.dados_extraidos.habilidades} habilidades
+                      {uploadResponse.dadosExtraidos.habilidades} habilidades
                     </li>
-                    <li>{uploadResponse.dados_extraidos.idiomas} idiomas</li>
+                    <li>{uploadResponse.dadosExtraidos.idiomas} idiomas</li>
                   </ul>
                   <p className="mt-2">Redirecionando para edição...</p>
                 </div>

@@ -10,7 +10,6 @@ import { useJobs } from "@/lib/hooks/useJobs";
 import { useJobMatching } from "@/lib/hooks/useJobMatching";
 import { useJobFilters } from "@/lib/hooks/useJobFilters";
 import { JobFilterPanel } from "@/components/job/JobFilterPanel";
-import { KeywordInput } from "@/components/job/KeywordInput";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -24,6 +23,8 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  ArrowUpAZ,
+  ArrowDownAZ,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -149,7 +150,7 @@ export default function JobsPage() {
   }, [jobs]);
 
   const availableTipoContratos = useMemo(() => {
-    return [...new Set(jobs.map((job) => job.tipo_contrato))].filter(Boolean);
+    return [...new Set(jobs.map((job) => job.tipoContrato))].filter(Boolean);
   }, [jobs]);
 
   const availableNiveis = useMemo(() => {
@@ -159,7 +160,7 @@ export default function JobsPage() {
   const availableHabilidades = useMemo(() => {
     const habilidades = new Set<string>();
     jobs.forEach((job) => {
-      job.requisitos.habilidades_tecnicas.forEach((skill) => {
+      job.requisitos?.habilidadesTecnicas?.forEach((skill) => {
         if (skill.nome) habilidades.add(skill.nome);
       });
     });
@@ -172,8 +173,13 @@ export default function JobsPage() {
     const states = new Set<string>();
 
     jobs.forEach((job) => {
-      if (job.localizacao.cidade) cities.add(job.localizacao.cidade);
-      if (job.localizacao.estado) states.add(job.localizacao.estado);
+      if (job.localizacao) {
+        cities.add(job.localizacao);
+        const parts = job.localizacao.split(/[-,\/]/);
+        if (parts.length > 1) {
+          states.add(parts[parts.length - 1].trim());
+        }
+      }
     });
 
     return {
@@ -273,7 +279,7 @@ export default function JobsPage() {
   const handleAnalyzeAllJobs = async () => {
     // Create a copy of jobs that don't have matching data yet
     const jobsToAnalyze = filteredJobs.filter((job) => {
-      const jobId = job._id?.toString() || "";
+      const jobId = job.id?.toString() || "";
       return jobId && !jobMatchings[jobId];
     });
 
@@ -283,7 +289,7 @@ export default function JobsPage() {
 
     // Analyze each job sequentially
     for (const job of jobsToAnalyze) {
-      const jobId = job._id?.toString() || "";
+      const jobId = job.id?.toString() || "";
       if (!jobId) continue;
 
       setSelectedJobId(jobId);
@@ -363,8 +369,8 @@ export default function JobsPage() {
       });
     }
 
-    if (filters.tipo_contrato?.length) {
-      filters.tipo_contrato.forEach((tipo) => {
+    if (filters.tipoContrato?.length) {
+      filters.tipoContrato.forEach((tipo) => {
         activeFilters.push(
           <Badge key={`tipo-${tipo}`} variant="secondary" className="mr-1 mb-1">
             Contrato: {tipo}
@@ -526,12 +532,12 @@ export default function JobsPage() {
           <div>
             <h3 className="text-lg font-medium">Compatibilidade geral</h3>
             <p className="text-sm text-muted-foreground">
-              {matching.resumo_candidato}
+              {matching.analise.resumoCandidato}
             </p>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold">
-              {Math.round(matching.score_matching)}%
+              {Math.round(matching.score)}%
             </div>
             <div className="text-sm text-muted-foreground">
               Score de compatibilidade
@@ -552,21 +558,21 @@ export default function JobsPage() {
                     <span className="font-medium">Habilidades Técnicas</span>
                   </div>
                   <div className="font-semibold">
-                    {Math.round(matching.categorias.habilidades_tecnicas.score)}
+                    {Math.round(matching.analise.categorias.habilidadesTecnicas.score)}
                     %
                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-4 pt-0">
                 <div className="space-y-2">
-                  {matching.categorias.habilidades_tecnicas.correspondentes
+                  {matching.analise.categorias.habilidadesTecnicas.correspondentes
                     .length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-green-600">
                         Pontos fortes:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.categorias.habilidades_tecnicas.correspondentes.map(
+                        {matching.analise.categorias.habilidadesTecnicas.correspondentes.map(
                           (skill: string, index: number) => (
                             <span
                               key={index}
@@ -580,14 +586,14 @@ export default function JobsPage() {
                     </div>
                   )}
 
-                  {matching.categorias.habilidades_tecnicas.faltantes.length >
+                  {matching.analise.categorias.habilidadesTecnicas.faltantes.length >
                     0 && (
                     <div>
                       <p className="text-sm font-medium text-red-600">
                         Áreas para desenvolvimento:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.categorias.habilidades_tecnicas.faltantes.map(
+                        {matching.analise.categorias.habilidadesTecnicas.faltantes.map(
                           (skill: string, index: number) => (
                             <span
                               key={index}
@@ -603,8 +609,8 @@ export default function JobsPage() {
 
                   <p className="text-sm mt-2">
                     {
-                      matching.categorias.habilidades_tecnicas
-                        .analise_qualitativa
+                      matching.analise.categorias.habilidadesTecnicas
+                        .analiseQualitativa
                     }
                   </p>
                 </div>
@@ -619,7 +625,7 @@ export default function JobsPage() {
                     <span className="font-medium">Experiência</span>
                   </div>
                   <div className="font-semibold">
-                    {Math.round(matching.categorias.experiencia.score)}%
+                    {Math.round(matching.analise.categorias.experiencia.score)}%
                   </div>
                 </div>
               </AccordionTrigger>
@@ -627,7 +633,7 @@ export default function JobsPage() {
                 <div className="text-sm">
                   <p>
                     <span className="font-medium">Tempo de experiência:</span>{" "}
-                    {matching.categorias.experiencia.tempo_atende ? (
+                    {matching.analise.categorias.experiencia.tempoAtende ? (
                       <span className="text-green-600">
                         Atende aos requisitos
                       </span>
@@ -638,14 +644,14 @@ export default function JobsPage() {
                     )}
                   </p>
 
-                  {matching.categorias.experiencia.areas_correspondentes
+                  {matching.analise.categorias.experiencia.areasCorrespondentes
                     .length > 0 && (
                     <div className="mt-2">
                       <p className="text-sm font-medium text-green-600">
                         Áreas de experiência compatíveis:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.categorias.experiencia.areas_correspondentes.map(
+                        {matching.analise.categorias.experiencia.areasCorrespondentes.map(
                           (area: string, index: number) => (
                             <span
                               key={index}
@@ -660,7 +666,7 @@ export default function JobsPage() {
                   )}
 
                   <p className="mt-2">
-                    {matching.categorias.experiencia.analise_qualitativa}
+                    {matching.analise.categorias.experiencia.analiseQualitativa}
                   </p>
                 </div>
               </AccordionContent>
@@ -674,7 +680,7 @@ export default function JobsPage() {
                     <span className="font-medium">Formação</span>
                   </div>
                   <div className="font-semibold">
-                    {Math.round(matching.categorias.formacao.score)}%
+                    {Math.round(matching.analise.categorias.formacao.score)}%
                   </div>
                 </div>
               </AccordionTrigger>
@@ -683,7 +689,7 @@ export default function JobsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
                       <span className="font-medium">Nível acadêmico:</span>{" "}
-                      {matching.categorias.formacao.nivel_atende ? (
+                      {matching.analise.categorias.formacao.nivelAtende ? (
                         <span className="text-green-600">Adequado</span>
                       ) : (
                         <span className="text-red-600">Não adequado</span>
@@ -691,7 +697,7 @@ export default function JobsPage() {
                     </div>
                     <div>
                       <span className="font-medium">Área de formação:</span>{" "}
-                      {matching.categorias.formacao.area_atende ? (
+                      {matching.analise.categorias.formacao.areaAtende ? (
                         <span className="text-green-600">Compatível</span>
                       ) : (
                         <span className="text-red-600">Não compatível</span>
@@ -700,7 +706,7 @@ export default function JobsPage() {
                   </div>
 
                   <p className="mt-2">
-                    {matching.categorias.formacao.analise_qualitativa}
+                    {matching.analise.categorias.formacao.analiseQualitativa}
                   </p>
                 </div>
               </AccordionContent>
@@ -714,19 +720,19 @@ export default function JobsPage() {
                     <span className="font-medium">Idiomas</span>
                   </div>
                   <div className="font-semibold">
-                    {Math.round(matching.categorias.idiomas.score)}%
+                    {Math.round(matching.analise.categorias.idiomas.score)}%
                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-4 pt-0">
                 <div className="text-sm">
-                  {matching.categorias.idiomas.correspondentes.length > 0 && (
+                  {matching.analise.categorias.idiomas.correspondentes.length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-green-600">
                         Idiomas compatíveis:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.categorias.idiomas.correspondentes.map(
+                        {matching.analise.categorias.idiomas.correspondentes.map(
                           (language: string, index: number) => (
                             <span
                               key={index}
@@ -740,13 +746,13 @@ export default function JobsPage() {
                     </div>
                   )}
 
-                  {matching.categorias.idiomas.faltantes.length > 0 && (
+                  {matching.analise.categorias.idiomas.faltantes.length > 0 && (
                     <div className="mt-2">
                       <p className="text-sm font-medium text-red-600">
                         Idiomas necessários:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.categorias.idiomas.faltantes.map(
+                        {matching.analise.categorias.idiomas.faltantes.map(
                           (language: string, index: number) => (
                             <span
                               key={index}
@@ -761,7 +767,7 @@ export default function JobsPage() {
                   )}
 
                   <p className="mt-2">
-                    {matching.categorias.idiomas.analise_qualitativa}
+                    {matching.analise.categorias.idiomas.analiseQualitativa}
                   </p>
                 </div>
               </AccordionContent>
@@ -775,13 +781,13 @@ export default function JobsPage() {
             <CardTitle className="text-base">Recomendações</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{matching.recomendacoes.gerais}</p>
+            <p className="text-sm">{matching.analise.recomendacoes.gerais}</p>
 
-            {matching.recomendacoes.prioridade_acao.length > 0 && (
+            {matching.analise.recomendacoes.prioridadeAcao.length > 0 && (
               <div className="mt-4">
                 <p className="text-sm font-medium">Ações prioritárias:</p>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                  {matching.recomendacoes.prioridade_acao.map(
+                  {matching.analise.recomendacoes.prioridadeAcao.map(
                     (action, index) => (
                       <li key={index} className="text-sm">
                         {action}
@@ -802,13 +808,13 @@ export default function JobsPage() {
                 Probabilidade de sucesso
               </CardTitle>
               <div className="text-lg font-semibold">
-                {Math.round(matching.probabilidade_sucesso.score)}%
+                {Math.round(matching.analise.probabilidadeSucesso.score)}%
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              {matching.probabilidade_sucesso.justificativa}
+              {matching.analise.probabilidadeSucesso.justificativa}
             </p>
           </CardContent>
         </Card>
@@ -1089,10 +1095,10 @@ export default function JobsPage() {
                                 <SelectValue placeholder="Ordenar por" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="data_publicacao">
+                                <SelectItem value="dataCriacao">
                                   Data de publicação
                                 </SelectItem>
-                                <SelectItem value="empresa.nome">
+                                <SelectItem value="empresaNome">
                                   Nome da empresa
                                 </SelectItem>
                                 <SelectItem value="titulo">Título</SelectItem>
@@ -1189,8 +1195,8 @@ export default function JobsPage() {
               <div className="flex items-center text-sm text-muted-foreground">
                 <span>Ordenado por:</span>
                 <Badge variant="outline" className="ml-2">
-                  {sortField === "data_publicacao" && "Data de publicação"}
-                  {sortField === "empresa.nome" && "Nome da empresa"}
+                  {sortField === "dataCriacao" && "Data de publicação"}
+                  {sortField === "empresaNome" && "Nome da empresa"}
                   {sortField === "titulo" && "Título"}
                   {sortField === "matching_score" && "Compatibilidade"}
                   {sortDirection === "asc" ? " (crescente)" : " (decrescente)"}
@@ -1224,7 +1230,7 @@ export default function JobsPage() {
             {filteredJobs.length > 0 ? (
               <div className="grid grid-cols-1 gap-6 mb-6">
                 {filteredJobs.map((job) => {
-                  const jobId = job._id?.toString() || "";
+                  const jobId = job.id?.toString() || "";
                   const isAnalyzing = matchingInProgress === jobId;
 
                   return (

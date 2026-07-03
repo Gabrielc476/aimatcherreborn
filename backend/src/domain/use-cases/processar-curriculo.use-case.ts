@@ -26,13 +26,40 @@ export interface ProcessarCurriculoOutput {
   };
 }
 
+/**
+ * Converte com segurança uma string de data vinda da IA em um objeto Date.
+ * Trata intervalos de anos (ex: "2019-2020") extraindo o ano de início para evitar falhas do Prisma.
+ */
+function safeDate(dateStr: string | undefined): Date | undefined {
+  if (!dateStr) return undefined;
+  
+  const normalized = dateStr.replace(/\//g, '-').trim();
+  const parts = normalized.split('-');
+  const firstPart = parts[0]?.trim() || '';
+  const secondPart = parts[1]?.trim() || '';
+  
+  const cleanStr = (
+    parts.length === 2 && 
+    firstPart.length === 4 && 
+    secondPart.length === 4 && 
+    !isNaN(Number(firstPart)) && 
+    !isNaN(Number(secondPart))
+  ) ? firstPart : normalized;
+
+  const date = new Date(cleanStr);
+  if (isNaN(date.getTime())) {
+    return undefined;
+  }
+  return date;
+}
+
 export class ProcessarCurriculoUseCase {
   constructor(
     private readonly usuarioRepository: UsuarioRepository,
     private readonly pdfService: PDFService,
     private readonly storageService: StorageService,
     private readonly aiService: AIService,
-  ) {}
+  ) { }
 
   async execute(input: ProcessarCurriculoInput): Promise<ProcessarCurriculoOutput> {
     // 1. Verifica se o usuário existe
@@ -46,6 +73,7 @@ export class ProcessarCurriculoUseCase {
     if (!textoExtraido || !textoExtraido.trim()) {
       throw new Error('Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.');
     }
+
 
     // 3. Faz o upload do arquivo PDF para o Storage
     const pathStorage = await this.storageService.uploadCurriculo(
@@ -61,9 +89,9 @@ export class ProcessarCurriculoUseCase {
     usuario.nomeCompleto = dadosEstruturados.nome_completo || usuario.nomeCompleto;
     usuario.telefone = dadosEstruturados.telefone || usuario.telefone;
     if (dadosEstruturados.data_nascimento) {
-      usuario.dataNascimento = new Date(dadosEstruturados.data_nascimento);
+      usuario.dataNascimento = safeDate(dadosEstruturados.data_nascimento);
     }
-    
+
     // Atualiza o perfil profissional
     if (dadosEstruturados.perfil) {
       usuario.perfil = {
@@ -77,15 +105,27 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia experiências
     if (dadosEstruturados.experiencias) {
-      usuario.experiencias = dadosEstruturados.experiencias.map((exp: any) => ({
-        empresa: exp.empresa,
-        cargo: exp.cargo,
-        descricao: exp.descricao,
-        dataInicio: new Date(exp.data_inicio),
-        dataFim: exp.data_fim ? new Date(exp.data_fim) : undefined,
-        atual: Boolean(exp.atual),
-        tecnologias: exp.tecnologias_utilizadas || [],
-      }));
+      usuario.experiencias = dadosEstruturados.experiencias.map((exp: any) => {
+        let descricaoCompleta = exp.descricao || '';
+        if (exp.principais_realizacoes && Array.isArray(exp.principais_realizacoes) && exp.principais_realizacoes.length > 0) {
+          const realizacoesTexto = exp.principais_realizacoes
+            .map((r: string) => `• ${r.trim()}`)
+            .join('\n');
+          descricaoCompleta = descricaoCompleta 
+            ? `${descricaoCompleta}\n\n**Principais Realizações:**\n${realizacoesTexto}`
+            : `**Principais Realizações:**\n${realizacoesTexto}`;
+        }
+
+        return {
+          empresa: exp.empresa,
+          cargo: exp.cargo,
+          descricao: descricaoCompleta,
+          dataInicio: safeDate(exp.data_inicio) || new Date(),
+          dataFim: safeDate(exp.data_fim),
+          atual: Boolean(exp.atual),
+          tecnologias: exp.tecnologias_utilizadas || [],
+        };
+      });
     }
 
     // Mapeia formação
@@ -95,8 +135,8 @@ export class ProcessarCurriculoUseCase {
         curso: f.curso,
         grau: f.grau,
         area: f.area,
-        dataInicio: f.data_inicio ? new Date(f.data_inicio) : undefined,
-        dataFim: f.data_fim ? new Date(f.data_fim) : undefined,
+        dataInicio: safeDate(f.data_inicio),
+        dataFim: safeDate(f.data_fim),
         concluido: Boolean(f.concluido),
       }));
     }
@@ -115,8 +155,8 @@ export class ProcessarCurriculoUseCase {
       usuario.certificacoes = dadosEstruturados.certificacoes.map((c: any) => ({
         nome: c.nome,
         emissor: c.emissor,
-        dataObtencao: c.data_obtencao ? new Date(c.data_obtencao) : undefined,
-        dataValidade: c.data_validade ? new Date(c.data_validade) : undefined,
+        dataObtencao: safeDate(c.data_obtencao),
+        dataValidade: safeDate(c.data_validade),
         codigoValidade: c.codigo_validacao,
       }));
     }
@@ -145,6 +185,7 @@ export class ProcessarCurriculoUseCase {
     usuario.curriculoUrl = pathStorage;
     usuario.curriculoTexto = textoExtraido;
     usuario.curriculoExtraido = dadosEstruturados;
+    console.log(usuario.preferencias)
 
     // 6. Salva as atualizações do perfil do usuário no banco
     await this.usuarioRepository.salvar(usuario);

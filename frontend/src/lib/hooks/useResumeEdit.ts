@@ -28,9 +28,7 @@ export const useResumeEdit = (userId?: string): UseResumeEditReturn => {
   // Get current user ID if not provided
   const getCurrentUserId = (): string | null => {
     if (userId) return userId;
-
-    const currentUser = AuthApi.getCurrentUser();
-    return currentUser?._id?.toString() || null;
+    return AuthApi.getCurrentUserId();
   };
 
   /**
