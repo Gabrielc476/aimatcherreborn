@@ -4,6 +4,7 @@ import { TechnicalSkill } from "./TechnicalSkill";
 import { Language } from "./Language";
 import { Preferences } from "./Preferences";
 import { Certification } from "./Certification";
+import { Project } from "./Project";
 
 /**
  * Interface representing user data in the application
@@ -46,6 +47,7 @@ export interface User {
 
   // Preferências de trabalho
   preferencias?: Preferences;
+  projetos?: Project[];
 
   // Links externos
   links?: {

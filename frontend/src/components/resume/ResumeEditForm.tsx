@@ -24,6 +24,7 @@ import {
   Code,
   Award,
   Globe,
+  Folder,
 } from "lucide-react";
 import {
   Form,
@@ -38,6 +39,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { User as UserType } from "@/types/user/User";
+import { Project as ProjectType } from "@/types/user/Project";
 
 // Define a schema for personal info section
 const personalInfoSchema = z.object({
@@ -132,13 +134,26 @@ const certificationsSchema = z.object({
   ),
 });
 
+// Projects schema
+const projectSchema = z.object({
+  projetos: z.array(
+    z.object({
+      nome: z.string().min(2, "Nome do projeto é obrigatório"),
+      descricao: z.string().optional(),
+      tecnologias: z.array(z.string()).default([]),
+      url: z.string().url("URL inválida").optional().or(z.literal("")),
+    })
+  ),
+});
+
 // Combine all schemas into the main form schema
 const resumeFormSchema = personalInfoSchema
   .merge(experienceSchema)
   .merge(educationSchema)
   .merge(skillsSchema)
   .merge(languagesSchema)
-  .merge(certificationsSchema);
+  .merge(certificationsSchema)
+  .merge(projectSchema);
 
 // Infer the form values type from the schema
 type ResumeFormValues = z.infer<typeof resumeFormSchema>;
@@ -181,6 +196,7 @@ export function ResumeEditForm({
       habilidades: [],
       idiomas: [],
       certificacoes: [],
+      projetos: [],
     },
   });
 
@@ -218,6 +234,12 @@ export function ResumeEditForm({
     remove: removeCertification,
   } = useFieldArray({ control: form.control as any, name: "certificacoes" });
 
+  const {
+    fields: projectFields,
+    append: appendProject,
+    remove: removeProject,
+  } = useFieldArray({ control: form.control as any, name: "projetos" });
+
   // Update form when userData changes
   useEffect(() => {
     if (userData) {
@@ -243,6 +265,7 @@ export function ResumeEditForm({
         habilidades: userData.habilidades || [],
         idiomas: userData.idiomas || [],
         certificacoes: userData.certificacoes || [],
+        projetos: userData.projetos || [],
       });
     }
   }, [userData, form]);
@@ -310,6 +333,13 @@ export function ResumeEditForm({
     dataObtencao: "",
     dataValidade: "",
     codigoValidade: "",
+  };
+
+  const emptyProject = {
+    nome: "",
+    descricao: "",
+    tecnologias: [],
+    url: "",
   };
 
   return (
@@ -1123,6 +1153,149 @@ export function ResumeEditForm({
                                 </FormControl>
                                 <FormDescription>
                                   Liste projetos em que utilizou esta habilidade
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                {/* Projects Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <h2 className="text-xl font-semibold">Projetos</h2>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendProject(emptyProject)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+
+                  {projectFields.length === 0 ? (
+                    <div className="text-center py-4 border rounded-md border-dashed">
+                      <p className="text-muted-foreground">
+                        Nenhum projeto cadastrado
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => appendProject(emptyProject)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar Projeto
+                      </Button>
+                    </div>
+                  ) : (
+                    projectFields.map((field, index) => (
+                      <Card key={field.id} className="relative">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute right-2 top-2"
+                          onClick={() => removeProject(index)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+
+                        <CardContent className="pt-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <FormField
+                              control={form.control}
+                              name={`projetos.${index}.nome`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nome do projeto</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Ex: E-commerce com React"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`projetos.${index}.url`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>URL do Projeto (opcional)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Ex: https://github.com/... ou link de deploy"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name={`projetos.${index}.descricao`}
+                            render={({ field }) => (
+                              <FormItem className="mb-4">
+                                <FormLabel>Descrição do projeto</FormLabel>
+                                <FormControl>
+                                  <textarea
+                                    className="w-full min-h-[100px] rounded-md border border-input px-3 py-2 text-sm"
+                                    placeholder="Descreva as principais funcionalidades e objetivos do projeto"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`projetos.${index}.tecnologias`}
+                            render={({ field }) => (
+                              <FormItem className="mb-4">
+                                <FormLabel>Tecnologias utilizadas</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Separe as tecnologias por vírgula (ex: React, Node.js, MongoDB)"
+                                    value={
+                                      Array.isArray(field.value)
+                                        ? field.value.join(", ")
+                                        : field.value
+                                    }
+                                    onChange={(e) => {
+                                      field.onChange(e.target.value);
+                                    }}
+                                    onBlur={(e) => {
+                                      const value = e.target.value;
+                                      if (typeof value === "string") {
+                                        field.onChange(
+                                          value
+                                            .split(",")
+                                            .map((item) => item.trim())
+                                            .filter(Boolean)
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Lista de tecnologias, frameworks e ferramentas utilizadas
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>

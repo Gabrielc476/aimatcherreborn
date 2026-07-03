@@ -35,7 +35,8 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
 2. Identifique as principais realizações, projetos relevantes, conquistas ou entregas de valor realizadas pelo candidato em cada experiência profissional e preencha a lista 'principais_realizacoes'.
 3. Mapeie as modalidades de trabalho desejadas ('preferencias.modalidades') estritamente para um ou mais dos seguintes valores: 'REMOTO', 'HIBRIDO', 'PRESENCIAL'. Se nenhuma for explícita ou não estiver presente no currículo, deixe o array vazio.
 4. Mapeie o nível de proficiência dos idiomas de forma realista. Se o candidato listar apenas um nível geral para um idioma (ex: 'Inglês Avançado'), replique esse nível de forma consistente nos campos de leitura, escrita e conversação (ex: 'AVANCADO').
-5. Seja preciso e extraia o que está escrito. Não invente informações fictícias.`;
+5. Seja preciso e extraia o que está escrito. Não invente informações fictícias.
+6. Identifique projetos pessoais, acadêmicos ou open source relevantes citados no currículo que não estejam atrelados diretamente a uma experiência profissional, extraindo o nome, descrição, tecnologias utilizadas e link/URL se disponíveis no array 'projetos'.`;
 
     const prompt = `Extraia os dados do seguinte currículo:\n\n${textoCurriculo}`;
 
@@ -146,12 +147,25 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
             disponibilidade_mudanca: { type: Type.BOOLEAN }
           }
         },
+        projetos: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              nome: { type: Type.STRING },
+              descricao: { type: Type.STRING },
+              tecnologias: { type: Type.ARRAY, items: { type: Type.STRING } },
+              url: { type: Type.STRING, description: 'Link do repositório ou demonstração do projeto se disponível' }
+            },
+            required: ['nome']
+          }
+        },
         palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } }
       },
       required: ['nome_completo', 'email', 'habilidades_tecnicas']
     };
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.callWithRetry(() => this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
       config: {
@@ -159,7 +173,7 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
         responseMimeType: 'application/json',
         responseSchema: cvSchema,
       }
-    });
+    }));
 
     if (!response.text) {
       throw new Error('A IA retornou uma resposta vazia ao processar o currículo.');
@@ -253,7 +267,7 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
       required: ['titulo', 'requisitos']
     };
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.callWithRetry(() => this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
       config: {
@@ -261,7 +275,7 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
         responseMimeType: 'application/json',
         responseSchema: vagaSchema,
       }
-    });
+    }));
 
     return JSON.parse(response.text || '{}');
   }
@@ -400,11 +414,11 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       };
     }
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.callWithRetry(() => this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
       config
-    });
+    }));
 
     const parsedResult = JSON.parse(response.text || '{}');
 
@@ -438,14 +452,14 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       required: ['palavras_chave']
     };
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.callWithRetry(() => this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: schema
       }
-    });
+    }));
 
     const res = JSON.parse(response.text || '{}');
     return res.palavras_chave || [];
@@ -465,17 +479,45 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       required: ['resumo']
     };
 
-    const response = await this.ai.models.generateContent({
+    const response = await this.callWithRetry(() => this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: schema
       }
-    });
+    }));
 
     const res = JSON.parse(response.text || '{}');
     return res.resumo || '';
+  }
+
+  private async callWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isTransient = 
+        retries > 0 && 
+        (
+          error?.status === 500 || 
+          error?.status === 429 || 
+          error?.status === 503 ||
+          error?.code === 500 ||
+          error?.code === 429 ||
+          error?.code === 503 ||
+          String(error).includes('INTERNAL') ||
+          String(error).includes('ResourceExhausted') ||
+          String(error).includes('500') ||
+          String(error).includes('503')
+        );
+
+      if (isTransient) {
+        console.warn(`Gemini API returned a transient error. Retrying in ${delay}ms... (${retries} retries left). Error:`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.callWithRetry(fn, retries - 1, delay * 2);
+      }
+      throw error;
+    }
   }
 
   private checkClientInitialized(): void {

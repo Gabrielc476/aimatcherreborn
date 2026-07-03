@@ -13,5 +13,6 @@ export interface ResumeUploadResponse {
     formacao: number;
     habilidades: number;
     idiomas: number;
+    projetos?: number;
   };
 }

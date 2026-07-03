@@ -65,6 +65,14 @@ export interface PreferenciasTrabalho {
   mudanca: boolean;
 }
 
+export interface Projeto {
+  id?: string;
+  nome: string;
+  descricao?: string;
+  tecnologias: string[];
+  url?: string;
+}
+
 export class Usuario {
   constructor(
     public readonly id: string,
@@ -83,6 +91,7 @@ export class Usuario {
     public certificacoes: CertificacaoProfissional[] = [],
     public idiomas: Idioma[] = [],
     public preferencias?: PreferenciasTrabalho,
+    public projetos: Projeto[] = [],
     public curriculoUrl?: string,
     public curriculoTexto?: string,
     public curriculoExtraido?: any,

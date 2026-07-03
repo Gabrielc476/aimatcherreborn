@@ -79,18 +79,22 @@ describe('ExecutarMatchingUseCase', () => {
       'uuid-recrutador',
       'Desenvolvedor Backend NestJS',
       'Descrição da vaga...',
-      'Resumo da vaga...',
       'ATIVA',
       'Tech Corp',
-      'Remoto',
       'REMOTO',
       'CLT',
       'PLENO',
-      undefined,
-      undefined,
-      {},
-      ['NestJS', 'TypeScript'],
       new Date(),
+      'Resumo da vaga...',
+      'Remoto',
+      undefined,
+      undefined,
+      {
+        habilidadesTecnicas: [],
+        habilidadesComportamentais: [],
+        idiomas: [],
+      },
+      ['NestJS', 'TypeScript'],
     );
 
     const mockResultadoAnalise = {

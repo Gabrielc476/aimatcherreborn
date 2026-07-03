@@ -41,6 +41,7 @@ model Usuario {
   certificacoes     Certificacao[]
   idiomas           Idioma[]
   preferencias      Preferencia?
+  projetos          Projeto[]
   
   // Armazenamento do PDF no Supabase
   curriculoUrl      String?        @map("curriculo_url") // Link do PDF no Bucket
@@ -144,6 +145,18 @@ model Preferencia {
   mudanca       Boolean              @default(false)
 
   @@map("preferencias")
+}
+
+model Projeto {
+  id          String   @id @default(uuid()) @db.Uuid
+  usuarioId   String   @map("usuario_id") @db.Uuid
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome        String
+  descricao   String?  @db.Text
+  tecnologias String[] @map("tecnologias")
+  url         String?  @map("url")
+
+  @@map("projetos")
 }
 
 model Vaga {

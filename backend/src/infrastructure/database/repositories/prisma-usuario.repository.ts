@@ -81,6 +81,13 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
             mudanca: dbUser.preferencias.mudanca,
           }
         : undefined,
+      (dbUser.projetos || []).map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        descricao: p.descricao || undefined,
+        tecnologias: p.tecnologias,
+        url: p.url || undefined,
+      })),
       dbUser.curriculoUrl || undefined,
       dbUser.curriculoTexto || undefined,
       dbUser.curriculoExtraido || undefined,
@@ -240,6 +247,20 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
         });
       }
 
+      // Sincroniza projetos
+      await tx.projeto.deleteMany({ where: { usuarioId: usuario.id } });
+      if (usuario.projetos && usuario.projetos.length > 0) {
+        await tx.projeto.createMany({
+          data: usuario.projetos.map((p) => ({
+            usuarioId: usuario.id,
+            nome: p.nome,
+            descricao: p.descricao,
+            tecnologias: p.tecnologias,
+            url: p.url,
+          })),
+        });
+      }
+
       // Retorna a entidade atualizada
       const dbUsuarioCompleto = await tx.usuario.findUnique({
         where: { id: usuario.id },
@@ -251,6 +272,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           certificacoes: true,
           idiomas: true,
           preferencias: true,
+          projetos: true,
         },
       });
 
@@ -270,6 +292,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           certificacoes: true,
           idiomas: true,
           preferencias: true,
+          projetos: true,
         },
       });
       return this.mapToDomain(dbUser);
@@ -289,6 +312,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
         certificacoes: true,
         idiomas: true,
         preferencias: true,
+        projetos: true,
       },
     });
     return this.mapToDomain(dbUser);
@@ -296,6 +320,145 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
 
   async atualizar(id: string, usuario: Partial<Usuario>): Promise<Usuario> {
     return this.prisma.runWithRLS(async (tx) => {
+      // Sincroniza relações se passadas no objeto parcial
+      if (usuario.perfil) {
+        await tx.perfil.upsert({
+          where: { usuarioId: id },
+          update: {
+            titulo: usuario.perfil.titulo,
+            resumoProfissional: usuario.perfil.resumoProfissional,
+            anosExperiencia: usuario.perfil.anosExperiencia,
+            pretensaoSalarial: usuario.perfil.pretensaoSalarial,
+            disponibilidade: usuario.perfil.disponibilidade,
+          },
+          create: {
+            usuarioId: id,
+            titulo: usuario.perfil.titulo,
+            resumoProfissional: usuario.perfil.resumoProfissional,
+            anosExperiencia: usuario.perfil.anosExperiencia,
+            pretensaoSalarial: usuario.perfil.pretensaoSalarial,
+            disponibilidade: usuario.perfil.disponibilidade,
+          },
+        });
+      }
+
+      if (usuario.experiencias !== undefined) {
+        await tx.experiencia.deleteMany({ where: { usuarioId: id } });
+        if (usuario.experiencias.length > 0) {
+          await tx.experiencia.createMany({
+            data: usuario.experiencias.map((exp) => ({
+              usuarioId: id,
+              empresa: exp.empresa,
+              cargo: exp.cargo,
+              descricao: exp.descricao,
+              dataInicio: exp.dataInicio,
+              dataFim: exp.dataFim,
+              atual: exp.atual,
+              tecnologias: exp.tecnologias,
+            })),
+          });
+        }
+      }
+
+      if (usuario.formacoes !== undefined) {
+        await tx.formacao.deleteMany({ where: { usuarioId: id } });
+        if (usuario.formacoes.length > 0) {
+          await tx.formacao.createMany({
+            data: usuario.formacoes.map((f) => ({
+              usuarioId: id,
+              instituicao: f.instituicao,
+              curso: f.curso,
+              grau: f.grau,
+              area: f.area,
+              dataInicio: f.dataInicio,
+              dataFim: f.dataFim,
+              concluido: f.concluido,
+            })),
+          });
+        }
+      }
+
+      if (usuario.habilidades !== undefined) {
+        await tx.habilidade.deleteMany({ where: { usuarioId: id } });
+        if (usuario.habilidades.length > 0) {
+          await tx.habilidade.createMany({
+            data: usuario.habilidades.map((h) => ({
+              usuarioId: id,
+              nome: h.nome,
+              nivel: h.nivel,
+              anosExperiencia: h.anosExperiencia,
+            })),
+          });
+        }
+      }
+
+      if (usuario.certificacoes !== undefined) {
+        await tx.certificacao.deleteMany({ where: { usuarioId: id } });
+        if (usuario.certificacoes.length > 0) {
+          await tx.certificacao.createMany({
+            data: usuario.certificacoes.map((c) => ({
+              usuarioId: id,
+              nome: c.nome,
+              emissor: c.emissor,
+              dataObtencao: c.dataObtencao,
+              dataValidade: c.dataValidade,
+              codigoValidade: c.codigoValidade,
+            })),
+          });
+        }
+      }
+
+      if (usuario.idiomas !== undefined) {
+        await tx.idioma.deleteMany({ where: { usuarioId: id } });
+        if (usuario.idiomas.length > 0) {
+          await tx.idioma.createMany({
+            data: usuario.idiomas.map((i) => ({
+              usuarioId: id,
+              nome: i.nome,
+              nivelLeitura: i.nivelLeitura,
+              nivelEscrita: i.nivelEscrita,
+              nivelConversacao: i.nivelConversacao,
+            })),
+          });
+        }
+      }
+
+      if (usuario.preferencias) {
+        await tx.preferencia.upsert({
+          where: { usuarioId: id },
+          update: {
+            modalidades: usuario.preferencias.modalidades,
+            cidades: usuario.preferencias.cidades,
+            cargos: usuario.preferencias.cargos,
+            tipoContrato: usuario.preferencias.tipoContrato,
+            mudanca: usuario.preferencias.mudanca,
+          },
+          create: {
+            usuarioId: id,
+            modalidades: usuario.preferencias.modalidades,
+            cidades: usuario.preferencias.cidades,
+            cargos: usuario.preferencias.cargos,
+            tipoContrato: usuario.preferencias.tipoContrato,
+            mudanca: usuario.preferencias.mudanca,
+          },
+        });
+      }
+
+      if (usuario.projetos !== undefined) {
+        await tx.projeto.deleteMany({ where: { usuarioId: id } });
+        if (usuario.projetos.length > 0) {
+          await tx.projeto.createMany({
+            data: usuario.projetos.map((p) => ({
+              usuarioId: id,
+              nome: p.nome,
+              descricao: p.descricao,
+              tecnologias: p.tecnologias,
+              url: p.url,
+            })),
+          });
+        }
+      }
+
       const dbUser = await tx.usuario.update({
         where: { id },
         data: {
@@ -318,6 +481,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           certificacoes: true,
           idiomas: true,
           preferencias: true,
+          projetos: true,
         },
       });
       return this.mapToDomain(dbUser)!;
@@ -341,6 +505,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
             certificacoes: true,
             idiomas: true,
             preferencias: true,
+            projetos: true,
           },
         }),
       ]);

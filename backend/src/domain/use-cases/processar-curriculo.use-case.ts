@@ -23,6 +23,7 @@ export interface ProcessarCurriculoOutput {
     formacao: number;
     habilidades: number;
     idiomas: number;
+    projetos?: number;
   };
 }
 
@@ -182,6 +183,16 @@ export class ProcessarCurriculoUseCase {
       };
     }
 
+    // Mapeia projetos
+    if (dadosEstruturados.projetos) {
+      usuario.projetos = dadosEstruturados.projetos.map((p: any) => ({
+        nome: p.nome,
+        descricao: p.descricao,
+        tecnologias: p.tecnologias || [],
+        url: p.url,
+      }));
+    }
+
     usuario.curriculoUrl = pathStorage;
     usuario.curriculoTexto = textoExtraido;
     usuario.curriculoExtraido = dadosEstruturados;
@@ -201,6 +212,7 @@ export class ProcessarCurriculoUseCase {
         formacao: usuario.formacoes.length,
         habilidades: usuario.habilidades.length,
         idiomas: usuario.idiomas.length,
+        projetos: usuario.projetos.length,
       },
     };
   }
