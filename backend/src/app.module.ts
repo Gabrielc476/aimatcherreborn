@@ -2,6 +2,7 @@
 
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from './presentation/nest-modules/database.module';
 import { SecurityModule } from './presentation/nest-modules/security.module';
 import { AIModule } from './presentation/nest-modules/ai.module';
@@ -11,10 +12,13 @@ import { UsuarioModule } from './presentation/nest-modules/usuario.module';
 import { CurriculoModule } from './presentation/nest-modules/curriculo.module';
 import { VagaModule } from './presentation/nest-modules/vaga.module';
 import { MatchingModule } from './presentation/nest-modules/matching.module';
+import { ScraperModule } from './presentation/nest-modules/scraper.module';
 import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
 
 @Module({
   imports: [
+    // Habilita agendamentos crons
+    ScheduleModule.forRoot(),
     // Carrega variáveis de ambiente globalmente
     ConfigModule.forRoot({
       isGlobal: true,
@@ -28,6 +32,7 @@ import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
     CurriculoModule,
     VagaModule,
     MatchingModule,
+    ScraperModule,
   ],
 })
 export class AppModule implements NestModule {

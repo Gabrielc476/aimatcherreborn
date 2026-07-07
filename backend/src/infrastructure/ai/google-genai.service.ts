@@ -10,10 +10,12 @@ import { RequisitosVaga } from '../../domain/entities/vaga.entity';
 export class GoogleGenAIService implements AIService {
   private ai: GoogleGenAI;
   private readonly modelName: string;
+  private readonly isThinking: boolean;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash'; // Permite configurar Gemma 4 ou Gemini via .env
+    this.isThinking = this.modelName.includes('thinking');
 
     if (!apiKey) {
       console.warn('GEMINI_API_KEY não configurada no arquivo .env. O serviço de IA não funcionará.');
@@ -21,6 +23,27 @@ export class GoogleGenAIService implements AIService {
     }
 
     this.ai = new GoogleGenAI({ apiKey });
+  }
+
+  private buildConfig(systemInstruction?: string, responseSchema?: Schema, temperature?: number): any {
+    const config: any = {
+      responseMimeType: 'application/json',
+    };
+    if (systemInstruction) {
+      config.systemInstruction = systemInstruction;
+    }
+    if (responseSchema) {
+      config.responseSchema = responseSchema;
+    }
+    if (this.isThinking) {
+      config.temperature = 1.0;
+      config.thinkingConfig = {
+        thinkingBudget: 2048
+      };
+    } else if (temperature !== undefined) {
+      config.temperature = temperature;
+    }
+    return config;
   }
 
   async extrairDadosCurriculo(textoCurriculo: string): Promise<any> {
@@ -165,21 +188,82 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
       required: ['nome_completo', 'email', 'habilidades_tecnicas']
     };
 
-    const response = await this.callWithRetry(() => this.ai.models.generateContent({
-      model: this.modelName,
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    let activeInstruction = systemInstruction;
+    if (isGemma) {
+      activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
+{
+  "nome_completo": "string",
+  "email": "string",
+  "telefone": "string",
+  "localizacao": {
+    "cidade": "string",
+    "estado": "string",
+    "pais": "string"
+  },
+  "sobre": "string",
+  "objetivo_profissional": "string",
+  "habilidades_tecnicas": [
+    {
+      "nome": "string",
+      "nivel": "string",
+      "anos_experiencia": 0
+    }
+  ],
+  "habilidades_comportamentais": ["string"],
+  "experiencia_profissional": [
+    {
+      "empresa": "string",
+      "cargo": "string",
+      "periodo": "string",
+      "atividades": "string",
+      "tecnologias": ["string"],
+      "atual": false
+    }
+  ],
+  "formacao_academica": [
+    {
+      "instituicao": "string",
+      "curso": "string",
+      "nivel": "string",
+      "status": "string",
+      "ano_conclusao": 0
+    }
+  ],
+  "idiomas": [
+    {
+      "idioma": "string",
+      "nivel": "string"
+    }
+  ],
+  "dados_complementares": {
+    "pretensao_salarial": 0,
+    "disponibilidade_inicio": "string",
+    "modelo_trabalho_preferido": "string",
+    "disponibilidade_mudanca": false
+  },
+  "projetos": [
+    {
+      "nome": "string",
+      "descricao": "string",
+      "tecnologias": ["string"],
+      "url": "string"
+    }
+  ],
+  "palavras_chave": ["string"]
+}`;
+    }
+
+    const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: cvSchema,
-      }
-    }));
+      config: this.buildConfig(activeInstruction, isGemma ? undefined : cvSchema)
+    });
 
     if (!response.text) {
       throw new Error('A IA retornou uma resposta vazia ao processar o currículo.');
     }
 
-    return JSON.parse(response.text);
+    return JSON.parse(this.cleanJsonResponse(response.text));
   }
 
   async extrairEstruturaVaga(textoVaga: string): Promise<Partial<RequisitosVaga> & any> {
@@ -267,17 +351,64 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
       required: ['titulo', 'requisitos']
     };
 
-    const response = await this.callWithRetry(() => this.ai.models.generateContent({
-      model: this.modelName,
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: vagaSchema,
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    let activeInstruction = systemInstruction;
+    if (isGemma) {
+      activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
+{
+  "titulo": "string",
+  "empresa": {
+    "nome": "string",
+    "setor": "string"
+  },
+  "localizacao": {
+    "cidade": "string",
+    "estado": "string"
+  },
+  "modalidade": "string (REMOTO, HIBRIDO ou PRESENCIAL)",
+  "tipo_contrato": "string",
+  "nivel": "string (Junior, Pleno, Senior ou Especialista)",
+  "faixa_salarial": {
+    "minimo": 0,
+    "maximo": 0
+  },
+  "resumo": "string",
+  "requisitos": {
+    "formacao": {
+      "nivel": "string",
+      "area": "string",
+      "obrigatorio": false
+    },
+    "experiencia": {
+      "tempo_minimo": 0,
+      "areas": ["string"]
+    },
+    "habilidades_tecnicas": [
+      {
+        "nome": "string",
+        "nivel": "string",
+        "obrigatorio": false
       }
-    }));
+    ],
+    "habilidades_comportamentais": ["string"],
+    "idiomas": [
+      {
+        "nome": "string",
+        "nivel": "string",
+        "obrigatorio": false
+      }
+    ]
+  },
+  "palavras_chave": ["string"]
+}`;
+    }
 
-    return JSON.parse(response.text || '{}');
+    const response = await this.generateContentWithFallback({
+      contents: prompt,
+      config: this.buildConfig(activeInstruction, isGemma ? undefined : vagaSchema)
+    });
+
+    return JSON.parse(this.cleanJsonResponse(response.text));
   }
 
   async analisarCompatibilidade(dadosCurriculo: any, dadosVaga: any): Promise<DetalhesMatching & { score: number }> {
@@ -398,29 +529,64 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       required: ['score', 'categorias', 'resumoCandidato', 'resumoVaga', 'diferenciais', 'recomendacoes', 'compatibilidadeCultural', 'probabilidadeSucesso', 'metaAnalise']
     };
 
-    // Configura o modelo. Se for Gemma 4 ou modelo com suporte a thinking, adicionamos as opções apropriadas.
-    const isThinkingModel = this.modelName.includes('thinking') || this.modelName.includes('gemma4') || this.modelName.includes('pro');
-
-    const config: any = {
-      systemInstruction,
-      responseMimeType: 'application/json',
-      responseSchema: matchingSchema,
-    };
-
-    if (isThinkingModel) {
-      config.temperature = 1.0;
-      config.thinkingConfig = {
-        thinkingBudget: 2048
-      };
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    let activeInstruction = systemInstruction;
+    if (isGemma) {
+      activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
+{
+  "score": 0 a 100,
+  "categorias": {
+    "habilidadesTecnicas": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "correspondentes": ["..."], "faltantes": ["..."], "excedentes": ["..."] },
+    "experiencia": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "tempoAtende": true/false, "areasCorrespondentes": ["..."], "areasFaltantes": ["..."] },
+    "formacao": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "nivelAtende": true/false, "areaAtende": true/false, "formacaoAlternativaRelevante": true/false },
+    "idiomas": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "correspondentes": ["..."], "faltantes": ["..."] },
+    "localizacaoDisponibilidade": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "localizacaoCompativel": true/false, "disponibilidadeCompativel": true/false },
+    "softSkillsCultura": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "correspondentes": ["..."], "faltantes": ["..."] }
+  },
+  "resumoCandidato": "...",
+  "resumoVaga": "...",
+  "diferenciais": {
+    "pontosFortes": ["..."],
+    "pontosFracos": ["..."],
+    "vantagensCompetitivas": ["..."]
+  },
+  "recomendacoes": {
+    "gerais": "...",
+    "habilidadesTecnicas": "...",
+    "experiencia": "...",
+    "formacao": "...",
+    "desenvolvimento": "...",
+    "abordagemEntrevista": "...",
+    "prioridadeAcao": ["..."]
+  },
+  "compatibilidadeCultural": {
+    "score": 0 a 100,
+    "fatoresPositivos": ["..."],
+    "fatoresNegativos": ["..."],
+    "analise": "..."
+  },
+  "probabilidadeSucesso": {
+    "score": 0 a 100,
+    "justificativa": "...",
+    "fatoresCriticos": ["..."]
+  },
+  "metaAnalise": {
+    "confiabilidade": 0 a 1,
+    "fatoresIncertos": ["..."],
+    "potencialDesenvolvimento": 0 a 1,
+    "observacoes": "..."
+  }
+}`;
     }
 
-    const response = await this.callWithRetry(() => this.ai.models.generateContent({
-      model: this.modelName,
+    const config = this.buildConfig(activeInstruction, isGemma ? undefined : matchingSchema);
+
+    const response = await this.generateContentWithFallback({
       contents: prompt,
       config
-    }));
+    });
 
-    const parsedResult = JSON.parse(response.text || '{}');
+    const parsedResult = JSON.parse(this.cleanJsonResponse(response.text));
 
     // Mapeamos a propriedade "score" da raiz para "score_matching" se necessário, 
     // mas na nossa entidade é "score". Retornamos o objeto mapeado para o formato da interface.
@@ -452,16 +618,13 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       required: ['palavras_chave']
     };
 
-    const response = await this.callWithRetry(() => this.ai.models.generateContent({
-      model: this.modelName,
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: schema
-      }
-    }));
+      config: this.buildConfig(undefined, isGemma ? undefined : schema)
+    });
 
-    const res = JSON.parse(response.text || '{}');
+    const res = JSON.parse(this.cleanJsonResponse(response.text));
     return res.palavras_chave || [];
   }
 
@@ -479,20 +642,43 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       required: ['resumo']
     };
 
-    const response = await this.callWithRetry(() => this.ai.models.generateContent({
-      model: this.modelName,
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: schema
-      }
-    }));
+      config: this.buildConfig(undefined, isGemma ? undefined : schema)
+    });
 
-    const res = JSON.parse(response.text || '{}');
+    const res = JSON.parse(this.cleanJsonResponse(response.text));
     return res.resumo || '';
   }
 
-  private async callWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+  private async generateContentWithFallback(params: { contents: any; config?: any }): Promise<any> {
+    try {
+      return await this.callWithRetry(() => this.ai.models.generateContent({
+        model: this.modelName,
+        contents: params.contents,
+        config: params.config
+      }));
+    } catch (primaryError: any) {
+      const fallbackModel = 'gemini-3.1-flash-lite';
+      if (this.modelName !== fallbackModel) {
+        console.warn(`Erro no modelo principal '${this.modelName}'. Tentando fallback com '${fallbackModel}'... Erro:`, primaryError.message || primaryError);
+        try {
+          return await this.callWithRetry(() => this.ai.models.generateContent({
+            model: fallbackModel,
+            contents: params.contents,
+            config: params.config
+          }));
+        } catch (fallbackError: any) {
+          console.error(`Erro também no modelo de fallback '${fallbackModel}':`, fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      }
+      throw primaryError;
+    }
+  }
+
+  private async callWithRetry<T>(fn: () => Promise<T>, retries = 5, delay = 4000): Promise<T> {
     try {
       return await fn();
     } catch (error: any) {
@@ -524,5 +710,39 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     if (!this.ai) {
       throw new Error('Google Gen AI Client não inicializado. Verifique se a GEMINI_API_KEY está configurada.');
     }
+  }
+
+  private cleanJsonResponse(text: string | null | undefined): string {
+    if (!text) return '{}';
+    let clean = text.trim();
+    
+    // Remove delimitadores markdown se presentes no início/fim de forma simples
+    if (clean.startsWith('```')) {
+      const match = clean.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+      if (match) {
+        clean = match[1].trim();
+      }
+    }
+    
+    // Tenta isolar o objeto {...} ou array [...] principal caso a resposta contenha texto conversacional no entorno
+    const firstBrace = clean.indexOf('{');
+    const firstBracket = clean.indexOf('[');
+    
+    let startIdx = -1;
+    let endIdx = -1;
+    
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      startIdx = firstBrace;
+      endIdx = clean.lastIndexOf('}');
+    } else if (firstBracket !== -1) {
+      startIdx = firstBracket;
+      endIdx = clean.lastIndexOf(']');
+    }
+    
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      clean = clean.substring(startIdx, endIdx + 1);
+    }
+    
+    return clean.trim();
   }
 }

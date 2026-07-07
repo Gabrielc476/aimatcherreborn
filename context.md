@@ -10,7 +10,11 @@ Este documento descreve o contexto do sistema, arquitetura, modelo C4, entidades
 O **AI Matcher** é uma plataforma inteligente que automatiza o matching de currículos de candidatos com vagas de tecnologia utilizando inteligência artificial generativa avançada (Gemma 4).
 
 ### Descrição Longa
-O sistema resolve o gargalo de recrutamento em tecnologia extraindo automaticamente o texto de currículos em formato PDF, estruturando os dados profissionais de forma rica (experiências, habilidades, idiomas) via Inteligência Artificial e executando um matching semântico profundo contra vagas cadastradas. Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real da senioridade, tecnologias e pretensões, atribuindo uma nota de compatibilidade detalhada (score) acompanhada de uma justificativa de pontos fortes, pontos fracos e recomendações.
+O sistema resolve o gargalo de recrutamento em tecnologia extraindo automaticamente o texto de currículos em formato PDF, estruturando os dados profissionais de forma rica (experiências, habilidades, idiomas, projetos) via Inteligência Artificial e executando um matching semântico profundo contra vagas cadastradas.
+
+Além disso, a plataforma conta com um serviço autônomo de garimpo de vagas (Web Scraper) em Python que minera vagas de tecnologia de múltiplos portais (LinkedIn, NerdIn, Indeed, InfoJobs, WeWorkRemotely) e as integra diretamente ao banco de dados.
+
+Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real da senioridade, tecnologias e pretensões, atribuindo uma nota de compatibilidade detalhada (score) acompanhada de uma justificativa de pontos fortes, pontos fracos e recomendações de desenvolvimento.
 
 ---
 
@@ -20,7 +24,7 @@ O sistema resolve o gargalo de recrutamento em tecnologia extraindo automaticame
 *   **Tipo**: Usuário Humano
 *   **Descrição**: Profissional de tecnologia buscando oportunidades de trabalho.
 *   **Objetivos**: Cadastrar seu perfil, fazer upload do seu currículo em PDF e visualizar as vagas compatíveis com suas competências e pretensões.
-*   **Funcionalidades Principais**: Registro/Login, Upload de Currículo, Edição de Preferências, Visualização de Vagas e Matchings correspondentes.
+*   **Funcionalidades Principais**: Registro/Login, Upload de Currículo, Edição de Preferências e Projetos, Visualização de Vagas e Matchings correspondentes.
 
 ### Recrutador (RH / Tech Recruiter)
 *   **Tipo**: Usuário Humano
@@ -39,12 +43,18 @@ O sistema resolve o gargalo de recrutamento em tecnologia extraindo automaticame
 
 ### Processamento Inteligente de Currículo (IA)
 *   Extração do conteúdo de arquivos PDF.
-*   Uso do **Gemma 4** (Google Gen AI) para estruturar os dados não estruturados do currículo em entidades formais de banco de dados (experiência, formação acadêmica, competências).
+*   Uso do **Gemma 4** (Google Gen AI) para estruturar os dados não estruturados do currículo em entidades formais de banco de dados (experiência, formação acadêmica, competências, projetos).
 *   Upload seguro do arquivo original em PDF para o Supabase Storage Bucket com geração de links assinados temporários.
 
 ### Estruturação de Vagas (IA)
 *   Análise de descrições brutas de vagas.
 *   Estruturação automática dos requisitos mínimos, desejáveis e diferenciais da vaga via inteligência artificial.
+
+### Garimpo e Agregação de Vagas (Scraping)
+*   Serviço autônomo escrito em Python que extrai vagas de tecnologia em tempo real.
+*   Suporte a múltiplos portais externos: LinkedIn, Indeed, InfoJobs, NerdIn e WeWorkRemotely.
+*   Agendamento integrado (Cron Job) no NestJS para execução diária automática à meia-noite.
+*   Endpoint REST seguro para acionamento sob demanda do orquestrador do scraper.
 
 ### Matching Avançado
 *   Matching semântico executado pela IA analisando o currículo estruturado em comparação com os requisitos da vaga.
@@ -59,54 +69,60 @@ C4Context
     title Diagrama de Contexto do Sistema: AI Matcher
 
     Person(candidato, "Candidato", "Cadastra perfil, faz upload de currículo e visualiza compatibilidades.")
-    Person(recrutador, "Recrutador", "Cadastra vagas e analisa candidatos mais compatíveis ordenados por pontuação.")
+    Person(recrutador, "Recrutador", "Cadastra vagas manualmente e analisa candidatos mais compatíveis.")
 
-    System(ai_matcher, "AI Matcher Application", "Aplicação monorepo contendo frontend interativo (Next.js) e backend modular NestJS seguindo Clean Architecture.")
+    System(ai_matcher, "AI Matcher Application (NestJS)", "Backend modular contendo regras de negócio, autenticação, orquestração e APIs REST.")
+    System(frontend, "AI Matcher Frontend (Next.js)", "Rico painel web interativo para candidatos e recrutadores.")
+    System(scraper, "Web Scraper Service (Python)", "Serviço modular que garimpa vagas de tecnologia em portais de emprego externos.")
 
     System_Ext(google_ai, "Google Gen AI (Gemma 4)", "Processa e estrutura currículos, vagas e realiza a análise semântica de compatibilidade.")
     SystemDb(supabase_db, "Supabase Database (PostgreSQL)", "Armazena usuários, perfis, vagas e resultados de matchings sob Row Level Security (RLS).")
     System_Ext(supabase_storage, "Supabase Storage", "Armazena com segurança os arquivos originais de currículos em formato PDF.")
+    System_Ext(portais_vagas, "Portais Externos de Vagas", "Plataformas externas como LinkedIn, Indeed, InfoJobs, NerdIn e WeWorkRemotely.")
 
-    Rel(candidato, ai_matcher, "Utiliza", "HTTPS")
-    Rel(recrutador, ai_matcher, "Utiliza", "HTTPS")
+    Rel(candidato, frontend, "Interage com", "HTTPS")
+    Rel(recrutador, frontend, "Interage com", "HTTPS")
+    Rel(frontend, ai_matcher, "Consome endpoints da API", "HTTPS/JSON")
 
     Rel(ai_matcher, google_ai, "Solicita inferência semântica e estruturação de dados", "Google Gen AI SDK")
     Rel(ai_matcher, supabase_db, "Lê e grava dados aplicando RLS na sessão", "Prisma ORM")
     Rel(ai_matcher, supabase_storage, "Faz upload e gera URLs assinadas de arquivos", "Supabase JS SDK")
+    
+    Rel(ai_matcher, scraper, "Dispara execução sob demanda", "spawn Subprocesso")
+    Rel(scraper, portais_vagas, "Realiza raspagem de dados (Crawler)", "HTTPS/Playwright/BS4")
+    Rel(scraper, supabase_db, "Grava vagas extraídas e estruturadas via API", "HTTPS / Token de Integração")
 ```
 
 ---
 
-## 5. Arquitetura de Software (Clean Architecture)
+## 5. Estrutura do Projeto (Monorepo)
 
-O backend do projeto é escrito em **NestJS/TypeScript** seguindo os princípios de **Clean Architecture** para manter o núcleo da aplicação (domínio e regras de negócio) isolado de frameworks, bibliotecas e tecnologias externas.
+O projeto é organizado como um monorepo contendo o frontend web, o servidor backend modular de API, o serviço de raspagem de dados e as configurações de banco.
 
 ```
-/backend
-  ├── prisma/                      # Schema relacional e migrações do banco de dados
-  └── src/
-      ├── domain/                  # Núcleo do Sistema (Sem dependências externas)
-      │   ├── entities/            # Entidades de Negócio (Usuario, Vaga, Matching)
-      │   ├── repositories/        # Contratos/Interfaces de Acesso a Dados
-      │   ├── services/            # Contratos/Interfaces de Serviços (IA, PDF, Cripto)
-      │   └── use-cases/           # Casos de Uso (Lógica principal de negócio)
-      │
-      ├── infrastructure/          # Detalhes de Implementação Tecnológica
-      │   ├── ai/                  # Integração com Google Gen AI SDK (Gemma 4)
-      │   ├── database/            # Conexão Prisma e Repositórios concretos com RLS
-      │   ├── pdf/                 # Extração de PDF usando pdf-parse
-      │   ├── security/            # Criptografia com bcrypt e Tokens com jsonwebtoken
-      │   └── storage/             # Integração com Supabase Storage
-      │
-      ├── presentation/            # Camada de Comunicação Externa (HTTP)
-      │   ├── controllers/         # Controllers REST
-      │   ├── dtos/                # Data Transfer Objects (Validação de Entrada)
-      │   ├── guards/              # Autenticação de rotas (JWT Auth Guard)
-      │   ├── middlewares/         # Middleware de contexto RLS
-      │   └── nest-modules/        # Módulos do NestJS que injetam as dependências
-      │
-      ├── app.module.ts            # Módulo Raiz da Aplicação
-      └── main.ts                  # Ponto de entrada (Inicialização e CORS)
+/aimatcher
+  ├── /backend                      # Servidor de API (NestJS/TypeScript)
+  │     ├── prisma/                 # Schema relacional e migrações do banco (Prisma)
+  │     └── src/
+  │         ├── domain/             # Domínio Puro (Entidades, Repositórios, Casos de Uso)
+  │         ├── infrastructure/     # Conectores de infraestrutura (IA, PDF, BD, Storage, Scraper)
+  │         └── presentation/       # Camada REST (Controllers, Guards, Middlewares)
+  │
+  ├── /frontend                     # Interface do Usuário (Next.js/React/Tailwind CSS)
+  │     ├── public/                 # Recursos estáticos
+  │     └── src/
+  │         ├── app/                # Rotas da aplicação (Dashboard, Jobs, Resume)
+  │         ├── components/         # Componentes interativos e estruturais (Shadcn UI)
+  │         ├── lib/                # Funções de integração de API
+  │         └── types/              # Definições de tipos TypeScript do domínio
+  │
+  ├── /scraper                      # Robô de Coleta de Vagas (Python)
+  │     ├── engines/                # Scripts específicos de coleta por plataforma
+  │     ├── config.py               # Configurações de chaves e variáveis do scraper
+  │     ├── database.py             # Script de comunicação com a API de destino do banco
+  │     └── main.py                 # CLI/Orquestrador do garimpo
+  │
+  └── /supabase                     # Configurações locais/em nuvem do Supabase
 ```
 
 ---
@@ -115,16 +131,17 @@ O backend do projeto é escrito em **NestJS/TypeScript** seguindo os princípios
 
 As entidades de negócio estão contidas em `src/domain/entities`:
 
-1.  **Usuario**: Classe raiz que representa a conta e centraliza os relacionamentos. Armazena dados cadastrais, preferências de trabalho e os dados estruturados do currículo gerados pela IA.
-2.  **Perfil**: Detalhes profissionais resumidos do usuário (pretensão salarial, anos de experiência, disponibilidade).
-3.  **Experiencia**: Histórico profissional do candidato (empresa, cargo, datas e tecnologias utilizadas).
-4.  **Formacao**: Histórico educacional e acadêmico do candidato.
-5.  **Habilidade**: Competências e habilidades técnicas mapeadas.
-6.  **Certificacao**: Certificados profissionais obtidos.
-7.  **Idioma**: Línguas dominadas e nível de proficiência.
-8.  **Preferencia**: Filtros e preferências de trabalho (modalidade, cidades desejadas, tipos de contrato).
-9.  **Vaga**: Representa uma vaga aberta por um recrutador. Armazena o perfil da vaga, empresa, modalidade, faixas salariais, requisitos técnicos gerados por IA e palavras-chave.
-10. **Matching**: Representa o resultado final da compatibilidade de um candidato com uma vaga, contendo o score numérico de 0 a 100 e a análise de compatibilidade detalhada em formato JSON.
+1.  **Usuario**: Classe raiz que representa a conta do usuário. Armazena dados cadastrais, preferências de trabalho e referências aos dados de currículo.
+2.  **Perfil**: Detalhes profissionais principais do usuário (título do cargo, resumo, anos de experiência, pretensão salarial).
+3.  **Experiencia**: Histórico profissional do candidato (empresa, cargo, descrição, datas e tecnologias).
+4.  **Formacao**: Histórico educacional e acadêmico (instituição, curso, grau e datas).
+5.  **Habilidade**: Competências e competências técnicas com nível e tempo de experiência.
+6.  **Certificacao**: Certificados profissionais obtidos (nome, emissor, validade).
+7.  **Idioma**: Idiomas dominados e níveis de proficiência (leitura, escrita, conversação).
+8.  **Preferencia**: Filtros e preferências de trabalho (modalidades desejadas, cidades, cargos e contrato).
+9.  **Projeto**: Portfólio de projetos desenvolvidos (nome, descrição, tecnologias e link).
+10. **Vaga**: Representa uma oportunidade criada manualmente ou integrada pelo scraper, com requisitos estruturados pela IA.
+11. **Matching**: Registro da compatibilidade semântica calculada entre candidato e vaga, com score de 0 a 100 e justificativa.
 
 ---
 
@@ -146,20 +163,31 @@ Diferente de abordagens tradicionais onde o backend opera com total liberdade, o
 
 ## 8. Endpoints HTTP da API
 
-### Autenticação & Usuário (`/usuarios`)
-*   `POST /usuarios/registrar`: Cadastra um novo usuário no sistema.
-*   `POST /usuarios/login`: Autentica o usuário e retorna o token JWT.
-*   `GET /usuarios/me`: Retorna os dados do perfil logado (requer token).
+Abaixo estão os endpoints reais expostos pelo servidor backend:
 
-### Currículos (`/curriculos`)
-*   `POST /curriculos/processar`: Endpoint multipart que recebe um arquivo em PDF, faz o upload privado no Supabase Storage, extrai o texto do PDF, roda a estruturação do perfil via Gemma 4 e salva os dados na ficha do candidato logado (requer token).
+### Autenticação & Usuário (`/usuario`)
+*   `POST /usuario/cadastro`: Registra um novo usuário no sistema.
+*   `POST /usuario/login`: Valida as credenciais e retorna o token JWT do usuário.
+*   `GET /usuario/verificar-token`: Verifica se o token enviado é válido.
+*   `GET /usuario/:id`: Retorna os dados completos do usuário logado (requer token correspondente).
+*   `PUT /usuario/:id`: Atualiza dados cadastrais ou currículo estruturado do usuário.
 
-### Vagas (`/vagas`)
-*   `POST /vagas`: Cria e analisa semântica de uma nova vaga de trabalho (requer token).
-*   `GET /vagas/:id`: Retorna os detalhes de uma vaga específica.
-*   `GET /vagas`: Lista as vagas ativas disponíveis.
+### Currículo (`/curriculo`)
+*   `POST /curriculo/upload`: Endpoint multipart (form-data) que recebe o arquivo PDF, envia-o para o bucket privado do Supabase Storage, extrai o texto bruto e utiliza a IA (Gemma 4) para estruturar o perfil (requer token).
 
-### Matchings (`/matchings`)
-*   `POST /matchings/executar`: Dispara a análise de compatibilidade semântica profunda de IA entre o candidato logado e uma vaga específica, retornando e salvando o matching (requer token).
-*   `GET /matchings/candidato`: Lista os matchings obtidos pelo candidato logado (requer token).
-*   `GET /matchings/vaga/:vagaId`: Retorna os candidatos ordenados por maior score de matching para uma vaga específica (requer perfil de recrutador / token).
+### Vaga (`/vaga`)
+*   `POST /vaga/adicionar`: Cria e analisa semântica de uma nova vaga de trabalho (requer token de recrutador).
+*   `POST /vaga/integrar-externo`: Permite a inserção direta de vagas vindas de coletores externos (protegido por token secreto `x-scraper-token`).
+*   `GET /vaga/listar`: Retorna a lista de vagas ativas (paginado).
+*   `GET /vaga/:id`: Retorna os detalhes de uma vaga específica.
+
+### Matching (`/matching`)
+*   `POST /matching/analisar`: Executa a análise de compatibilidade e gera ou atualiza o score de matching (requer token).
+*   `POST /matching/recalcular/:usuarioId/:vagaId`: Força o recálculo do matching entre um candidato e vaga (requer token/admin).
+*   `GET /matching/usuario/:usuarioId`: Lista todos os matchings vinculados àquele candidato.
+*   `GET /matching/vaga/:vagaId`: Retorna os candidatos com matchings ordenados pelo score mais alto para a vaga especificada.
+*   `GET /matching/:usuarioId/:vagaId`: Obtém a ficha detalhada de matching de um par específico de candidato e vaga.
+*   `DELETE /matching/:usuarioId/:vagaId`: Remove um matching existente.
+
+### Scraper (`/scraper`)
+*   `POST /scraper/disparar`: Dispara de forma assíncrona o orquestrador do Web Scraper em Python a partir do backend (requer parâmetro `engine`, `query` e limite).

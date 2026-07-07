@@ -1,0 +1,35 @@
+# Configurações de ambiente locais do Scraper
+.env
+
+# Diretório de perfil do Chrome do Selenium (cookies e sessões locais)
+chrome_profile/
+
+# Arquivos de teste temporários gerados localmente
+test.json
+resultados.json
+*.json
+*.csv
+
+# Python - Cache e compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição / Pacotes instalados localmente
+.python-version
+.venv
+venv/
+ENV/
+env/
+lib/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDEs e editores de texto
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
