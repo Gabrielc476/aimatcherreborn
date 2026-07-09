@@ -49,8 +49,9 @@ model Usuario {
   curriculoExtraido Json?          @map("curriculo_extraido") // Dados estruturados pela IA
   
   // Relacionamentos
-  matchings         Matching[]
-  vagasCriadas      Vaga[]         @relation("RecrutadorVagas")
+  matchings            Matching[]
+  vagasCriadas         Vaga[]                 @relation("RecrutadorVagas")
+  curriculosOtimizados CurriculoOtimizado[]
 
   @@map("usuarios")
 }
@@ -176,6 +177,7 @@ model Vaga {
   salarioMax     Decimal?           @map("salario_max") @db.Decimal(10, 2)
   requisitos     Json?              // Estrutura de requisitos extraídos pela IA
   palavrasChave  String[]           @map("palavras_chave")
+  link           String?
   dataCriacao    DateTime           @default(now()) @map("data_criacao")
   
   matchings      Matching[]
@@ -195,4 +197,23 @@ model Matching {
 
   @@unique([usuarioId, vagaId])
   @@map("matchings")
+}
+
+model CurriculoOtimizado {
+  id                 String   @id @default(uuid()) @db.Uuid
+  usuarioId          String   @map("usuario_id") @db.Uuid
+  usuario            Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  vagaId             String?  @map("vaga_id") @db.Uuid
+  vagaDescricao      String?  @map("vaga_descricao") @db.Text
+  titulo             String   // Ex: "Currículo Otimizado - Vaga React Developer"
+  resumoProfissional String   @map("resumo_profissional") @db.Text
+  experiencias       Json     // Experiências profissionais otimizadas pela IA
+  habilidades        String[] // Habilidades selecionadas e priorizadas
+  projetos           Json?    // Projetos selecionados/polidos
+  certificacoes      Json?    // Certificações otimizadas/selecionadas
+  idiomas            Json?    // Idiomas otimizados/selecionados
+  formacoes          Json?    // Formações acadêmicas otimizadas/selecionadas
+  dataCriacao        DateTime @default(now()) @map("data_criacao")
+
+  @@map("curriculos_otimizados")
 }

@@ -71,4 +71,5 @@ export interface Job {
     candidaturas: number;
   };
   data_expiracao?: string;
+  link?: string;
 }

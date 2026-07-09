@@ -44,6 +44,7 @@ export class Vaga {
     public salarioMax?: number,
     public requisitos?: RequisitosVaga,
     public palavrasChave: string[] = [],
+    public link?: string,
   ) {}
 
   public encerrar(): void {

@@ -23,6 +23,7 @@ export class VagaController {
       textoVaga: dto.textoVaga,
       empresaNome: dto.empresaNome,
       localizacao: dto.localizacao,
+      link: dto.link,
     });
 
     return {
@@ -125,6 +126,7 @@ export class VagaController {
         modalidade: dto.modalidade,
         tipoContrato: dto.tipoContrato,
         nivel: dto.nivel,
+        link: dto.link,
       });
     });
 

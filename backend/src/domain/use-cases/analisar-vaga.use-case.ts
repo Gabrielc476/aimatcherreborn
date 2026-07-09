@@ -14,6 +14,7 @@ export interface AnalisarVagaInput {
   modalidade?: string;
   tipoContrato?: string;
   nivel?: string;
+  link?: string;
 }
 
 export class AnalisarVagaUseCase {
@@ -90,6 +91,7 @@ export class AnalisarVagaUseCase {
       dadosEstruturados.faixa_salarial?.maximo ? Number(dadosEstruturados.faixa_salarial.maximo) : undefined,
       dadosEstruturados.requisitos as RequisitosVaga,
       palavrasChave,
+      input.link,
     );
 
     // 5. Salva no banco de dados

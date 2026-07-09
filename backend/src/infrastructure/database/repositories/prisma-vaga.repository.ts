@@ -30,6 +30,7 @@ export class PrismaVagaRepository implements VagaRepository {
       dbVaga.salarioMax ? Number(dbVaga.salarioMax) : undefined,
       dbVaga.requisitos ? (dbVaga.requisitos as RequisitosVaga) : undefined,
       dbVaga.palavrasChave,
+      dbVaga.link || undefined,
     );
   }
 
@@ -52,6 +53,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
           palavrasChave: vaga.palavrasChave,
+          link: vaga.link,
         },
         create: {
           id: vaga.id,
@@ -69,6 +71,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
           palavrasChave: vaga.palavrasChave,
+          link: vaga.link,
           dataCriacao: vaga.dataCriacao,
         },
       });
@@ -147,6 +150,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
           palavrasChave: vaga.palavrasChave,
+          link: vaga.link,
         },
       });
       return this.mapToDomain(dbVaga)!;

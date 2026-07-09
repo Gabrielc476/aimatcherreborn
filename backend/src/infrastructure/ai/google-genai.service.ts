@@ -411,17 +411,27 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
     return JSON.parse(this.cleanJsonResponse(response.text));
   }
 
-  async analisarCompatibilidade(dadosCurriculo: any, dadosVaga: any): Promise<DetalhesMatching & { score: number }> {
+  async analisarCompatibilidade(dadosCurriculo: any, dadosVaga: any, scoresSuporte?: any): Promise<DetalhesMatching & { score: number }> {
     this.checkClientInitialized();
 
     const systemInstruction = `Você é um especialista em recrutamento e seleção de pessoas (Tech Recruiter). 
 Sua tarefa é analisar detalhadamente a compatibilidade entre o perfil estruturado de um candidato (currículo) e os requisitos estruturados de uma vaga de emprego.
-Use raciocínio lógico profundo para avaliar cada item. Atribua um score geral de 0 a 100 e scores para cada categoria.
+Use raciocínio lógico profundo para avaliar cada item. Atribua um score geral de 0 a 100, um score de ATS de 0 a 100, um score de Recrutador de 0 a 100 e scores para cada categoria.
 Você deve retornar o relatório completo em formato JSON estrito conforme o esquema fornecido.`;
 
-    const prompt = `Analise a compatibilidade entre este candidato e esta vaga:
+    let prompt = `Analise a compatibilidade entre este candidato e esta vaga:
 Candidato: ${JSON.stringify(dadosCurriculo)}
 Vaga: ${JSON.stringify(dadosVaga)}`;
+
+    if (scoresSuporte) {
+      prompt += `\n\nScores de Suporte pré-calculados pelo algoritmo determinístico do backend para sua assistência:
+${JSON.stringify(scoresSuporte)}
+
+Instruções para uso dos Scores de Suporte:
+1. Use estes scores (skillScore, experienceScore, preferenceScore) como base/ancoragem para calcular o "atsScore" final e seu "atsBreakdown" no JSON.
+2. Você tem total liberdade para refinar semanticamente essas notas de ATS para cima ou para baixo (ex: se o candidato não tem a palavra exata 'SQL' na habilidade calculada pelo algoritmo, mas possui 'PostgreSQL' ou 'MySQL', você pode ajustar o 'skillScore' positivamente no 'atsBreakdown' e refletir no 'atsScore' final). Justifique esse refinamento na análise qualitativa da categoria correspondente.
+3. Calcule o "recruiterScore" (e seu "recruiterBreakdown") com base na avaliação qualitativa clássica de recrutamento humano (velocidade de progressão de carreira, relevância de realizações/projetos, soft skills e facilidade de transição tecnológica/stack correlato).`;
+    }
 
     const categoriaSchema = (extraProps: Record<string, Schema> = {}): Schema => ({
       type: Type.OBJECT,
@@ -439,6 +449,27 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       type: Type.OBJECT,
       properties: {
         score: { type: Type.NUMBER },
+        atsScore: { type: Type.NUMBER },
+        recruiterScore: { type: Type.NUMBER },
+        atsBreakdown: {
+          type: Type.OBJECT,
+          properties: {
+            skillScore: { type: Type.NUMBER },
+            experienceScore: { type: Type.NUMBER },
+            preferenceScore: { type: Type.NUMBER }
+          },
+          required: ['skillScore', 'experienceScore', 'preferenceScore']
+        },
+        recruiterBreakdown: {
+          type: Type.OBJECT,
+          properties: {
+            trajectoryScore: { type: Type.NUMBER },
+            impactScore: { type: Type.NUMBER },
+            siblingTechScore: { type: Type.NUMBER },
+            cultureFitScore: { type: Type.NUMBER }
+          },
+          required: ['trajectoryScore', 'impactScore', 'siblingTechScore', 'cultureFitScore']
+        },
         categorias: {
           type: Type.OBJECT,
           properties: {
@@ -526,7 +557,7 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
           required: ['confiabilidade', 'potencialDesenvolvimento']
         }
       },
-      required: ['score', 'categorias', 'resumoCandidato', 'resumoVaga', 'diferenciais', 'recomendacoes', 'compatibilidadeCultural', 'probabilidadeSucesso', 'metaAnalise']
+      required: ['score', 'atsScore', 'recruiterScore', 'atsBreakdown', 'recruiterBreakdown', 'categorias', 'resumoCandidato', 'resumoVaga', 'diferenciais', 'recomendacoes', 'compatibilidadeCultural', 'probabilidadeSucesso', 'metaAnalise']
     };
 
     const isGemma = this.modelName.toLowerCase().includes('gemma');
@@ -535,6 +566,10 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
 {
   "score": 0 a 100,
+  "atsScore": 0 a 100,
+  "recruiterScore": 0 a 100,
+  "atsBreakdown": { "skillScore": 0 a 100, "experienceScore": 0 a 100, "preferenceScore": 0 a 100 },
+  "recruiterBreakdown": { "trajectoryScore": 0 a 100, "impactScore": 0 a 100, "siblingTechScore": 0 a 100, "cultureFitScore": 0 a 100 },
   "categorias": {
     "habilidadesTecnicas": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "correspondentes": ["..."], "faltantes": ["..."], "excedentes": ["..."] },
     "experiencia": { "score": 0 a 100, "peso": 0 a 1, "analiseQualitativa": "...", "nivelRelevancia": "...", "tempoAtende": true/false, "areasCorrespondentes": ["..."], "areasFaltantes": ["..."] },
@@ -588,8 +623,6 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
 
     const parsedResult = JSON.parse(this.cleanJsonResponse(response.text));
 
-    // Mapeamos a propriedade "score" da raiz para "score_matching" se necessário, 
-    // mas na nossa entidade é "score". Retornamos o objeto mapeado para o formato da interface.
     return {
       categorias: parsedResult.categorias,
       resumoCandidato: parsedResult.resumoCandidato,
@@ -599,7 +632,11 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
       compatibilidadeCultural: parsedResult.compatibilidadeCultural,
       probabilidadeSucesso: parsedResult.probabilidadeSucesso,
       metaAnalise: parsedResult.metaAnalise,
-      score: parsedResult.score
+      score: parsedResult.score,
+      atsScore: parsedResult.atsScore,
+      recruiterScore: parsedResult.recruiterScore,
+      atsBreakdown: parsedResult.atsBreakdown,
+      recruiterBreakdown: parsedResult.recruiterBreakdown,
     } as any;
   }
 
@@ -744,5 +781,178 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     }
     
     return clean.trim();
+  }
+
+  async otimizarCurriculo(dadosOriginais: any, descricaoVaga: string, feedbackMatching?: string): Promise<any> {
+    this.checkClientInitialized();
+
+    const systemInstruction = `Você é um consultor de carreira e especialista em ATS (Applicant Tracking Systems). 
+Sua tarefa é otimizar as informações do currículo do candidato para uma vaga específica, utilizando raciocínio lógico profundo.
+
+Diretrizes:
+1. NÃO invente fatos, empresas, datas, projetos ou formações acadêmicas. Toda a otimização deve se basear estritamente nas experiências REAIS do candidato.
+2. Analise a vaga fornecida e reescreva o resumo profissional e a descrição das realizações de cada experiência para destacar as tecnologias, responsabilidades e conquistas que mais se alinham aos requisitos da vaga.
+3. Use verbos de ação fortes e foque em resultados e métricas sempre que possível.
+4. Ordene e filtre as habilidades técnicas fornecendo apenas aquelas mais relevantes para a vaga.
+5. Selecione e formate as certificações e idiomas mais relevantes que se alinham ao perfil ou vaga alvo.
+6. Retorne os dados estritamente no formato JSON fornecido.`;
+
+    let prompt = `
+DADOS DO CURRÍCULO ORIGINAL:
+${JSON.stringify(dadosOriginais, null, 2)}
+
+DESCRIÇÃO DA VAGA ALVO:
+${descricaoVaga}
+`;
+
+    if (feedbackMatching) {
+      prompt += `
+
+ANÁLISE DE COMPATIBILIDADE (MATCHING) ANTERIOR E GAPS IDENTIFICADOS:
+${feedbackMatching}
+
+INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a otimização. Garanta que a descrição das realizações e o resumo profissional explorem de forma inteligente e realista as experiências do candidato que respondam diretamente aos pontos fracos e às recomendações apontadas.
+`;
+    }
+
+    const isGemma = this.modelName.toLowerCase().includes('gemma');
+    let activeInstruction = systemInstruction;
+    
+    if (isGemma) {
+      activeInstruction += `\nVocê deve retornar o currículo otimizado no seguinte formato JSON estrito:
+{
+  "resumo_profissional": "Texto do resumo profissional otimizado",
+  "experiencias": [
+    {
+      "empresa": "Nome da empresa",
+      "cargo": "Cargo",
+      "descricao": "Descrição da experiência reescrita focando nos requisitos da vaga e realizações reais do candidato",
+      "tecnologias_utilizadas": ["Tecnologia 1", "Tecnologia 2"]
+    }
+  ],
+  "habilidades": ["Habilidade 1", "Habilidade 2"],
+  "projetos": [
+    {
+      "nome": "Nome do projeto",
+      "descricao": "Descrição do projeto",
+      "tecnologias": ["Tecnologia 1"]
+    }
+  ],
+  "certificacoes": [
+    {
+      "nome": "Nome da Certificação",
+      "instituicao": "Instituição Emissora",
+      "dataEmissao": "AAAA-MM-DD",
+      "dataValidade": "AAAA-MM-DD"
+    }
+  ],
+  "idiomas": [
+    {
+      "nome": "Nome do Idioma",
+      "nivelLeitura": "Básico/Intermediário/Avançado/Fluente",
+      "nivelEscrita": "Básico/Intermediário/Avançado/Fluente",
+      "nivelConversacao": "Básico/Intermediário/Avançado/Fluente"
+    }
+  ],
+  "formacoes": [
+    {
+      "instituicao": "Nome da Instituição",
+      "curso": "Nome do Curso / Pós-graduação / Faculdade",
+      "grau": "Bacharelado / Tecnólogo / Especialização / Mestrado",
+      "periodo": "Jan 2020 - Dez 2024"
+    }
+  ]
+}`;
+    }
+
+    // JSON Schema para o currículo otimizado
+    const schema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        resumo_profissional: { type: Type.STRING },
+        experiencias: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              empresa: { type: Type.STRING },
+              cargo: { type: Type.STRING },
+              descricao: { type: Type.STRING, description: 'Descrição otimizada focada em realizações e competências da vaga' },
+              tecnologias_utilizadas: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ['empresa', 'cargo', 'descricao']
+          }
+        },
+        habilidades: { type: Type.ARRAY, items: { type: Type.STRING } },
+        projetos: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              nome: { type: Type.STRING },
+              descricao: { type: Type.STRING },
+              tecnologias: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ['nome', 'descricao']
+          }
+        },
+        certificacoes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              nome: { type: Type.STRING },
+              instituicao: { type: Type.STRING },
+              dataEmissao: { type: Type.STRING },
+              dataValidade: { type: Type.STRING }
+            },
+            required: ['nome', 'instituicao']
+          }
+        },
+        idiomas: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              nome: { type: Type.STRING },
+              nivelLeitura: { type: Type.STRING },
+              nivelEscrita: { type: Type.STRING },
+              nivelConversacao: { type: Type.STRING }
+            },
+            required: ['nome']
+          }
+        },
+        formacoes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              instituicao: { type: Type.STRING },
+              curso: { type: Type.STRING },
+              grau: { type: Type.STRING },
+              periodo: { type: Type.STRING }
+            },
+            required: ['instituicao', 'curso']
+          }
+        }
+      },
+      required: ['resumo_profissional', 'experiencias', 'habilidades']
+    };
+
+    const config = this.buildConfig(activeInstruction, isGemma ? undefined : schema);
+    
+    // Forçar uso do modo de raciocínio se o modelo suportar
+    if (this.isThinking) {
+      config.thinkingConfig = { thinkingBudget: 4096 };
+    }
+
+    const response = await this.ai.models.generateContent({
+      model: this.modelName,
+      contents: prompt,
+      config,
+    });
+
+    const text = response.text || '';
+    return JSON.parse(this.cleanJsonResponse(text));
   }
 }

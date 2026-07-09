@@ -57,13 +57,18 @@ export class ApiClient {
    * Set authentication token in local storage
    */
   public setToken(token: string): void {
-    localStorage.setItem(ApiClient.TOKEN_KEY, token);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ApiClient.TOKEN_KEY, token);
+    }
   }
 
   /**
    * Get authentication token from local storage
    */
   public getToken(): string | null {
+    if (typeof window === "undefined") {
+      return null;
+    }
     return localStorage.getItem(ApiClient.TOKEN_KEY);
   }
 
@@ -78,7 +83,9 @@ export class ApiClient {
    * Clear authentication token from local storage
    */
   public clearToken(): void {
-    localStorage.removeItem(ApiClient.TOKEN_KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(ApiClient.TOKEN_KEY);
+    }
   }
 
   /**

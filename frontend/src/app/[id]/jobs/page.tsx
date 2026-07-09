@@ -251,7 +251,12 @@ export default function JobsPage() {
 
   // Handle apply to job
   const handleApplyToJob = (jobId: string) => {
-    router.push(`/${params.id}/jobs/${jobId}/apply`);
+    const job = jobs.find((j) => j.id?.toString() === jobId);
+    if (job?.link) {
+      window.open(job.link, "_blank", "noopener,noreferrer");
+    } else {
+      router.push(`/${params.id}/jobs/${jobId}/apply`);
+    }
   };
 
   // Handle matching analysis

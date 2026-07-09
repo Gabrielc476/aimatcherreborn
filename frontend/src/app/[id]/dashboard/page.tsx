@@ -21,6 +21,7 @@ import {
   Briefcase,
   Search,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -387,6 +388,32 @@ export default function DashboardPage() {
                 onClick={() => router.push(`/${params.id}/jobs`)}
               >
                 <Search className="h-4 w-4 mr-2" /> Explorar Vagas
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+                Otimizar Currículo
+              </CardTitle>
+              <CardDescription>
+                Ajuste seu perfil profissional para uma vaga
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>
+                Use o Gemma 4 para reescrever seu currículo de forma personalizada e focada nas competências exigidas por uma vaga.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold"
+                onClick={() => router.push(`/${params.id}/resume/optimize`)}
+                disabled={!hasResume}
+              >
+                <Sparkles className="h-4 w-4 mr-2" /> Otimizar com IA
               </Button>
             </CardFooter>
           </Card>

@@ -14,4 +14,8 @@ export class AdicionarVagaDto {
   @IsOptional()
   @IsString()
   localizacao?: string;
+
+  @IsOptional()
+  @IsString()
+  link?: string;
 }

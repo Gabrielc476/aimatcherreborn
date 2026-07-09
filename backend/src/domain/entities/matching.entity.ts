@@ -11,6 +11,19 @@ export interface CategoriaMatching {
 }
 
 export interface DetalhesMatching {
+  atsScore?: number;
+  recruiterScore?: number;
+  atsBreakdown?: {
+    skillScore: number;
+    experienceScore: number;
+    preferenceScore: number;
+  };
+  recruiterBreakdown?: {
+    trajectoryScore: number;
+    impactScore: number;
+    siblingTechScore: number;
+    cultureFitScore: number;
+  };
   categorias: {
     habilidadesTecnicas: CategoriaMatching;
     experiencia: CategoriaMatching & { tempoAtende: boolean; areasCorrespondentes: string[]; areasFaltantes: string[] };

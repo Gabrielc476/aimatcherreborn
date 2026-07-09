@@ -62,7 +62,9 @@ export function JobCard({
 
   // Handle apply click
   const handleApply = () => {
-    if (onApply && job.id) {
+    if (job.link) {
+      window.open(job.link, "_blank", "noopener,noreferrer");
+    } else if (onApply && job.id) {
       onApply(job.id.toString());
     }
   };

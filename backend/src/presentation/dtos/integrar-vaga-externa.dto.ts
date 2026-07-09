@@ -38,4 +38,8 @@ export class IntegrarVagaExternaDto {
   @IsOptional()
   @IsNumber()
   salarioMax?: number;
+
+  @IsOptional()
+  @IsString()
+  link?: string;
 }

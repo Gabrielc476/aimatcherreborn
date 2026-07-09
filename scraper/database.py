@@ -66,6 +66,7 @@ def insert_vaga(conn, recrutador_id, vaga_data):
     nivel = vaga_data.get("nivel", "Pleno")
     salario_min = vaga_data.get("salario_min")
     salario_max = vaga_data.get("salario_max")
+    link = vaga_data.get("link")
     
     # Verifica se já existe uma vaga com mesmo título, empresa e modalidade inserida nas últimas 2 semanas
     with conn.cursor() as cur:
@@ -87,13 +88,13 @@ def insert_vaga(conn, recrutador_id, vaga_data):
             INSERT INTO vagas (
                 id, recrutador_id, titulo, descricao, status, 
                 empresa_nome, localizacao, modalidade, tipo_contrato, nivel,
-                salario_min, salario_max, data_criacao
-            ) VALUES (%s, %s, %s, %s, 'ativa', %s, %s, %s::"ModalidadeTrabalho", %s, %s, %s, %s, NOW());
+                salario_min, salario_max, link, data_criacao
+            ) VALUES (%s, %s, %s, %s, 'ativa', %s, %s, %s::"ModalidadeTrabalho", %s, %s, %s, %s, %s, NOW());
             """,
             (
                 vaga_id, recrutador_id, titulo, descricao,
                 empresa, localizacao, modalidade, tipo_contrato, nivel,
-                salario_min, salario_max
+                salario_min, salario_max, link
             )
         )
         return True
@@ -126,7 +127,8 @@ def save_jobs_to_api(vagas_list):
                 "tipoContrato": vaga.get("tipo_contrato", "CLT"),
                 "nivel": vaga.get("nivel", "Pleno"),
                 "salarioMin": vaga.get("salario_min"),
-                "salarioMax": vaga.get("salario_max")
+                "salarioMax": vaga.get("salario_max"),
+                "link": vaga.get("link")
             }
             
             response = requests.post(url, json=payload, headers=headers, timeout=180)

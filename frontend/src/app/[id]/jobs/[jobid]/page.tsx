@@ -8,7 +8,7 @@ import { VagasApi } from "@/lib/api/vagasApi";
 import { useJobMatching } from "@/lib/hooks/useJobMatching";
 import { Job } from "@/types/job/Job";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -39,7 +39,6 @@ export default function JobDetailsPage() {
     matching,
     isLoading: isMatchingLoading,
     error: matchingError,
-    success: matchingSuccess,
     analyzeJobMatching,
     fetchExistingMatching,
   } = useJobMatching();
@@ -228,8 +227,22 @@ export default function JobDetailsPage() {
               </div>
             )}
 
-            <DialogFooter>
-              <Button onClick={() => setMatchingDialogOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 border-t pt-4">
+              {matching ? (
+                <Button 
+                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold flex items-center justify-center gap-1.5"
+                  onClick={() => {
+                    setMatchingDialogOpen(false);
+                    router.push(`/${userId}/resume/optimize?vagaId=${jobId}`);
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Otimizar Currículo com IA
+                </Button>
+              ) : (
+                <div />
+              )}
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setMatchingDialogOpen(false)}>
                 Fechar
               </Button>
             </DialogFooter>
@@ -279,6 +292,7 @@ export default function JobDetailsPage() {
 }
 
 // Helper function to render matching details in the dialog
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderMatchingDetails(matching: any) {
   return (
     <>

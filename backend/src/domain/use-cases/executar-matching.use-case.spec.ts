@@ -72,7 +72,11 @@ describe('ExecutarMatchingUseCase', () => {
       'ATIVO',
       new Date(),
     );
-    usuario.curriculoExtraido = { dados: 'extraidos' };
+    usuario.curriculoExtraido = {
+      habilidades_tecnicas: [{ nome: 'NestJS' }, { nome: 'TypeScript' }],
+      perfil: { anos_experiencia: 3 },
+      preferencias: { modalidades: ['REMOTO'] },
+    };
 
     const vaga = new Vaga(
       input.vagaId,
@@ -90,9 +94,10 @@ describe('ExecutarMatchingUseCase', () => {
       undefined,
       undefined,
       {
-        habilidadesTecnicas: [],
+        habilidadesTecnicas: [{ nome: 'NestJS', obrigatorio: true }, { nome: 'TypeScript', obrigatorio: false }],
         habilidadesComportamentais: [],
         idiomas: [],
+        experiencia: { tempoMinimo: 3, areas: [] },
       },
       ['NestJS', 'TypeScript'],
     );
@@ -119,7 +124,15 @@ describe('ExecutarMatchingUseCase', () => {
     expect(resultado.analise).toEqual(mockResultadoAnalise);
     expect(mockUsuarioRepository.buscarPorId).toHaveBeenCalledWith(input.usuarioId);
     expect(mockVagaRepository.buscarPorId).toHaveBeenCalledWith(input.vagaId);
-    expect(mockAIService.analisarCompatibilidade).toHaveBeenCalledWith(usuario.curriculoExtraido, vaga);
+    expect(mockAIService.analisarCompatibilidade).toHaveBeenCalledWith(
+      usuario.curriculoExtraido,
+      vaga,
+      expect.objectContaining({
+        skillScore: expect.any(Number),
+        experienceScore: expect.any(Number),
+        preferenceScore: expect.any(Number),
+      })
+    );
     expect(mockMatchingRepository.salvar).toHaveBeenCalled();
   });
 
