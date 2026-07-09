@@ -46,6 +46,12 @@ Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real 
 *   Uso do **Gemma 4** (Google Gen AI) para estruturar os dados não estruturados do currículo em entidades formais de banco de dados (experiência, formação acadêmica, competências, projetos).
 *   Upload seguro do arquivo original em PDF para o Supabase Storage Bucket com geração de links assinados temporários.
 
+### Otimização de Currículos para Vagas (Resume Optimizer)
+*   Uso do **Gemma 4** com raciocínio lógico (*thinking mode*) e histórico de gaps identificados em análises de compatibilidade anteriores para reescrever de forma cirúrgica o currículo do candidato com foco nos requisitos da vaga-alvo.
+*   Possibilidade de edição manual interativa do currículo otimizado no frontend pelo candidato (edição de resumo profissional, habilidades, experiências, projetos relevantes, certificações, idiomas e formação acadêmica).
+*   Simulador de Matching Score: cálculo temporário e comparativo de score de compatibilidade a partir do editor.
+*   Exportação de PDF de alta fidelidade e ATS-friendly através de renderização headless com Playwright e Python.
+
 ### Estruturação de Vagas (IA)
 *   Análise de descrições brutas de vagas.
 *   Estruturação automática dos requisitos mínimos, desejáveis e diferenciais da vaga via inteligência artificial.
@@ -142,6 +148,7 @@ As entidades de negócio estão contidas em `src/domain/entities`:
 9.  **Projeto**: Portfólio de projetos desenvolvidos (nome, descrição, tecnologias e link).
 10. **Vaga**: Representa uma oportunidade criada manualmente ou integrada pelo scraper, com requisitos estruturados pela IA.
 11. **Matching**: Registro da compatibilidade semântica calculada entre candidato e vaga, com score de 0 a 100 e justificativa.
+12. **CurriculoOtimizado**: Versão customizada do currículo do candidato reescrita pela IA com foco em uma vaga específica. Mantém o perfil original intacto e permite edições em tempo real de resumo, competências, experiências, projetos, certificações, idiomas e formações acadêmicas.
 
 ---
 
@@ -174,6 +181,11 @@ Abaixo estão os endpoints reais expostos pelo servidor backend:
 
 ### Currículo (`/curriculo`)
 *   `POST /curriculo/upload`: Endpoint multipart (form-data) que recebe o arquivo PDF, envia-o para o bucket privado do Supabase Storage, extrai o texto bruto e utiliza a IA (Gemma 4) para estruturar o perfil (requer token).
+*   `POST /curriculo/otimizar`: Envia o currículo original e a vaga para a IA otimizar e reescrever o currículo especificamente para aquela vaga, salvando a versão customizada.
+*   `GET /curriculo/otimizados`: Lista todos os currículos otimizados gerados pelo candidato.
+*   `GET /curriculo/otimizados/:id`: Busca as informações de um currículo otimizado específico.
+*   `POST /curriculo/otimizados/:id/pdf`: Gera e exporta o currículo otimizado no formato PDF binário utilizando o gerador headless Python com Playwright.
+*   `POST /curriculo/simular-matching`: Simula temporariamente o score de compatibilidade de um currículo sendo editado no workspace do candidato em relação aos requisitos da vaga.
 
 ### Vaga (`/vaga`)
 *   `POST /vaga/adicionar`: Cria e analisa semântica de uma nova vaga de trabalho (requer token de recrutador).
