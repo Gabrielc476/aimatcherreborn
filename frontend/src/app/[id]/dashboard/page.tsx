@@ -13,7 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { User } from "@/types/user/User";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/dashboard/Header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecruiterDashboard } from "@/components/dashboard/RecruiterDashboard";
 import {
   Shield,
@@ -161,39 +163,36 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8 lg:p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Subtle grid line illustration background */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
       
-      <div className="max-w-6xl mx-auto relative z-10">
+      {/* Global Header */}
+      <Header userId={params.id as string} activeTab="dashboard" />
+      
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 relative z-10 animate-fade-in">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/50 mb-10">
+        {/* Welcome Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/40">
           <div>
-            <h1 className="text-4xl font-bold font-serif tracking-wide">Dashboard</h1>
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">
-              Painel do Candidato
+            <h2 className="text-3xl font-serif font-bold tracking-wide">
+              Olá, {user?.nomeCompleto || "Candidato"}
+            </h2>
+            <p className="text-xs text-muted-foreground font-mono mt-1 uppercase tracking-wider">
+              Bem-vindo ao seu Workspace
             </p>
           </div>
           
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="h-9 px-3 dark:bg-input/30"
-              title="Atualizar dados do usuário"
-            >
-              <RefreshCw
-                className={`h-4 w-4 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`}
-              />
-              <span className="ml-2">Atualizar</span>
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:bg-input/30" onClick={handleLogout}>
-              Sair
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="h-9 px-3 dark:bg-input/30"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`} />
+            Atualizar Dados
+          </Button>
         </div>
 
         {error && (
@@ -202,146 +201,88 @@ export default function DashboardPage() {
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* 3-Card Symmetric Workspace Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Left Column (2/3 width - 8 cols) - Information and Stats */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* Status do Currículo */}
-            <div className="bg-card/25 border border-border/40 p-5 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Shield className={`h-5 w-5 mt-0.5 stroke-[1.5] ${hasResume ? "text-emerald-400" : "text-amber-400"}`} />
-                <div className="space-y-1">
-                  <h3 className="font-serif tracking-wide text-lg">Status do seu currículo</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {hasResume
-                      ? "Seu currículo foi processado com sucesso e está pronto para ser comparado com vagas do mercado."
-                      : "Você ainda não carregou o seu currículo. Faça o upload do seu arquivo PDF para começarmos a calcular a sua compatibilidade com as vagas."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Info in Swiss Grid format */}
+          {/* Card 1: PDF Resume */}
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
             <div className="space-y-4">
-              <h2 className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-widest">
-                Informações de Perfil
-              </h2>
+              <div className="flex items-center justify-between pb-3 border-b border-border/30">
+                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">01. Currículo PDF</span>
+                <Badge variant={hasResume ? "default" : "destructive"} className="text-[9px] font-mono px-2 py-0.5 rounded-full">
+                  {hasResume ? "ENVIADO" : "PENDENTE"}
+                </Badge>
+              </div>
               
-              {user && (
-                <div className="border border-border/50 rounded-lg overflow-hidden divide-y divide-border/40 bg-card/10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
-                    <div className="p-4">
-                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">E-mail de Contato</span>
-                      <span className="text-sm font-medium">{user.email}</span>
-                    </div>
-                    <div className="p-4">
-                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Telefone</span>
-                      <span className="text-sm font-medium">{user.telefone || "Não informado"}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
-                    <div className="p-4">
-                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Cargo / Especialidade</span>
-                      <span className="text-sm font-medium font-serif">{user.perfil?.titulo || "Não definido"}</span>
-                    </div>
-                    <div className="p-4">
-                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Experiência Comprovada</span>
-                      <span className="text-sm font-medium">{user.perfil?.anosExperiencia !== undefined && user.perfil.anosExperiencia > 0 ? `${user.perfil.anosExperiencia} anos` : "Não informada"}</span>
-                    </div>
-                  </div>
-
-                  {(user.experiencias && user.experiencias.length > 0) || (user.formacoes && user.formacoes.length > 0) ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
-                      <div className="p-4">
-                        <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Última Experiência</span>
-                        <span className="text-sm font-medium">
-                          {user.experiencias && user.experiencias.length > 0
-                            ? `${user.experiencias[0].cargo} na ${user.experiencias[0].empresa}`
-                            : "Nenhuma cadastrada"}
-                        </span>
-                      </div>
-                      <div className="p-4">
-                        <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Formação Acadêmica</span>
-                        <span className="text-sm font-medium">
-                          {user.formacoes && user.formacoes.length > 0
-                            ? `${user.formacoes[0].grau} em ${user.formacoes[0].curso}`
-                            : "Nenhuma cadastrada"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {hasResume 
+                  ? "Seu currículo foi processado com sucesso. Você pode enviar um novo arquivo para atualizar suas experiências a qualquer momento."
+                  : "Você ainda não fez o upload do seu currículo. Envie seu arquivo PDF para calcular a compatibilidade com as vagas."
+                }
+              </p>
             </div>
-
-            {/* General Metadata footer */}
-            <div className="pt-4 text-xs text-muted-foreground/50 font-mono">
-              Último acesso: {user?.ultimoAcesso ? new Date(user.ultimoAcesso).toLocaleString("pt-BR") : "N/A"}
-            </div>
-
-          </div>
-
-          {/* Right Column (1/3 width - 4 cols) - Quick Actions List */}
-          <div className="lg:col-span-4 space-y-6">
-            <h2 className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-widest">
-              Ações Rápidas
-            </h2>
             
-            <div className="flex flex-col border border-border/50 divide-y divide-border/40 rounded-lg overflow-hidden bg-card/10">
+            <Button
+              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs"
+              onClick={() => router.push(`/${params.id}/resume/upload`)}
+            >
+              <FileUp className="h-4 w-4 stroke-[1.5]" />
+              {hasResume ? "Enviar Novo PDF" : "Fazer Upload PDF"}
+            </Button>
+          </Card>
+
+          {/* Card 2: Profile Revision */}
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/30">
+                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">02. Meu Perfil</span>
+                <span className="text-[9px] font-mono text-primary uppercase tracking-wider font-bold">REVISAR</span>
+              </div>
               
-              {/* Action 1: Upload */}
-              <div 
-                onClick={() => router.push(`/${params.id}/resume/upload`)}
-                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
-              >
-                <FileUp className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
-                <div>
-                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    Upload de Currículo
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Envie um novo arquivo PDF para atualizar suas informações profissionais via IA.
-                  </p>
-                </div>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p className="leading-relaxed">
+                  Ajuste as informações profissionais extraídas pelo nosso motor de Inteligência Artificial para refinar o cálculo de match.
+                </p>
+                {user?.perfil?.titulo && (
+                  <div className="pt-2 border-t border-border/30 space-y-1 font-mono text-[10px]">
+                    <div className="text-foreground truncate"><span className="text-muted-foreground">CARGO:</span> {user.perfil.titulo}</div>
+                    <div><span className="text-muted-foreground">EXP:</span> {user.perfil.anosExperiencia || 0} anos</div>
+                  </div>
+                )}
               </div>
-
-              {/* Action 2: Editar */}
-              <div 
-                onClick={() => router.push(`/${params.id}/resume/edit`)}
-                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
-              >
-                <FileEdit className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
-                <div>
-                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors">
-                    Revisar Perfil
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Ajuste manualmente seus dados extraídos para calibrar a precisão do matching.
-                  </p>
-                </div>
-              </div>
-
-              {/* Action 3: Ver Vagas */}
-              <div 
-                onClick={() => router.push(`/${params.id}/jobs`)}
-                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
-              >
-                <Briefcase className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
-                <div>
-                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors">
-                    Explorar Vagas
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Acesse o painel integrado de vagas e analise sua compatibilidade com vagas ativas.
-                  </p>
-                </div>
-              </div>
-
             </div>
-          </div>
+            
+            <Button
+              variant="outline"
+              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs dark:bg-input/30"
+              onClick={() => router.push(`/${params.id}/resume/edit`)}
+            >
+              <FileEdit className="h-4 w-4 stroke-[1.5]" />
+              Revisar Perfil
+            </Button>
+          </Card>
 
+          {/* Card 3: Explore Jobs */}
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/30">
+                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">03. Oportunidades</span>
+                <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-wider font-bold">DISPONÍVEIS</span>
+              </div>
+              
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Acesse o painel integrado de vagas e veja a compatibilidade do seu perfil com cada oportunidade em tempo real.
+              </p>
+            </div>
+            
+            <Button
+              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs"
+              onClick={() => router.push(`/${params.id}/jobs`)}
+            >
+              <Briefcase className="h-4 w-4 stroke-[1.5]" />
+              Explorar Vagas
+            </Button>
+          </Card>
         </div>
 
       </div>

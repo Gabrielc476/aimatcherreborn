@@ -29,6 +29,7 @@ import {
   Sparkles,
   Briefcase,
 } from "lucide-react";
+import { Header } from "@/components/dashboard/Header";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -552,38 +553,34 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Subtle grid line background */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
       
-      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
+      {/* Global Header */}
+      <Header userId={params.id as string} activeTab="jobs" />
+      
+      <div className="max-w-7xl mx-auto px-6 py-10 space-y-6 relative z-10 animate-fade-in">
         
-        {/* Navigation Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border/50">
+        {/* Page title and actions row */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border/40">
           <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-3 h-8 text-muted-foreground hover:text-foreground mb-1"
-              onClick={() => router.push(`/${params.id}/dashboard`)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1 stroke-[1.5]" /> Voltar ao Dashboard
-            </Button>
-            <h1 className="text-3xl font-serif font-bold tracking-wide">Workspace de Vagas</h1>
+            <h2 className="text-3xl font-serif font-bold tracking-wide">Workspace de Vagas</h2>
+            <p className="text-xs text-muted-foreground font-mono mt-1 uppercase tracking-wider">
+              Encontre e compare oportunidades compatíveis com seu perfil
+            </p>
           </div>
           
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refreshJobs()}
-              disabled={isLoading}
-              className="h-9 px-3 dark:bg-input/30"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${isLoading ? "animate-spin" : ""}`} />
-              Atualizar Vagas
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshJobs()}
+            disabled={isLoading}
+            className="h-9 px-3 dark:bg-input/30"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${isLoading ? "animate-spin" : ""}`} />
+            Atualizar Vagas
+          </Button>
         </div>
 
         {error && (
@@ -594,202 +591,187 @@ export default function JobsPage() {
           </Alert>
         )}
 
-        {/* Main layout - Split Pane Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Pane - Jobs List (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
+        {/* Search, Filter & View Controls */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/10 border border-border/40 p-4 rounded-lg">
+          <div className="flex flex-1 gap-2 max-w-lg">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground stroke-[1.5]" />
+              <Input
+                type="text"
+                placeholder="Buscar vagas por título, empresa ou palavra-chave..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setSearch(e.target.value);
+                }}
+                className="pl-9 bg-card/20 border-border/50 h-9 text-sm"
+              />
+            </div>
             
-            {/* Search and filters controls */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground stroke-[1.5]" />
-                <Input
-                  type="text"
-                  placeholder="Buscar vagas..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setSearch(e.target.value);
-                  }}
-                  className="pl-9 bg-card/25 border-border/50 h-9 text-sm"
+            {/* Filter Drawer Trigger */}
+            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 px-3 border-border/50 bg-card/25 shrink-0">
+                  <Filter className="h-4 w-4 mr-1.5 stroke-[1.5]" />
+                  Filtros
+                  {hasActiveFilters && (
+                    <Badge variant="default" className="ml-1.5 text-[9px] h-4 min-w-4 px-1 rounded-full">
+                      {Object.values(filters).flat().filter(Boolean).length}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                <SheetHeader className="pb-4 border-b border-border/50 mb-4">
+                  <SheetTitle className="font-serif">Filtros</SheetTitle>
+                  <SheetDescription>
+                    Refine a busca por vagas e compatibilidade.
+                  </SheetDescription>
+                </SheetHeader>
+                <JobFilterPanel
+                  filters={filters}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  setSearch={setSearch}
+                  setKeywords={setKeywords}
+                  addKeyword={addKeyword}
+                  removeKeyword={removeKeyword}
+                  toggleModalidade={toggleModalidade}
+                  toggleTipoContrato={toggleTipoContrato}
+                  toggleNivel={toggleNivel}
+                  setLocalizacao={setLocalizacao}
+                  setSalarioRange={setSalarioRange}
+                  toggleHabilidade={toggleHabilidade}
+                  setSortField={setSortField}
+                  setSortDirection={setSortDirection}
+                  toggleSortDirection={toggleSortDirection}
+                  resetFilters={resetFilters}
+                  resetSort={resetSort}
+                  resetAll={resetAll}
+                  availableModalidades={availableModalidades}
+                  availableTipoContratos={availableTipoContratos}
+                  availableNiveis={availableNiveis}
+                  availableHabilidades={availableHabilidades.slice(0, 20)}
+                  availableKeywords={availableKeywords.slice(0, 30)}
+                  className="py-2"
                 />
-              </div>
-              
-              {/* Collapsible Filter Sheet Button */}
-              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 px-3 border-border/50 bg-card/25">
-                    <Filter className="h-4 w-4 mr-1.5 stroke-[1.5]" />
-                    Filtros
-                    {hasActiveFilters && (
-                      <Badge variant="default" className="ml-1.5 text-[9px] h-4 min-w-4 px-1 rounded-full">
-                        {Object.values(filters).flat().filter(Boolean).length}
-                      </Badge>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-                  <SheetHeader className="pb-4 border-b border-border/50 mb-4">
-                    <SheetTitle className="font-serif">Filtros</SheetTitle>
-                    <SheetDescription>
-                      Refine a busca por vagas e compatibilidade.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <JobFilterPanel
-                    filters={filters}
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                    setSearch={setSearch}
-                    setKeywords={setKeywords}
-                    addKeyword={addKeyword}
-                    removeKeyword={removeKeyword}
-                    toggleModalidade={toggleModalidade}
-                    toggleTipoContrato={toggleTipoContrato}
-                    toggleNivel={toggleNivel}
-                    setLocalizacao={setLocalizacao}
-                    setSalarioRange={setSalarioRange}
-                    toggleHabilidade={toggleHabilidade}
-                    setSortField={setSortField}
-                    setSortDirection={setSortDirection}
-                    toggleSortDirection={toggleSortDirection}
-                    resetFilters={resetFilters}
-                    resetSort={resetSort}
-                    resetAll={resetAll}
-                    availableModalidades={availableModalidades}
-                    availableTipoContratos={availableTipoContratos}
-                    availableNiveis={availableNiveis}
-                    availableHabilidades={availableHabilidades.slice(0, 20)}
-                    availableKeywords={availableKeywords.slice(0, 30)}
-                    className="py-2"
-                  />
-                </SheetContent>
-              </Sheet>
-            </div>
-
-            {/* Selected active tags row */}
-            {hasActiveFilters && (
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-[10px] text-muted-foreground font-mono uppercase mr-1">Filtros:</span>
-                {renderActiveFilters()}
-              </div>
-            )}
-
-            {/* Jobs list inside Scroll Area */}
-            <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
-              {filteredJobs.length > 0 ? (
-                filteredJobs.map((job) => {
-                  const jobId = job.id?.toString() || "";
-                  const isActive = selectedJobId === jobId;
-                  
-                  return (
-                    <JobCard
-                      key={jobId}
-                      job={job}
-                      matching={jobMatchings[jobId] || null}
-                      isActive={isActive}
-                      onClick={() => {
-                        setSelectedJobId(jobId);
-                      }}
-                      showActions={false} // Hide bottom card actions to keep left list super compact
-                    />
-                  );
-                })
-              ) : (
-                <div className="text-center py-12 px-4 border border-border/50 rounded-lg bg-card/10">
-                  <Search className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2 stroke-[1.5]" />
-                  <p className="text-sm font-medium text-foreground">Nenhuma vaga encontrada</p>
-                  <p className="text-xs text-muted-foreground mt-1">Experimente limpar alguns filtros.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Pagination block */}
-            {filteredJobs.length > 0 && (
-              <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  {filteredJobs.length} de {totalJobs} vagas
-                </span>
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                />
-              </div>
-            )}
-
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Right Pane - Details & Compatibility (7 cols) */}
-          <div className="lg:col-span-7 bg-card/10 border border-border/50 rounded-lg p-6 min-h-[calc(100vh-280px)] overflow-y-auto max-h-[calc(100vh-280px)]">
-            {selectedJobId ? (
-              (() => {
-                const selectedJob = jobs.find(j => j.id?.toString() === selectedJobId);
-                const matchingData = jobMatchings[selectedJobId];
-                const isAnalyzing = matchingInProgress === selectedJobId;
-                
-                if (!selectedJob) return null;
+          <div className="flex items-center gap-3 self-end sm:self-auto text-xs text-muted-foreground font-mono">
+            {filteredJobs.length} de {totalJobs} vagas
+          </div>
+        </div>
 
-                return (
+        {/* Selected active tags row */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-[10px] text-muted-foreground font-mono uppercase mr-1">Filtros Ativos:</span>
+            {renderActiveFilters()}
+          </div>
+        )}
+
+        {/* Spacious Grid of Jobs */}
+        {filteredJobs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredJobs.map((job) => {
+              const jobId = job.id?.toString() || "";
+              const isActive = selectedJobId === jobId;
+              
+              return (
+                <JobCard
+                  key={jobId}
+                  job={job}
+                  matching={jobMatchings[jobId] || null}
+                  isActive={isActive}
+                  onClick={() => {
+                    setSelectedJobId(jobId);
+                  }}
+                  showActions={false}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-20 border border-border/40 rounded-lg bg-card/10 max-w-md mx-auto">
+            <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3 stroke-[1.5]" />
+            <h3 className="text-base font-serif font-bold text-foreground">Nenhuma vaga encontrada</h3>
+            <p className="text-xs text-muted-foreground mt-1 px-4">
+              Experimente limpar os filtros ativos ou alterar sua pesquisa.
+            </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredJobs.length > 0 && (
+          <div className="flex items-center justify-between pt-6 border-t border-border/30">
+            <span className="text-[10px] text-muted-foreground font-mono">
+              Página {currentPage} de {totalPages}
+            </span>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
+
+        {/* sliding Drawer / Sheet for Job Details & Matching */}
+        <Sheet open={selectedJobId !== null} onOpenChange={(open) => { if (!open) setSelectedJobId(null); }}>
+          <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto bg-card/95 border-l border-border/40 p-6 flex flex-col h-full">
+            
+            {selectedJobId && (() => {
+              const selectedJob = jobs.find(j => j.id?.toString() === selectedJobId);
+              const matchingData = jobMatchings[selectedJobId];
+              const isAnalyzing = matchingInProgress === selectedJobId;
+              
+              if (!selectedJob) return null;
+
+              return (
+                <div className="space-y-6 flex-1 flex flex-col justify-between">
                   <div className="space-y-6">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 pb-4 border-b border-border/50">
-                      <div>
-                        <span className="text-[10px] font-bold text-primary font-mono uppercase tracking-wider block">
-                          Detalhes da Vaga
+                    <div className="border-b border-border/40 pb-5">
+                      <div className="flex items-center justify-between gap-4 mb-2">
+                        <span className="text-[9px] font-mono text-primary uppercase tracking-widest font-bold">
+                          Detalhes e Compatibilidade
                         </span>
-                        <h2 className="text-2xl font-bold font-serif mt-1">{selectedJob.titulo}</h2>
-                        <p className="text-xs font-semibold text-accent-foreground mt-1">
-                          {selectedJob.empresaNome} • {selectedJob.localizacao || "Remoto"}
-                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedJobId(null)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                       
-                      <div className="flex gap-2 shrink-0">
-                        {selectedJob.link && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-9 text-xs"
-                            onClick={() => window.open(selectedJob.link, "_blank")}
-                          >
-                            Candidatar-se
-                          </Button>
-                        )}
-                        {!matchingData && (
-                          <Button 
-                            size="sm" 
-                            className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center gap-1.5 h-9 text-xs"
-                            disabled={isAnalyzing}
-                            onClick={async () => {
-                              setMatchingInProgress(selectedJobId);
-                              try {
-                                await analyzeJobMatching(selectedJobId);
-                              } catch (e) {
-                                console.error(e);
-                              } finally {
-                                setMatchingInProgress(null);
-                              }
-                            }}
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                                Analisando...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4" />
-                                Analisar Match
-                              </>
-                            )}
-                          </Button>
+                      <h3 className="text-2xl font-serif font-bold text-foreground leading-tight">
+                        {selectedJob.titulo}
+                      </h3>
+                      <p className="text-sm font-medium text-muted-foreground mt-1">
+                        {selectedJob.empresaNome} {selectedJob.localizacao ? `• ${selectedJob.localizacao}` : ""}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <Badge variant="outline" className="text-[10px] font-mono font-normal">
+                          {selectedJob.modalidade}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px] font-mono font-normal">
+                          {selectedJob.nivel}
+                        </Badge>
+                        {selectedJob.salarioMin && (
+                          <Badge variant="outline" className="text-[10px] font-mono font-normal text-primary">
+                            R$ {selectedJob.salarioMin.toLocaleString("pt-BR")} {selectedJob.salarioMax ? `- R$ ${selectedJob.salarioMax.toLocaleString("pt-BR")}` : ""}
+                          </Badge>
                         )}
                       </div>
                     </div>
 
-                    {/* Compatibility/Matching Panel or Option to calculate */}
+                    {/* Compatibility/Matching Area */}
                     {matchingData ? (
-                      <div className="space-y-6 pt-4">
+                      <div className="space-y-6">
                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div>
                             <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5 font-serif">
@@ -813,39 +795,70 @@ export default function JobsPage() {
                           </Button>
                         </div>
 
-                        <MatchingDetailsContent matching={matchingData} />
+                        <div className="border-t border-border/30 pt-4">
+                          <MatchingDetailsContent matching={matchingData} />
+                        </div>
                       </div>
                     ) : (
-                      // Render default Job Details fields without matching
-                      <div className="space-y-6 pt-4">
-                        {/* Summary */}
+                      <div className="space-y-6">
+                        {/* Summary / Description */}
                         {selectedJob.resumo && (
-                          <div className="bg-card/30 border border-border/40 p-4 rounded-lg italic text-xs text-muted-foreground leading-relaxed">
+                          <div className="bg-card/40 border border-border/40 p-4 rounded-lg italic text-xs text-muted-foreground leading-relaxed">
                             "{selectedJob.resumo}"
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4 border border-border/40 bg-card/10 rounded-lg p-4 text-xs">
+                        {/* CTAs to calculate match */}
+                        <div className="bg-card/20 border border-border/50 p-6 rounded-lg text-center space-y-4">
+                          <Sparkles className="h-8 w-8 text-primary/60 mx-auto stroke-[1.5]" />
                           <div>
-                            <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block">Modalidade</span>
-                            <span className="font-medium text-foreground">{selectedJob.modalidade}</span>
+                            <h4 className="text-sm font-serif font-bold text-foreground">Análise de Compatibilidade Pendente</h4>
+                            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto leading-relaxed">
+                              Compare os requisitos desta oportunidade com o conteúdo do seu currículo cadastrado para ver os pontos fortes e de melhoria.
+                            </p>
                           </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block">Nível</span>
-                            <span className="font-medium text-foreground">{selectedJob.nivel}</span>
-                          </div>
+                          
+                          <Button 
+                            size="sm" 
+                            disabled={isAnalyzing}
+                            onClick={async () => {
+                              setMatchingInProgress(selectedJobId);
+                              try {
+                                await analyzeJobMatching(selectedJobId);
+                              } catch (e) {
+                                console.error(e);
+                              } finally {
+                                setMatchingInProgress(null);
+                              }
+                            }}
+                            className="w-full max-w-xs font-semibold"
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 animate-spin mr-1.5" />
+                                Analisando perfil...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-1.5" />
+                                Calcular Match com IA
+                              </>
+                            )}
+                          </Button>
                         </div>
 
+                        {/* Description */}
                         <div className="space-y-2">
-                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição Completa</h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line bg-card/5 p-4 rounded-lg border border-border/30 max-h-[300px] overflow-y-auto">
+                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição da Vaga</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line bg-card/10 p-4 rounded-lg border border-border/30 max-h-[220px] overflow-y-auto">
                             {selectedJob.descricao}
                           </p>
                         </div>
 
+                        {/* Skills Required */}
                         {selectedJob.requisitos?.habilidadesTecnicas && selectedJob.requisitos.habilidadesTecnicas.length > 0 && (
                           <div className="space-y-2">
-                            <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Técnicas Requeridas</h4>
+                            <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Requeridas</h4>
                             <div className="flex flex-wrap gap-1.5">
                               {selectedJob.requisitos.habilidadesTecnicas.map((tech, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs font-mono font-normal">
@@ -857,22 +870,13 @@ export default function JobsPage() {
                         )}
                       </div>
                     )}
-
                   </div>
-                );
-              })()
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                <Briefcase className="h-12 w-12 text-muted-foreground/30 mb-4 stroke-[1.5]" />
-                <h3 className="text-lg font-serif font-bold text-foreground">Nenhuma vaga selecionada</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  Selecione uma vaga na lista à esquerda para visualizar seus detalhes completos e análise de compatibilidade.
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
+              );
+            })()}
 
-        </div>
+          </SheetContent>
+        </Sheet>
 
       </div>
     </div>

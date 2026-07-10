@@ -24,9 +24,11 @@ import {
   Phone,
   Calendar,
   Sparkles,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from "lucide-react";
 import MatchingDetailsDialog from "./MatchingDetailsDialog";
+import { Header } from "@/components/dashboard/Header";
 
 interface JobCandidatesListProps {
   job: Job;
@@ -35,7 +37,7 @@ interface JobCandidatesListProps {
   onLogout: () => void;
 }
 
-export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListProps) {
+export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidatesListProps) {
   const [matchings, setMatchings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,44 +76,39 @@ export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListPr
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      {/* Subtle grid line illustration background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      {/* Global Header */}
+      <Header userId={user?.id?.toString() || ""} activeTab="dashboard" />
+      
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 relative z-10 animate-fade-in">
         {/* Navigation Header */}
-        <div className="flex justify-between items-center mb-6">
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar para Minhas Vagas
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchCandidates} disabled={loading}>
-              Atualizar Lista
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-border/40">
+          <div>
+            <Button variant="ghost" onClick={onBack} className="-ml-3 h-8 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar para Minhas Vagas
             </Button>
-            <Button variant="outline" onClick={onLogout}>
-              Sair
-            </Button>
+            <h2 className="text-3xl font-serif font-bold tracking-wide mt-1">Candidatos Compatíveis</h2>
           </div>
+          
+          <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading} className="h-9 px-3 dark:bg-input/30">
+            <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${loading ? "animate-spin" : ""}`} />
+            Atualizar Lista
+          </Button>
         </div>
 
         {/* Job Info Banner */}
-        <div className="mb-8 border-b border-border/50 pb-6">
-          <div className="flex justify-between items-start gap-4">
-            <div>
-              <span className="font-bold text-primary uppercase tracking-wider text-xs font-mono">
-                Candidatos Compatíveis para
-              </span>
-              <h1 className="text-3xl font-bold text-foreground mt-1 font-serif tracking-wide">
-                {job.titulo}
-              </h1>
-              <p className="text-muted-foreground font-medium text-sm mt-1">{job.empresaNome} • {job.localizacao || "Remoto"}</p>
-            </div>
-            <Badge variant={job.status === "ativa" ? "default" : "secondary"}>
-              {job.status === "ativa" ? "Ativa" : "Inativa"}
-            </Badge>
+        <div className="border border-border/40 bg-card/10 rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block">Detalhes da Vaga Selecionada</span>
+            <h3 className="text-lg font-serif font-bold text-foreground">{job.titulo}</h3>
+            <p className="text-xs text-muted-foreground">{job.empresaNome} {job.localizacao ? `• ${job.localizacao}` : ""}</p>
           </div>
-          {job.resumo && (
-            <p className="text-sm text-muted-foreground mt-3 italic max-w-3xl">
-              {`"${job.resumo}"`}
-            </p>
-          )}
+          <Badge variant={job.status === "ativa" ? "default" : "secondary"} className="self-start md:self-auto uppercase tracking-wider font-mono text-[9px]">
+            {job.status === "ativa" ? "Ativa" : "Inativa"}
+          </Badge>
         </div>
 
         {error && (

@@ -37,6 +37,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import JobCandidatesList from "./JobCandidatesList";
+import { Header } from "@/components/dashboard/Header";
 
 interface RecruiterDashboardProps {
   user: User;
@@ -143,32 +144,35 @@ export function RecruiterDashboard({ user, onLogout }: RecruiterDashboardProps) 
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      {/* Subtle grid line illustration background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      {/* Global Header */}
+      <Header userId={user.id?.toString() || ""} activeTab="dashboard" />
+      
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 relative z-10 animate-fade-in">
         {/* Top Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/40">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground font-serif tracking-wide">
-              <Briefcase className="h-8 w-8 text-primary stroke-[1.5]" />
-              Painel do Recrutador
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Olá, {user.nomeCompleto}. Gerencie suas vagas e visualize a compatibilidade dos candidatos.
+            <h2 className="text-3xl font-serif font-bold tracking-wide">
+              Olá, {user.nomeCompleto}
+            </h2>
+            <p className="text-xs text-muted-foreground font-mono mt-1 uppercase tracking-wider">
+              Painel do Recrutador • Gerencie vagas e candidatos
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={fetchJobs}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
-            <Button variant="outline" onClick={onLogout}>
-              Sair
-            </Button>
-          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchJobs}
+            disabled={refreshing}
+            className="h-9 px-3 dark:bg-input/30"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`} />
+            Atualizar Dados
+          </Button>
         </div>
 
         {error && (
