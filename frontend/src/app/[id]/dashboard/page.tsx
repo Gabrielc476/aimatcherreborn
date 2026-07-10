@@ -170,15 +170,15 @@ export default function DashboardPage() {
       {/* Global Header */}
       <Header userId={params.id as string} activeTab="dashboard" />
       
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 relative z-10 animate-fade-in">
+      <div className="max-w-7xl mx-auto px-6 py-12 space-y-10 relative z-10 animate-fade-in">
         
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/40">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-border/40">
           <div>
-            <h2 className="text-3xl font-serif font-bold tracking-wide">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold tracking-wide text-foreground">
               Olá, {user?.nomeCompleto || "Candidato"}
             </h2>
-            <p className="text-xs text-muted-foreground font-mono mt-1 uppercase tracking-wider">
+            <p className="text-sm text-muted-foreground font-mono mt-2 uppercase tracking-widest">
               Bem-vindo ao seu Workspace
             </p>
           </div>
@@ -188,7 +188,7 @@ export default function DashboardPage() {
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="h-9 px-3 dark:bg-input/30"
+            className="h-10 px-4 text-xs dark:bg-input/30"
           >
             <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`} />
             Atualizar Dados
@@ -202,19 +202,19 @@ export default function DashboardPage() {
         )}
 
         {/* 3-Card Symmetric Workspace Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
           {/* Card 1: PDF Resume */}
-          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border/30">
-                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">01. Currículo PDF</span>
-                <Badge variant={hasResume ? "default" : "destructive"} className="text-[9px] font-mono px-2 py-0.5 rounded-full">
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-8 md:p-10 min-h-[380px] transition-all duration-300 hover:border-primary/40">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-border/30">
+                <span className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-wider">01. Currículo PDF</span>
+                <Badge variant={hasResume ? "default" : "destructive"} className="text-xs font-mono px-3 py-0.5 rounded-full">
                   {hasResume ? "ENVIADO" : "PENDENTE"}
                 </Badge>
               </div>
               
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {hasResume 
                   ? "Seu currículo foi processado com sucesso. Você pode enviar um novo arquivo para atualizar suas experiências a qualquer momento."
                   : "Você ainda não fez o upload do seu currículo. Envie seu arquivo PDF para calcular a compatibilidade com as vagas."
@@ -223,28 +223,28 @@ export default function DashboardPage() {
             </div>
             
             <Button
-              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs"
+              className="w-full mt-8 flex items-center justify-center gap-2 h-11 text-sm font-semibold"
               onClick={() => router.push(`/${params.id}/resume/upload`)}
             >
-              <FileUp className="h-4 w-4 stroke-[1.5]" />
+              <FileUp className="h-4.5 w-4.5 stroke-[1.5]" />
               {hasResume ? "Enviar Novo PDF" : "Fazer Upload PDF"}
             </Button>
           </Card>
 
           {/* Card 2: Profile Revision */}
-          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border/30">
-                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">02. Meu Perfil</span>
-                <span className="text-[9px] font-mono text-primary uppercase tracking-wider font-bold">REVISAR</span>
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-8 md:p-10 min-h-[380px] transition-all duration-300 hover:border-primary/40">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-border/30">
+                <span className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-wider">02. Meu Perfil</span>
+                <span className="text-xs font-mono text-primary uppercase tracking-wider font-bold">REVISAR</span>
               </div>
               
-              <div className="space-y-2 text-xs text-muted-foreground">
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <p className="leading-relaxed">
                   Ajuste as informações profissionais extraídas pelo nosso motor de Inteligência Artificial para refinar o cálculo de match.
                 </p>
                 {user?.perfil?.titulo && (
-                  <div className="pt-2 border-t border-border/30 space-y-1 font-mono text-[10px]">
+                  <div className="pt-3 border-t border-border/30 space-y-1.5 font-mono text-xs">
                     <div className="text-foreground truncate"><span className="text-muted-foreground">CARGO:</span> {user.perfil.titulo}</div>
                     <div><span className="text-muted-foreground">EXP:</span> {user.perfil.anosExperiencia || 0} anos</div>
                   </div>
@@ -254,32 +254,32 @@ export default function DashboardPage() {
             
             <Button
               variant="outline"
-              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs dark:bg-input/30"
+              className="w-full mt-8 flex items-center justify-center gap-2 h-11 text-sm font-semibold dark:bg-input/30"
               onClick={() => router.push(`/${params.id}/resume/edit`)}
             >
-              <FileEdit className="h-4 w-4 stroke-[1.5]" />
+              <FileEdit className="h-4.5 w-4.5 stroke-[1.5]" />
               Revisar Perfil
             </Button>
           </Card>
 
           {/* Card 3: Explore Jobs */}
-          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-6 h-full transition-all duration-300 hover:border-primary/40">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border/30">
-                <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider">03. Oportunidades</span>
-                <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-wider font-bold">DISPONÍVEIS</span>
+          <Card className="bg-card/10 border-border/50 flex flex-col justify-between p-8 md:p-10 min-h-[380px] transition-all duration-300 hover:border-primary/40">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-border/30">
+                <span className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-wider">03. Oportunidades</span>
+                <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold">DISPONÍVEIS</span>
               </div>
               
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Acesse o painel integrado de vagas e veja a compatibilidade do seu perfil com cada oportunidade em tempo real.
               </p>
             </div>
             
             <Button
-              className="w-full mt-6 flex items-center justify-center gap-1.5 h-9 text-xs"
+              className="w-full mt-8 flex items-center justify-center gap-2 h-11 text-sm font-semibold"
               onClick={() => router.push(`/${params.id}/jobs`)}
             >
-              <Briefcase className="h-4 w-4 stroke-[1.5]" />
+              <Briefcase className="h-4.5 w-4.5 stroke-[1.5]" />
               Explorar Vagas
             </Button>
           </Card>
