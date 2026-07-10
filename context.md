@@ -66,6 +66,15 @@ Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real 
 *   Matching semântico executado pela IA analisando o currículo estruturado em comparação com os requisitos da vaga.
 *   Retorno rico contendo score de 0 a 100, justificativa, pontos fortes, pontos fracos e recomendações de desenvolvimento.
 
+### Design System & Navegação Global
+*   **Identidade Visual (Warm Editorial)**: Interface premium baseada em tipografia serifada (`font-serif`) para títulos de destaque, fontes mono para metadados/badges e uma paleta de cores terrosas refinadas (terracota e brass accents).
+*   **Cabeçalho Global Unificado**: Componente de navegação superior (`Header`) integrado em todas as telas principais do candidato e do recrutador, centralizando o controle de abas e o fluxo de encerramento de sessão.
+*   **Workspace de Vagas Espaçoso**: Listagem de vagas estruturada em grade ampla de 3 colunas responsivas. A ação de clique no card direciona o usuário diretamente à página dedicada de detalhes da vaga, abolindo o uso de drawers aglomerados nas laterais.
+*   **Página Dedicada de Detalhes da Vaga**: Organizada em duas colunas responsivas:
+    *   *Coluna da Esquerda (Principal)*: Área generosa e totalmente aberta dedicada à descrição detalhada, requisitos obrigatórios/desejáveis de competências, benefícios e etapas do processo seletivo.
+    *   *Coluna da Direita (Sidebar)*: Ficha técnica resumida da vaga (modalidade, regime, senioridade, salário), perfil da empresa e o card de análise do Match com Inteligência Artificial.
+*   **Barras de Rolagem Customizadas**: Estilização premium global (`webkit-scrollbar`) fina (6px) e de cores terrosas escuras integradas ao tema dark mode, eliminando barras de rolagem nativas abrasivas.
+
 ---
 
 ## 4. Diagrama de Contexto de Sistema (C4 Model)
