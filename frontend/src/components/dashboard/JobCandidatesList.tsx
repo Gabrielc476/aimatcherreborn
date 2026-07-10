@@ -27,7 +27,8 @@ import {
   TrendingUp,
   RefreshCw,
   FileUp,
-  UserX
+  UserX,
+  FileText
 } from "lucide-react";
 import {
   Dialog,
@@ -61,6 +62,11 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
   const [rejectingMatching, setRejectingMatching] = useState<any | null>(null);
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+
+  // Dialog state for resume PDF viewer
+  const [viewingResumeUrl, setViewingResumeUrl] = useState<string | null>(null);
+  const [isResumeOpen, setIsResumeOpen] = useState(false);
+  const [fetchingResume, setFetchingResume] = useState<string | null>(null);
 
   // Dialog state for batch upload
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -169,6 +175,29 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
     } finally {
       setRejecting(false);
       setRejectingMatching(null);
+    }
+  };
+
+  const handleViewResume = async (matching: any) => {
+    if (!job.id) return;
+    setFetchingResume(matching.id);
+    setSelectedMatching(matching);
+    try {
+      const response = await RecruiterVagasApi.obterCurriculoUrl(
+        matching.usuarioId,
+        job.id
+      );
+      if (response.status === 200 && response.data?.url) {
+        setViewingResumeUrl(response.data.url);
+        setIsResumeOpen(true);
+      } else {
+        alert(response.erro || "Erro ao obter o currículo.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao obter o currículo.");
+    } finally {
+      setFetchingResume(null);
     }
   };
 
@@ -314,6 +343,21 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
 
                     <Button 
                       variant="outline"
+                      onClick={() => handleViewResume(matching)}
+                      disabled={fetchingResume === matching.id}
+                      className="font-medium flex items-center gap-1 border-border/40 hover:bg-muted transition-all"
+                      size="sm"
+                    >
+                      {fetchingResume === matching.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 stroke-[1.5]" />
+                      )}
+                      Currículo PDF
+                    </Button>
+
+                    <Button 
+                      variant="outline"
                       onClick={() => handleOpenRejectConfirm(matching)}
                       className="font-medium flex items-center gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive border-border/40 transition-all"
                       size="sm"
@@ -333,7 +377,46 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
           open={isDetailOpen} 
           onOpenChange={setIsDetailOpen} 
           matching={selectedMatching} 
+          vagaId={job.id}
         />
+
+        {/* PDF Resume Viewer Dialog */}
+        <Dialog open={isResumeOpen} onOpenChange={setIsResumeOpen}>
+          <DialogContent className="max-w-5xl w-[90vw] h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-4 border-b flex flex-row items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold font-serif flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Currículo PDF - {selectedMatching?.candidato?.nomeCompleto || "Candidato"}
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  Visualização do documento original enviado pelo candidato.
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(viewingResumeUrl || "", "_blank")}
+                className="mr-6 h-8 text-xs font-semibold gap-1"
+              >
+                Abrir em Nova Aba
+              </Button>
+            </DialogHeader>
+            <div className="flex-1 bg-muted relative">
+              {viewingResumeUrl ? (
+                <iframe
+                  src={viewingResumeUrl}
+                  className="w-full h-full border-0"
+                  title="Currículo PDF"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Confirmation dialog for rejection */}
         <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>

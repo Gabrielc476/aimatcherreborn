@@ -3,6 +3,8 @@ import { ExecutarMatchingUseCase } from '../../domain/use-cases/executar-matchin
 import { NegarCandidaturaUseCase } from '../../domain/use-cases/negar-candidatura.use-case';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
+import { UsuarioRepository } from '../../domain/repositories/usuario.repository';
+import { StorageService } from '../../domain/services/storage.service';
 import { ExecutarMatchingDto } from '../dtos/executar-matching.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
@@ -13,6 +15,8 @@ export class MatchingController {
     private readonly negarCandidaturaUseCase: NegarCandidaturaUseCase,
     private readonly matchingRepository: MatchingRepository,
     private readonly vagaRepository: VagaRepository,
+    private readonly usuarioRepository: UsuarioRepository,
+    private readonly storageService: StorageService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -194,5 +198,30 @@ export class MatchingController {
       }
       throw error;
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':usuarioId/:vagaId/curriculo')
+  @HttpCode(HttpStatus.OK)
+  async obterCurriculoUrl(
+    @Param('usuarioId') usuarioId: string,
+    @Param('vagaId') vagaId: string,
+    @Req() req: any,
+  ) {
+    const vaga = await this.vagaRepository.buscarPorId(vagaId);
+    const isRecrutador = vaga?.recrutadorId === req.user.userId;
+
+    if (usuarioId !== req.user.userId && !isRecrutador && !req.query.admin) {
+      throw new ForbiddenException('Acesso não autorizado');
+    }
+
+    const usuario = await this.usuarioRepository.buscarPorId(usuarioId);
+    if (!usuario || !usuario.curriculoUrl) {
+      throw new NotFoundException('Currículo não encontrado');
+    }
+
+    const url = await this.storageService.obterUrlDownload(usuario.curriculoUrl);
+
+    return { url };
   }
 }

@@ -212,6 +212,41 @@ export class RecruiterVagasApi {
       };
     }
   }
+
+  /**
+   * Get the signed resume URL of a candidate for a specific job matching
+   */
+  public static async obterCurriculoUrl(
+    usuarioId: string,
+    vagaId: string
+  ): Promise<ApiResponse<{ url: string }>> {
+    try {
+      const response = await apiClient.get<{ url: string }>(
+        `/matching/${usuarioId}/${vagaId}/curriculo`
+      );
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao obter URL do currículo",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching resume URL:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao obter URL do currículo",
+        status: 500,
+      };
+    }
+  }
 }
 
 export default RecruiterVagasApi;
