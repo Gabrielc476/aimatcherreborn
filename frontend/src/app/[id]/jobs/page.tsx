@@ -733,9 +733,9 @@ export default function JobsPage() {
                   <div className="space-y-6">
                     {/* Header */}
                     <div className="border-b border-border/40 pb-5">
-                      <div className="flex items-center justify-between gap-4 mb-2">
-                        <span className="text-[9px] font-mono text-primary uppercase tracking-widest font-bold">
-                          Detalhes e Compatibilidade
+                      <div className="flex items-center justify-between gap-4 mb-3">
+                        <span className="text-[10px] font-mono text-primary uppercase tracking-widest font-bold">
+                          Detalhes da Oportunidade
                         </span>
                         <Button
                           variant="ghost"
@@ -747,74 +747,120 @@ export default function JobsPage() {
                         </Button>
                       </div>
                       
-                      <h3 className="text-2xl font-serif font-bold text-foreground leading-tight">
+                      <h3 className="text-3xl font-serif font-bold text-foreground leading-tight tracking-wide">
                         {selectedJob.titulo}
                       </h3>
-                      <p className="text-sm font-medium text-muted-foreground mt-1">
+                      <p className="text-lg font-medium text-muted-foreground mt-1">
                         {selectedJob.empresaNome} {selectedJob.localizacao ? `• ${selectedJob.localizacao}` : ""}
                       </p>
 
                       <div className="flex flex-wrap gap-2 mt-4">
-                        <Badge variant="outline" className="text-[10px] font-mono font-normal">
+                        <Badge variant="outline" className="text-xs font-mono font-normal">
                           {selectedJob.modalidade}
                         </Badge>
-                        <Badge variant="outline" className="text-[10px] font-mono font-normal">
+                        <Badge variant="outline" className="text-xs font-mono font-normal">
                           {selectedJob.nivel}
                         </Badge>
                         {selectedJob.salarioMin && (
-                          <Badge variant="outline" className="text-[10px] font-mono font-normal text-primary">
+                          <Badge variant="outline" className="text-xs font-mono font-normal text-primary">
                             R$ {selectedJob.salarioMin.toLocaleString("pt-BR")} {selectedJob.salarioMax ? `- R$ ${selectedJob.salarioMax.toLocaleString("pt-BR")}` : ""}
                           </Badge>
                         )}
                       </div>
-                    </div>
 
-                    {/* Compatibility/Matching Area */}
-                    {matchingData ? (
-                      <div className="space-y-6">
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                          <div>
-                            <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5 font-serif">
-                              <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-                              Compatibilidade de {Math.round(matchingData.score)}%
-                            </h4>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Esta análise compara os requisitos da vaga com o seu currículo.
-                            </p>
-                          </div>
-                          
+                      {/* Primary action buttons row */}
+                      <div className="flex flex-wrap gap-2 mt-5">
+                        {selectedJob.link ? (
+                          <a href={selectedJob.link} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial">
+                            <Button size="sm" className="w-full flex items-center gap-1.5 h-9 text-xs">
+                              Candidatar-se
+                            </Button>
+                          </a>
+                        ) : (
+                          <Button size="sm" disabled className="flex-1 sm:flex-initial flex items-center gap-1.5 h-9 text-xs">
+                            Candidatura não disponível
+                          </Button>
+                        )}
+
+                        {matchingData && (
                           <Button 
                             size="sm"
-                            className="flex items-center gap-1.5 cursor-pointer bg-primary text-primary-foreground font-semibold h-8 text-xs shrink-0"
+                            variant="outline"
+                            className="flex-1 sm:flex-initial flex items-center gap-1.5 h-9 text-xs dark:bg-input/30"
                             onClick={() => {
                               router.push(`/${params.id}/resume/optimize?vagaId=${selectedJobId}`);
                             }}
                           >
                             <Sparkles className="h-3.5 w-3.5" />
-                            Otimizar com IA
+                            Otimizar Currículo com IA
                           </Button>
-                        </div>
-
-                        <div className="border-t border-border/30 pt-4">
-                          <MatchingDetailsContent matching={matchingData} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* Summary / Description */}
-                        {selectedJob.resumo && (
-                          <div className="bg-card/40 border border-border/40 p-4 rounded-lg italic text-xs text-muted-foreground leading-relaxed">
-                            "{selectedJob.resumo}"
-                          </div>
                         )}
+                      </div>
+                    </div>
 
-                        {/* CTAs to calculate match */}
+                    {/* Job Details Section (Sempre Visível) */}
+                    <div className="space-y-4">
+                      {/* Summary */}
+                      {selectedJob.resumo && (
+                        <div className="bg-card/40 border border-border/40 p-4 rounded-lg italic text-sm text-muted-foreground leading-relaxed">
+                          "{selectedJob.resumo}"
+                        </div>
+                      )}
+
+                      {/* Description */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição Completa</h4>
+                        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line bg-card/10 p-5 rounded-lg border border-border/30 max-h-[350px] overflow-y-auto pr-2">
+                          {selectedJob.descricao}
+                        </p>
+                      </div>
+
+                      {/* Requirements */}
+                      {selectedJob.requisitos?.habilidadesTecnicas && selectedJob.requisitos.habilidadesTecnicas.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Requeridas</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedJob.requisitos.habilidadesTecnicas.map((tech, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs font-mono font-normal">
+                                {tech.nome} ({tech.nivel}){tech.obrigatorio ? " *" : ""}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-border/40 my-6" />
+
+                    {/* Compatibility/Matching Area (Sempre Visível ao final) */}
+                    <div>
+                      <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider mb-3">Análise de Match com IA</h4>
+                      
+                      {matchingData ? (
+                        <div className="space-y-6">
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div>
+                              <h5 className="font-bold text-sm text-foreground flex items-center gap-1.5 font-serif">
+                                <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+                                Compatibilidade de {Math.round(matchingData.score)}%
+                              </h5>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Esta análise compara os requisitos da vaga com o seu currículo.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-2">
+                            <MatchingDetailsContent matching={matchingData} />
+                          </div>
+                        </div>
+                      ) : (
                         <div className="bg-card/20 border border-border/50 p-6 rounded-lg text-center space-y-4">
                           <Sparkles className="h-8 w-8 text-primary/60 mx-auto stroke-[1.5]" />
                           <div>
-                            <h4 className="text-sm font-serif font-bold text-foreground">Análise de Compatibilidade Pendente</h4>
+                            <h5 className="text-sm font-serif font-bold text-foreground">Análise Pendente</h5>
                             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto leading-relaxed">
-                              Compare os requisitos desta oportunidade com o conteúdo do seu currículo cadastrado para ver os pontos fortes e de melhoria.
+                              Compare os requisitos desta oportunidade com o conteúdo do seu currículo cadastrado para ver os pontos fortes e áreas de melhoria.
                             </p>
                           </div>
                           
@@ -846,30 +892,8 @@ export default function JobsPage() {
                             )}
                           </Button>
                         </div>
-
-                        {/* Description */}
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição da Vaga</h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line bg-card/10 p-4 rounded-lg border border-border/30 max-h-[220px] overflow-y-auto">
-                            {selectedJob.descricao}
-                          </p>
-                        </div>
-
-                        {/* Skills Required */}
-                        {selectedJob.requisitos?.habilidadesTecnicas && selectedJob.requisitos.habilidadesTecnicas.length > 0 && (
-                          <div className="space-y-2">
-                            <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Requeridas</h4>
-                            <div className="flex flex-wrap gap-1.5">
-                              {selectedJob.requisitos.habilidadesTecnicas.map((tech, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs font-mono font-normal">
-                                  {tech.nome} ({tech.nivel}){tech.obrigatorio ? " *" : ""}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               );

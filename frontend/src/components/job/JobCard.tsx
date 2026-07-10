@@ -93,20 +93,20 @@ export function JobCard({
   return (
     <Card 
       onClick={onClick}
-      className={`w-full transition-all duration-200 ${onClick ? "cursor-pointer" : ""} ${isActive ? "border-primary bg-card/70 ring-1 ring-primary/20" : "hover:border-border/80 border-border bg-card/10"}`}
+      className={`w-full transition-all duration-300 ${onClick ? "cursor-pointer" : ""} ${isActive ? "border-primary bg-card/75 ring-1 ring-primary/30 shadow-lg" : "hover:border-border/90 border-border bg-card/10 hover:bg-card/20 shadow-sm"}`}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className="p-6 pb-3">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h3 className="text-lg font-bold line-clamp-2">{job.titulo}</h3>
-            <div className="flex items-center mt-1 text-sm text-muted-foreground">
-              <Building className="h-4 w-4 mr-1" />
+            <h3 className="text-xl font-bold line-clamp-2 font-serif text-foreground leading-tight tracking-wide">{job.titulo}</h3>
+            <div className="flex items-center mt-1.5 text-base text-muted-foreground font-mono uppercase tracking-wider">
+              <Building className="h-4 w-4 mr-2 text-primary/70 stroke-[1.5]" />
               <span>{job.empresaNome}</span>
             </div>
           </div>
 
           {matching && (
-            <div className="flex flex-col items-center ml-4">
+            <div className="flex flex-col items-center ml-4 shrink-0 bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg">
               <div
                 className={`text-xl font-bold ${getScoreColor(
                   matching.score
@@ -114,15 +114,14 @@ export function JobCard({
               >
                 {Math.round(matching.score)}%
               </div>
-              <div className="text-xs text-muted-foreground">Match</div>
+              <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mt-0.5">Match</div>
             </div>
           )}
-
 
         </div>
       </CardHeader>
 
-      <CardContent className="pb-3">
+      <CardContent className="px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
           <div className="flex items-center">
             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
