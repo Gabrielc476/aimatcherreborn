@@ -1,7 +1,7 @@
 // src/domain/use-cases/registrar-usuario.use-case.ts
 
 import { randomUUID } from 'crypto';
-import { Usuario, StatusUsuario } from '../entities/usuario.entity';
+import { Usuario, StatusUsuario, Role } from '../entities/usuario.entity';
 import { UsuarioRepository } from '../repositories/usuario.repository';
 import { CryptographyService } from '../services/cryptography.service';
 
@@ -11,6 +11,7 @@ export interface RegistrarUsuarioInput {
   senhaPlana: string;
   telefone?: string;
   dataNascimento?: Date;
+  role?: Role;
 }
 
 export class RegistrarUsuarioUseCase {
@@ -39,6 +40,19 @@ export class RegistrarUsuarioUseCase {
       new Date(),
       input.telefone,
       input.dataNascimento,
+      undefined,
+      undefined,
+      [],
+      [],
+      [],
+      [],
+      [],
+      undefined,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      input.role || 'CANDIDATO',
     );
 
     // 4. Salva no repositório

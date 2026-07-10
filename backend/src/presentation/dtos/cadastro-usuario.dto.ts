@@ -22,4 +22,8 @@ export class CadastroUsuarioDto {
 
   @IsOptional()
   dataNascimento?: Date;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
 }

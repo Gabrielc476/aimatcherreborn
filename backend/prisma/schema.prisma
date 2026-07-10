@@ -16,6 +16,11 @@ enum StatusUsuario {
   BLOQUEADO
 }
 
+enum Role {
+  CANDIDATO
+  RECRUTADOR
+}
+
 enum ModalidadeTrabalho {
   REMOTO
   HIBRIDO
@@ -30,6 +35,7 @@ model Usuario {
   telefone          String?
   dataNascimento    DateTime?      @map("data_nascimento")
   status            StatusUsuario  @default(ATIVO)
+  role              Role           @default(CANDIDATO)
   dataCriacao       DateTime       @default(now()) @map("data_criacao")
   ultimoAcesso      DateTime?      @map("ultimo_acesso")
   

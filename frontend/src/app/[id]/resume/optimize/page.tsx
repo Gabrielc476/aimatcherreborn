@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Job } from "@/types/job/Job";
 import { 
   ArrowLeft, 
@@ -344,59 +346,61 @@ export default function ResumeOptimizePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-800 font-sans p-6 md:p-10">
-      
-      {/* HEADER SECTION */}
-      <div className="max-w-7xl mx-auto mb-8 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            className="text-slate-600 hover:text-slate-950 hover:bg-gray-200"
-            onClick={() => {
-              if (step === "workspace") setStep("select");
-              else router.push(`/${userId}/dashboard`);
-            }}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-          </Button>
-          <div className="h-6 w-[1px] bg-gray-300" />
-          <span className="text-sm text-indigo-600 font-semibold tracking-wider uppercase flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4" /> AI Resume Optimizer
-          </span>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 text-foreground font-sans">
       <div className="max-w-7xl mx-auto">
+        
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          className="mb-4"
+          onClick={() => {
+            if (step === "workspace") setStep("select");
+            else router.push(`/${userId}/dashboard`);
+          }}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+        </Button>
+
+        {/* Header Title */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            <Sparkles className="h-7 w-7 text-primary" /> Otimizar Currículo com IA
+          </h1>
+          <p className="text-muted-foreground">
+            Ajuste seu perfil profissional para uma vaga específica utilizando a inteligência artificial do Gemma 4.
+          </p>
+        </div>
         
         {/* STEP 1: VACANCY SELECT AND PROMPT */}
         {step === "select" && (
-          <div className="max-w-3xl mx-auto mt-12 animate-fade-in">
-            <Card className="border-gray-200 bg-white shadow-xl text-slate-800">
+          <div className="max-w-3xl mx-auto mt-6 animate-fade-in">
+            <Card>
               <CardHeader className="text-center pb-4">
-                <div className="mx-auto bg-indigo-50 text-indigo-600 p-3.5 rounded-2xl w-fit mb-4">
-                  <Sparkles className="h-8 w-8" />
+                <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
+                  <Sparkles className="h-6 w-6" />
                 </div>
-                <CardTitle className="text-2xl md:text-3xl font-bold text-slate-900">
+                <CardTitle className="text-2xl font-bold">
                   Otimizar com Inteligência Artificial
                 </CardTitle>
-                <CardDescription className="text-slate-500 max-w-md mx-auto mt-2">
-                  Gemma 4 irá reorganizar suas conquistas, competências e resumo focando exatamente na vaga dos seus sonhos.
+                <CardDescription className="max-w-md mx-auto mt-2">
+                  O Gemma 4 irá reorganizar suas conquistas, competências e resumo focando exatamente na vaga dos seus sonhos.
                 </CardDescription>
               </CardHeader>
               
               <CardContent className="space-y-6 pt-4">
                 {/* Vacancy dropdown */}
-                <div className="space-y-2.5">
-                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-indigo-600" /> Selecione uma Vaga Compatível
-                  </label>
+                <div className="space-y-2">
+                  <Label htmlFor="vaga-select" className="text-sm font-semibold flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-primary" /> Selecione uma Vaga Compatível
+                  </Label>
                   {loadingList ? (
-                    <div className="h-10 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center text-xs text-slate-500">
+                    <div className="h-10 bg-muted animate-pulse rounded-md flex items-center justify-center text-xs text-muted-foreground">
                       Carregando vagas...
                     </div>
                   ) : (
                     <select 
-                      className="w-full bg-white border border-gray-300 rounded-lg p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      id="vaga-select"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                       value={selectedVagaId}
                       onChange={(e) => {
                         setSelectedVagaId(e.target.value);
@@ -414,18 +418,19 @@ export default function ResumeOptimizePage() {
                 </div>
 
                 <div className="flex items-center gap-4 py-2">
-                  <div className="h-[1px] bg-gray-200 flex-1" />
-                  <span className="text-xs text-gray-400 uppercase font-bold tracking-wider">OU</span>
-                  <div className="h-[1px] bg-gray-200 flex-1" />
+                  <div className="h-[1px] bg-border flex-1" />
+                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">OU</span>
+                  <div className="h-[1px] bg-border flex-1" />
                 </div>
 
                 {/* Paste description */}
-                <div className="space-y-2.5">
-                  <label className="text-sm font-semibold text-slate-700">
+                <div className="space-y-2">
+                  <Label htmlFor="vaga-desc" className="text-sm font-semibold">
                     Cole a Descrição da Vaga Alvo
-                  </label>
+                  </Label>
                   <textarea 
-                    className="w-full h-44 bg-white border border-gray-300 rounded-lg p-3.5 text-slate-800 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                    id="vaga-desc"
+                    className="flex min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Cole os requisitos da vaga, qualificações e responsabilidades aqui..."
                     value={vagaDescricao}
                     disabled={!!selectedVagaId}
@@ -434,13 +439,14 @@ export default function ResumeOptimizePage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-4 pb-8 flex flex-col gap-4">
+              <CardFooter className="pt-4 pb-8">
                 <Button 
                   onClick={handleStartOptimization}
                   disabled={!selectedVagaId && !vagaDescricao.trim()}
-                  className="w-full py-6 text-base font-bold bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-lg transition-all rounded-xl flex items-center justify-center gap-2 group cursor-pointer"
+                  size="lg"
+                  className="w-full flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Sparkles className="h-5 w-5 animate-pulse group-hover:scale-110 transition-transform" /> 
+                  <Sparkles className="h-5 w-5 animate-pulse" /> 
                   Otimizar Perfil com IA
                 </Button>
               </CardFooter>
@@ -450,19 +456,15 @@ export default function ResumeOptimizePage() {
 
         {/* STEP 2: LOADING VIEW */}
         {step === "loading" && (
-          <div className="max-w-md mx-auto text-center py-20 flex flex-col items-center justify-center animate-fade-in">
-            <div className="relative mb-8">
-              <div className="h-20 w-20 rounded-full border-4 border-indigo-500/20 border-t-indigo-600 animate-spin" />
-              <Sparkles className="h-8 w-8 text-indigo-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          <Card className="max-w-md mx-auto text-center py-16 flex flex-col items-center justify-center mt-12">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <h3 className="text-xl font-bold">Otimizando seu Currículo</h3>
+              <p className="text-muted-foreground text-sm max-w-xs animate-pulse">
+                {loadingMessage}
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-slate-850 font-sans">Otimizando seu Currículo</h3>
-            <p className="text-slate-500 text-sm mt-3 animate-pulse">
-              {loadingMessage}
-            </p>
-            <div className="w-48 h-1.5 bg-gray-200 rounded-full mt-6 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-infinite-scroll w-1/3" />
-            </div>
-          </div>
+          </Card>
         )}
 
         {/* STEP 3: WORKSPACE SPLIT VIEW */}
@@ -471,32 +473,32 @@ export default function ResumeOptimizePage() {
             
             {/* SCORE COMPARISON WIDGET */}
             {selectedVagaId && (originalScore !== null || simulatedScore !== null) && (
-              <div className="col-span-1 lg:col-span-12 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="col-span-1 lg:col-span-12 bg-card border rounded-lg p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
+                  <div className="bg-primary/10 p-3 rounded-lg text-primary">
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-800">Simulação de Score de Compatibilidade (IA)</h3>
-                    <p className="text-xs text-slate-500">
+                    <h3 className="text-base font-bold">Simulação de Score de Compatibilidade (IA)</h3>
+                    <p className="text-xs text-muted-foreground">
                       Veja a evolução da aderência do seu currículo em relação aos requisitos da vaga.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-8 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100 w-full md:w-auto justify-around">
+                <div className="flex items-center gap-8 bg-muted px-6 py-3 rounded-lg border w-full md:w-auto justify-around">
                   <div className="text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Score Original</span>
-                    <span className="text-xl font-bold text-slate-600">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">Score Original</span>
+                    <span className="text-xl font-bold text-muted-foreground">
                       {originalScore !== null ? `${originalScore}%` : "--"}
                     </span>
                   </div>
 
-                  <div className="h-8 w-[1px] bg-gray-200" />
+                  <div className="h-8 w-[1px] bg-border" />
 
                   <div className="text-center">
-                    <span className="text-[10px] uppercase font-bold text-indigo-500 block tracking-wider">Score Otimizado</span>
-                    <span className="text-xl font-bold text-indigo-600 flex items-center justify-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-primary block tracking-wider">Score Otimizado</span>
+                    <span className="text-xl font-bold text-primary flex items-center justify-center gap-1">
                       {isSimulatingScore ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : simulatedScore !== null ? (
@@ -509,7 +511,7 @@ export default function ResumeOptimizePage() {
 
                   {originalScore !== null && simulatedScore !== null && (
                     <>
-                      <div className="h-8 w-[1px] bg-gray-200" />
+                      <div className="h-8 w-[1px] bg-border" />
                       <div className="text-center">
                         <span className="text-[10px] uppercase font-bold text-emerald-500 block tracking-wider">Evolução</span>
                         <span className={`text-xl font-bold ${simulatedScore >= originalScore ? "text-emerald-600" : "text-amber-600"}`}>
@@ -523,7 +525,7 @@ export default function ResumeOptimizePage() {
                 <Button 
                   onClick={handleSimulateScore}
                   disabled={isSimulatingScore}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-5 rounded-xl shadow-sm text-sm cursor-pointer w-full md:w-auto"
+                  className="w-full md:w-auto animate-pulse"
                 >
                   {isSimulatingScore ? (
                     <>
@@ -540,12 +542,12 @@ export default function ResumeOptimizePage() {
             
             {/* LEFT COLUMN: EDIT FORM */}
             <div className="lg:col-span-5 space-y-6">
-              <Card className="border-gray-200 bg-white shadow-lg text-slate-800">
-                <CardHeader className="pb-4 border-b border-gray-100">
-                  <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-indigo-600" /> Editor Otimizado por IA
+              <Card>
+                <CardHeader className="pb-4 border-b">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" /> Editor Otimizado por IA
                   </CardTitle>
-                  <CardDescription className="text-slate-500 text-xs">
+                  <CardDescription>
                     Edite as informações geradas abaixo. O preview à direita atualiza instantaneamente.
                   </CardDescription>
                 </CardHeader>
@@ -554,11 +556,11 @@ export default function ResumeOptimizePage() {
                   
                   {/* Executive Summary */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider">
                       Resumo Profissional
-                    </label>
+                    </Label>
                     <textarea 
-                      className="w-full h-36 bg-white border border-gray-300 rounded-lg p-3 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                       value={editedSummary}
                       onChange={(e) => setEditedSummary(e.target.value)}
                     />
@@ -566,30 +568,29 @@ export default function ResumeOptimizePage() {
 
                   {/* Skills Section */}
                   <div className="space-y-3">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Habilidades Técnicas Priorizadas
-                    </label>
+                    </Label>
                     
                     <div className="flex gap-2">
-                      <input 
+                      <Input 
                         type="text" 
                         placeholder="Adicionar habilidade..."
-                        className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         value={newSkill}
                         onChange={(e) => setNewSkill(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAddSkill()}
                       />
-                      <Button onClick={handleAddSkill} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
+                      <Button onClick={handleAddSkill} size="sm">
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-muted rounded-md border">
                       {editedSkills.map((skill) => (
                         <Badge 
                           key={skill} 
                           variant="secondary" 
-                          className="bg-white border border-gray-300 text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-1 py-1 cursor-pointer"
+                          className="hover:bg-destructive hover:text-destructive-foreground transition-colors flex items-center gap-1 py-1 cursor-pointer"
                           onClick={() => handleRemoveSkill(skill)}
                         >
                           {skill} <span className="text-[10px] opacity-60">×</span>
@@ -600,18 +601,18 @@ export default function ResumeOptimizePage() {
 
                   {/* Professional Experiences */}
                   <div className="space-y-4">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Experiência Profissional Otimizada
-                    </label>
+                    </Label>
                     
                     {editedExperiences.map((exp, idx) => (
-                      <div key={idx} className="p-3 bg-gray-50/80 rounded-xl border border-gray-200 space-y-3">
+                      <div key={idx} className="p-3 bg-muted/50 rounded-lg border space-y-3">
                         <div className="flex justify-between items-baseline">
-                          <h4 className="text-sm font-bold text-slate-800">{exp.cargo}</h4>
-                          <span className="text-[10px] text-slate-500 font-semibold">{exp.empresa}</span>
+                          <h4 className="text-sm font-bold">{exp.cargo}</h4>
+                          <span className="text-[10px] text-muted-foreground font-semibold">{exp.empresa}</span>
                         </div>
                         <textarea 
-                          className="w-full h-28 bg-white border border-gray-300 rounded-lg p-2 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="flex min-h-[90px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                           value={exp.descricao || ""}
                           onChange={(e) => handleExperienceChange(idx, "descricao", e.target.value)}
                         />
@@ -620,23 +621,23 @@ export default function ResumeOptimizePage() {
                   </div>
 
                   {/* Certifications Section */}
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Certificações
-                    </label>
+                    </Label>
                     <div className="space-y-2">
                       {editedCertifications.map((cert, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div key={idx} className="flex items-center gap-2 bg-muted/50 p-2.5 rounded-lg border">
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-slate-800 truncate">{cert.nome}</div>
+                            <div className="text-xs font-bold truncate">{cert.nome}</div>
                             {cert.instituicao && (
-                              <div className="text-[10px] text-slate-500 truncate">{cert.instituicao}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{cert.instituicao}</div>
                             )}
                           </div>
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0 cursor-pointer"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0 cursor-pointer flex items-center justify-center"
                             onClick={() => {
                               setEditedCertifications(editedCertifications.filter((_, i) => i !== idx));
                             }}
@@ -648,17 +649,15 @@ export default function ResumeOptimizePage() {
                       
                       {/* Add new certification form */}
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-cert-name"
                           placeholder="Nome da cert..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
                         />
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-cert-inst"
                           placeholder="Instituição..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
                         />
                         <div className="col-span-2 flex justify-end">
                           <Button 
@@ -686,20 +685,20 @@ export default function ResumeOptimizePage() {
                   </div>
 
                   {/* Languages Section */}
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Idiomas
-                    </label>
+                    </Label>
                     <div className="space-y-2">
                       {editedLanguages.map((lang, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-                          <div className="text-xs font-bold text-slate-800">
+                        <div key={idx} className="flex items-center justify-between bg-muted/50 p-2.5 rounded-lg border">
+                          <div className="text-xs font-bold">
                             {lang.nome} {lang.nivelConversacao ? `(${lang.nivelConversacao})` : ""}
                           </div>
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0 cursor-pointer"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0 cursor-pointer flex items-center justify-center"
                             onClick={() => {
                               setEditedLanguages(editedLanguages.filter((_, i) => i !== idx));
                             }}
@@ -711,15 +710,15 @@ export default function ResumeOptimizePage() {
                       
                       {/* Add new language form */}
                       <div className="flex gap-2 pt-1">
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-lang-name"
                           placeholder="Idioma (ex: Inglês)..."
-                          className="flex-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
+                          className="flex-1"
                         />
                         <select 
                           id="new-lang-level"
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
+                          className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="Fluente">Fluente</option>
                           <option value="Avançado">Avançado</option>
@@ -749,23 +748,23 @@ export default function ResumeOptimizePage() {
                   </div>
 
                   {/* Education / Cursos Section */}
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Formação Acadêmica & Cursos
-                    </label>
+                    </Label>
                     <div className="space-y-2">
                       {editedEducations.map((edu, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                        <div key={idx} className="flex items-center gap-2 bg-muted/50 p-2.5 rounded-lg border">
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-slate-800 truncate">{edu.curso} {edu.grau ? `(${edu.grau})` : ""}</div>
+                            <div className="text-xs font-bold truncate">{edu.curso} {edu.grau ? `(${edu.grau})` : ""}</div>
                             {edu.instituicao && (
-                              <div className="text-[10px] text-slate-500 truncate">{edu.instituicao} {edu.periodo ? `| ${edu.periodo}` : ""}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{edu.instituicao} {edu.periodo ? `| ${edu.periodo}` : ""}</div>
                             )}
                           </div>
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0 cursor-pointer"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0 cursor-pointer flex items-center justify-center"
                             onClick={() => {
                               setEditedEducations(editedEducations.filter((_, i) => i !== idx));
                             }}
@@ -777,29 +776,27 @@ export default function ResumeOptimizePage() {
                       
                       {/* Add new education form */}
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-edu-course"
                           placeholder="Curso (ex: Ciência da Computação)..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none col-span-2"
+                          className="col-span-2"
                         />
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-edu-inst"
                           placeholder="Instituição (ex: USP)..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
                         />
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-edu-degree"
                           placeholder="Grau (ex: Bacharelado)..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
                         />
-                        <input 
+                        <Input 
                           type="text" 
                           id="new-edu-period"
                           placeholder="Período (ex: 2020 - 2024)..."
-                          className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none col-span-2"
+                          className="col-span-2"
                         />
                         <div className="col-span-2 flex justify-end">
                           <Button 
@@ -837,12 +834,12 @@ export default function ResumeOptimizePage() {
 
                 </CardContent>
 
-                <CardFooter className="border-t border-gray-100 pt-4 flex justify-between gap-4">
+                <CardFooter className="border-t pt-4 flex justify-between gap-4">
                   <Button 
                     onClick={handleSave} 
                     disabled={isSaving}
                     variant="outline" 
-                    className="flex-1 border-gray-300 hover:bg-gray-100 text-slate-700 hover:text-slate-900 cursor-pointer"
+                    className="flex-1 cursor-pointer"
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Salvar Rascunho
@@ -851,7 +848,7 @@ export default function ResumeOptimizePage() {
                   <Button 
                     onClick={handleDownloadPdf} 
                     disabled={isExporting}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer"
+                    className="flex-1 cursor-pointer"
                   >
                     {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                     Baixar PDF
@@ -860,8 +857,8 @@ export default function ResumeOptimizePage() {
               </Card>
 
               {saveSuccess && (
-                <Alert className="bg-emerald-50 border border-emerald-200 text-emerald-700">
-                  <CheckCircle className="h-4 w-4" />
+                <Alert className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                  <CheckCircle className="h-4 w-4 text-emerald-400" />
                   <AlertTitle>Sucesso</AlertTitle>
                   <AlertDescription className="text-xs">Rascunho do currículo salvo com sucesso.</AlertDescription>
                 </Alert>
@@ -871,16 +868,16 @@ export default function ResumeOptimizePage() {
             {/* RIGHT COLUMN: PDF RENDER PREVIEW */}
             <div className="lg:col-span-7 space-y-4">
               <div className="flex justify-between items-center px-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                   Preview do PDF Final (A4)
                 </span>
-                <Badge className="bg-emerald-100 text-emerald-800 border-none font-medium">
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                   Pronto para exportar
                 </Badge>
               </div>
 
               {/* SHEET PREVIEW CONTAINER */}
-              <div className="bg-white text-black rounded-2xl shadow-2xl overflow-hidden border border-gray-200 max-h-[82vh] overflow-y-auto">
+              <div className="bg-white text-black rounded-lg shadow-lg overflow-hidden border max-h-[82vh] overflow-y-auto">
                 
                 {/* Styled Resume Preview matching raw python css exactly (Arial, high-contrast, ATS-friendly) */}
                 <div className="p-12 font-sans text-[10pt] leading-[1.4] text-black min-h-[297mm]">

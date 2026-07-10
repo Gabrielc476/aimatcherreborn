@@ -1,8 +1,7 @@
-// src/presentation/controllers/matching.controller.ts
-
 import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ExecutarMatchingUseCase } from '../../domain/use-cases/executar-matching.use-case';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
+import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { ExecutarMatchingDto } from '../dtos/executar-matching.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
@@ -11,6 +10,7 @@ export class MatchingController {
   constructor(
     private readonly executarMatchingUseCase: ExecutarMatchingUseCase,
     private readonly matchingRepository: MatchingRepository,
+    private readonly vagaRepository: VagaRepository,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -90,11 +90,20 @@ export class MatchingController {
   @HttpCode(HttpStatus.OK)
   async obterPorVaga(
     @Param('vagaId') vagaId: string,
+    @Req() req: any,
     @Query('scoreMinimo') scoreMinimo = 0,
     @Query('pagina') pagina = 1,
     @Query('limite') limite = 20,
   ) {
-    // Nota: Em produção, verificar se o usuário autenticado é o recrutador da vaga
+    const vaga = await this.vagaRepository.buscarPorId(vagaId);
+    if (!vaga) {
+      throw new NotFoundException('Vaga não encontrada');
+    }
+
+    if (vaga.recrutadorId !== req.user.userId && !req.query.admin) {
+      throw new ForbiddenException('Acesso não autorizado');
+    }
+
     const result = await this.matchingRepository.buscarPorVaga(
       vagaId,
       Number(scoreMinimo),
@@ -118,7 +127,10 @@ export class MatchingController {
     @Param('vagaId') vagaId: string,
     @Req() req: any,
   ) {
-    if (usuarioId !== req.user.userId && !req.query.admin) {
+    const vaga = await this.vagaRepository.buscarPorId(vagaId);
+    const isRecrutador = vaga?.recrutadorId === req.user.userId;
+
+    if (usuarioId !== req.user.userId && !isRecrutador && !req.query.admin) {
       throw new ForbiddenException('Acesso não autorizado');
     }
 

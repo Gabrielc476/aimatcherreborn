@@ -2,6 +2,7 @@
 
 export type StatusUsuario = 'ATIVO' | 'INATIVO' | 'BLOQUEADO';
 export type ModalidadeTrabalho = 'REMOTO' | 'HIBRIDO' | 'PRESENCIAL';
+export type Role = 'CANDIDATO' | 'RECRUTADOR';
 
 export interface PerfilProfissional {
   titulo?: string;
@@ -95,6 +96,7 @@ export class Usuario {
     public curriculoUrl?: string,
     public curriculoTexto?: string,
     public curriculoExtraido?: any,
+    public role: Role = 'CANDIDATO',
   ) {}
 
   public atualizarUltimoAcesso(): void {

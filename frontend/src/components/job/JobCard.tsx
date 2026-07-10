@@ -81,9 +81,9 @@ export function JobCard({
 
   // Get matching score color based on the score value
   const getScoreColor = (score: number) => {
-    if (score >= 75) return "text-green-600";
-    if (score >= 50) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 75) return "text-emerald-400 font-semibold";
+    if (score >= 50) return "text-amber-400 font-semibold";
+    return "text-red-400 font-semibold";
   };
 
   return (
@@ -192,22 +192,22 @@ export function JobCard({
             {/* Top strengths and weaknesses */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {matching.analise.diferenciais.pontosFortes.length > 0 && (
-                <div className="bg-green-50 p-2 rounded">
-                  <div className="text-xs text-green-600 font-medium flex items-center">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
+                  <div className="text-xs text-emerald-400 font-medium flex items-center">
                     <Check className="h-3 w-3 mr-1" /> Ponto forte:
                   </div>
-                  <div className="text-xs text-green-800">
+                  <div className="text-xs text-emerald-300">
                     {matching.analise.diferenciais.pontosFortes[0]}
                   </div>
                 </div>
               )}
 
               {matching.analise.diferenciais.pontosFracos.length > 0 && (
-                <div className="bg-red-50 p-2 rounded">
-                  <div className="text-xs text-red-600 font-medium flex items-center">
+                <div className="bg-destructive/10 border border-destructive/20 p-2 rounded">
+                  <div className="text-xs text-red-400 font-medium flex items-center">
                     <X className="h-3 w-3 mr-1" /> Ponto a melhorar:
                   </div>
-                  <div className="text-xs text-red-800">
+                  <div className="text-xs text-red-300">
                     {matching.analise.diferenciais.pontosFracos[0]}
                   </div>
                 </div>

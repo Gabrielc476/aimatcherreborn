@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AuthApi } from "@/lib/api/authApi";
 import { JobCard } from "@/components/job/JobCard";
+import { MatchingDetailsContent } from "@/components/job/MatchingDetailsContent";
 import { Pagination } from "@/components/ui/pagination";
 import { PageSizeSelector } from "@/components/ui/page-size-selector";
 import { useJobs } from "@/lib/hooks/useJobs";
@@ -25,6 +26,7 @@ import {
   ChevronUp,
   ArrowUpAZ,
   ArrowDownAZ,
+  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -526,305 +528,11 @@ export default function JobsPage() {
         )}
       </div>
     );
-  };
+  }
 
   // Helper to render matching details in the dialog
   const renderMatchingDetails = (matching: Matching) => {
-    return (
-      <>
-        {/* Overview score */}
-        <div className="flex justify-between items-center border rounded-lg p-4">
-          <div>
-            <h3 className="text-lg font-medium">Compatibilidade geral</h3>
-            <p className="text-sm text-muted-foreground">
-              {matching.analise.resumoCandidato}
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold">
-              {Math.round(matching.score)}%
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Score de compatibilidade
-            </div>
-          </div>
-        </div>
-
-        {/* Categories breakdown */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Detalhamento por categorias</h3>
-
-          <Accordion type="single" collapsible defaultValue="habilidades">
-            {/* Technical Skills */}
-            <AccordionItem value="habilidades">
-              <AccordionTrigger className="py-3 px-4 hover:bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center w-full pr-4">
-                  <div className="flex items-center">
-                    <span className="font-medium">Habilidades Técnicas</span>
-                  </div>
-                  <div className="font-semibold">
-                    {Math.round(matching.analise.categorias.habilidadesTecnicas.score)}
-                    %
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                <div className="space-y-2">
-                  {matching.analise.categorias.habilidadesTecnicas.correspondentes
-                    .length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-green-600">
-                        Pontos fortes:
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.analise.categorias.habilidadesTecnicas.correspondentes.map(
-                          (skill: string, index: number) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
-                            >
-                              {skill}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {matching.analise.categorias.habilidadesTecnicas.faltantes.length >
-                    0 && (
-                    <div>
-                      <p className="text-sm font-medium text-red-600">
-                        Áreas para desenvolvimento:
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.analise.categorias.habilidadesTecnicas.faltantes.map(
-                          (skill: string, index: number) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
-                            >
-                              {skill}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="text-sm mt-2">
-                    {
-                      matching.analise.categorias.habilidadesTecnicas
-                        .analiseQualitativa
-                    }
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Experience */}
-            <AccordionItem value="experience">
-              <AccordionTrigger className="py-3 px-4 hover:bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center w-full pr-4">
-                  <div className="flex items-center">
-                    <span className="font-medium">Experiência</span>
-                  </div>
-                  <div className="font-semibold">
-                    {Math.round(matching.analise.categorias.experiencia.score)}%
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                <div className="text-sm">
-                  <p>
-                    <span className="font-medium">Tempo de experiência:</span>{" "}
-                    {matching.analise.categorias.experiencia.tempoAtende ? (
-                      <span className="text-green-600">
-                        Atende aos requisitos
-                      </span>
-                    ) : (
-                      <span className="text-red-600">
-                        Não atende aos requisitos
-                      </span>
-                    )}
-                  </p>
-
-                  {matching.analise.categorias.experiencia.areasCorrespondentes
-                    .length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-green-600">
-                        Áreas de experiência compatíveis:
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.analise.categorias.experiencia.areasCorrespondentes.map(
-                          (area: string, index: number) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
-                            >
-                              {area}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="mt-2">
-                    {matching.analise.categorias.experiencia.analiseQualitativa}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Education */}
-            <AccordionItem value="education">
-              <AccordionTrigger className="py-3 px-4 hover:bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center w-full pr-4">
-                  <div className="flex items-center">
-                    <span className="font-medium">Formação</span>
-                  </div>
-                  <div className="font-semibold">
-                    {Math.round(matching.analise.categorias.formacao.score)}%
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                <div className="text-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                      <span className="font-medium">Nível acadêmico:</span>{" "}
-                      {matching.analise.categorias.formacao.nivelAtende ? (
-                        <span className="text-green-600">Adequado</span>
-                      ) : (
-                        <span className="text-red-600">Não adequado</span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="font-medium">Área de formação:</span>{" "}
-                      {matching.analise.categorias.formacao.areaAtende ? (
-                        <span className="text-green-600">Compatível</span>
-                      ) : (
-                        <span className="text-red-600">Não compatível</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="mt-2">
-                    {matching.analise.categorias.formacao.analiseQualitativa}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Languages */}
-            <AccordionItem value="languages">
-              <AccordionTrigger className="py-3 px-4 hover:bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center w-full pr-4">
-                  <div className="flex items-center">
-                    <span className="font-medium">Idiomas</span>
-                  </div>
-                  <div className="font-semibold">
-                    {Math.round(matching.analise.categorias.idiomas.score)}%
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                <div className="text-sm">
-                  {matching.analise.categorias.idiomas.correspondentes.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-green-600">
-                        Idiomas compatíveis:
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.analise.categorias.idiomas.correspondentes.map(
-                          (language: string, index: number) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
-                            >
-                              {language}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {matching.analise.categorias.idiomas.faltantes.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-red-600">
-                        Idiomas necessários:
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matching.analise.categorias.idiomas.faltantes.map(
-                          (language: string, index: number) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
-                            >
-                              {language}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="mt-2">
-                    {matching.analise.categorias.idiomas.analiseQualitativa}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-
-        {/* Recommendations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recomendações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{matching.analise.recomendacoes.gerais}</p>
-
-            {matching.analise.recomendacoes.prioridadeAcao.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm font-medium">Ações prioritárias:</p>
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  {matching.analise.recomendacoes.prioridadeAcao.map(
-                    (action, index) => (
-                      <li key={index} className="text-sm">
-                        {action}
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Success probability */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between">
-              <CardTitle className="text-base">
-                Probabilidade de sucesso
-              </CardTitle>
-              <div className="text-lg font-semibold">
-                {Math.round(matching.analise.probabilidadeSucesso.score)}%
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              {matching.analise.probabilidadeSucesso.justificativa}
-            </p>
-          </CardContent>
-        </Card>
-      </>
-    );
+    return <MatchingDetailsContent matching={matching} />;
   };
 
   const toggleExpandFilters = () => {
@@ -843,18 +551,18 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
           className="mb-4"
           onClick={() => router.push(`/${params.id}/dashboard`)}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
+          <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar ao Dashboard
         </Button>
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Vagas Disponíveis</h1>
+          <h1 className="text-3xl font-bold mb-2 font-serif tracking-wide">Vagas Disponíveis</h1>
           <p className="text-muted-foreground">
             Explore oportunidades profissionais e encontre a vaga ideal para
             você
@@ -1343,8 +1051,22 @@ export default function JobsPage() {
               </div>
             )}
 
-            <DialogFooter>
-              <Button onClick={() => setMatchingDialogOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 border-t pt-4">
+              {selectedJobId && jobMatchings[selectedJobId] ? (
+                <Button 
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => {
+                    setMatchingDialogOpen(false);
+                    router.push(`/${params.id}/resume/optimize?vagaId=${selectedJobId}`);
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Otimizar Currículo com IA
+                </Button>
+              ) : (
+                <div />
+              )}
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setMatchingDialogOpen(false)}>
                 Fechar
               </Button>
             </DialogFooter>

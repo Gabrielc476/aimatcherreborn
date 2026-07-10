@@ -16,10 +16,11 @@ export class JwtTokenService implements TokenService {
 
   validarToken(token: string): TokenPayload | null {
     try {
-      const decoded = jwt.verify(token, this.secret) as TokenPayload;
+      const decoded = jwt.verify(token, this.secret) as any;
       return {
         userId: decoded.userId,
         email: decoded.email,
+        role: decoded.role,
       };
     } catch (error) {
       return null;

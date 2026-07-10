@@ -20,6 +20,7 @@ export interface User {
   dataCriacao?: string;
   ultimoAcesso?: string;
   status: "ATIVO" | "INATIVO" | "BLOQUEADO";
+  role?: "CANDIDATO" | "RECRUTADOR";
 
   // Perfil profissional
   perfil?: {

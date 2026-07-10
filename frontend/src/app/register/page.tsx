@@ -21,9 +21,9 @@ export default function RegisterPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
       <div className="w-full max-w-md mb-8">
-        <h1 className="text-3xl font-bold text-center mb-2">
+        <h1 className="text-3xl font-bold text-center mb-2 font-serif tracking-wide">
           Criar Nova Conta
         </h1>
         <p className="text-center text-muted-foreground">

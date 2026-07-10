@@ -33,6 +33,27 @@ export class VagaController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('minhas-vagas')
+  @HttpCode(HttpStatus.OK)
+  async minhasVagas(
+    @Req() req: any,
+    @Query('pagina') pagina = 1,
+    @Query('limite') limite = 20,
+  ) {
+    const result = await this.vagaRepository.buscarPorRecrutador(
+      req.user.userId,
+      Number(limite),
+      Number(pagina)
+    );
+    return {
+      total: result.total,
+      pagina: Number(pagina),
+      limite: Number(limite),
+      vagas: result.vagas,
+    };
+  }
+
   @Get('listar')
   @HttpCode(HttpStatus.OK)
   async listar(

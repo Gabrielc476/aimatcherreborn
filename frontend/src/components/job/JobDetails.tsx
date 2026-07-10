@@ -86,9 +86,9 @@ export function JobDetails({
 
   // Get matching score color based on the score value
   const getScoreColor = (score: number) => {
-    if (score >= 75) return "text-green-600";
-    if (score >= 50) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 75) return "text-emerald-400 font-semibold";
+    if (score >= 50) return "text-amber-400 font-semibold";
+    return "text-red-400 font-semibold";
   };
 
   return (

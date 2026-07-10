@@ -1,0 +1,135 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/lib/api/recruiterVagasApi.ts
+import apiClient from "./apiClient";
+import { ApiResponse } from "@/types/api/ApiResponse";
+import { Job } from "@/types/job/Job";
+import { PaginatedResponse } from "@/types/api/PaginatedResponse";
+
+/**
+ * API service for recruiter-specific operations
+ */
+export class RecruiterVagasApi {
+  /**
+   * Fetch vacancies created by the logged-in recruiter
+   */
+  public static async listarMinhasVagas(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<ApiResponse<PaginatedResponse<Job>>> {
+    try {
+      const response = await apiClient.get<{
+        total: number;
+        pagina: number;
+        limite: number;
+        vagas: Job[];
+      }>(`/vaga/minhas-vagas?pagina=${page}&limite=${limit}`);
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: {
+            total: response.data.total,
+            pagina: response.data.pagina,
+            limite: response.data.limite,
+            data: response.data.vagas,
+          },
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao buscar suas vagas",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching recruiter jobs:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao buscar suas vagas",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Fetch candidates who matched with a specific job
+   */
+  public static async listarCandidatosVaga(
+    vagaId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<ApiResponse<PaginatedResponse<any>>> {
+    try {
+      const response = await apiClient.get<{
+        total: number;
+        pagina: number;
+        limite: number;
+        matchings: any[];
+      }>(`/matching/vaga/${vagaId}?pagina=${page}&limite=${limit}`);
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: {
+            total: response.data.total,
+            pagina: response.data.pagina,
+            limite: response.data.limite,
+            data: response.data.matchings,
+          },
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao buscar candidatos da vaga",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching job candidates:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao buscar candidatos",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Get matching details between candidate and vaga
+   */
+  public static async obterCandidatoMatching(
+    usuarioId: string,
+    vagaId: string
+  ): Promise<ApiResponse<{ matching: any }>> {
+    try {
+      const response = await apiClient.get<{ matching: any }>(
+        `/matching/${usuarioId}/${vagaId}`
+      );
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao buscar detalhes da compatibilidade",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching matching details:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao buscar compatibilidade",
+        status: 500,
+      };
+    }
+  }
+}
+
+export default RecruiterVagasApi;

@@ -19,6 +19,13 @@ export class PrismaMatchingRepository implements MatchingRepository {
       Number(dbMatching.score),
       dbMatching.analise as DetalhesMatching,
       dbMatching.dataMatching,
+      dbMatching.usuario
+        ? {
+            nomeCompleto: dbMatching.usuario.nomeCompleto,
+            email: dbMatching.usuario.email,
+            telefone: dbMatching.usuario.telefone || undefined,
+          }
+        : undefined,
     );
   }
 
@@ -99,6 +106,16 @@ export class PrismaMatchingRepository implements MatchingRepository {
           where: {
             vagaId,
             score: { gte: scoreMinimo },
+          },
+          include: {
+            usuario: {
+              select: {
+                id: true,
+                nomeCompleto: true,
+                email: true,
+                telefone: true,
+              },
+            },
           },
           skip,
           take: limite,

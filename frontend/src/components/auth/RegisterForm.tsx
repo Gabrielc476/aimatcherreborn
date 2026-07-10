@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useRegister } from "../../lib/hooks/useRegister";
 import { RegisterRequest } from "@/types/auth/RegisterRequest";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -44,6 +43,9 @@ const registerFormSchema = z
       message: "A senha deve ter pelo menos 8 caracteres.",
     }),
     confirmacao_senha: z.string(),
+    role: z.enum(["CANDIDATO", "RECRUTADOR"], {
+      required_error: "Selecione o seu papel.",
+    }),
   })
   .refine((data) => data.senha === data.confirmacao_senha, {
     message: "As senhas não correspondem",
@@ -66,11 +68,12 @@ export function RegisterForm({
       email: "",
       senha: "",
       confirmacao_senha: "",
+      role: "CANDIDATO",
     },
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
-    // Remove confirmation password before sending to API
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmacao_senha, ...registerData } = data;
 
     const registerSuccess = await register(registerData as RegisterRequest);
@@ -103,7 +106,7 @@ export function RegisterForm({
         )}
 
         {success && (
-          <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+          <Alert className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
             <AlertDescription>
               Registro realizado com sucesso! Redirecionando para o login...
             </AlertDescription>
@@ -172,6 +175,26 @@ export function RegisterForm({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Conta</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    >
+                      <option value="CANDIDATO" className="bg-card text-foreground">Quero buscar vagas (Candidato)</option>
+                      <option value="RECRUTADOR" className="bg-card text-foreground">Quero publicar vagas (Recrutador)</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button type="submit" className="w-full mt-6" disabled={isLoading}>
               {isLoading ? "Registrando..." : "Registrar"}
             </Button>
@@ -181,9 +204,9 @@ export function RegisterForm({
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
           Já tem uma conta?{" "}
-          <a href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="text-primary hover:underline">
             Faça login
-          </a>
+          </Link>
         </p>
       </CardFooter>
     </Card>

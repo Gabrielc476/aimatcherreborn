@@ -8,4 +8,5 @@ export interface RegisterRequest {
   senha: string;
   telefone?: string;
   dataNascimento?: string;
+  role?: 'CANDIDATO' | 'RECRUTADOR';
 }

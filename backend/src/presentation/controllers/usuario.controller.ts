@@ -25,6 +25,7 @@ export class UsuarioController {
       senhaPlana: dto.senha,
       telefone: dto.telefone,
       dataNascimento: dto.dataNascimento ? new Date(dto.dataNascimento) : undefined,
+      role: dto.role as any,
     });
 
     return {

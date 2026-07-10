@@ -69,6 +69,7 @@ describe('AutenticarUsuarioUseCase', () => {
     expect(mockTokenService.gerarToken).toHaveBeenCalledWith({
       userId: usuario.id,
       email: usuario.email,
+      role: usuario.role,
     });
     expect(mockUsuarioRepository.atualizar).toHaveBeenCalled();
   });

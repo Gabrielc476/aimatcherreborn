@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { User } from "@/types/user/User";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RecruiterDashboard } from "@/components/dashboard/RecruiterDashboard";
 import {
   Shield,
   FileUp,
@@ -21,7 +22,6 @@ import {
   Briefcase,
   Search,
   RefreshCw,
-  Sparkles,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -156,11 +156,15 @@ export default function DashboardPage() {
     );
   }
 
+  if (user?.role === "RECRUTADOR") {
+    return <RecruiterDashboard user={user} onLogout={handleLogout} />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold font-serif tracking-wide">Dashboard</h1>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -169,7 +173,7 @@ export default function DashboardPage() {
               title="Atualizar dados do usuário"
             >
               <RefreshCw
-                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                className={`h-4 w-4 stroke-[1.5] ${refreshing ? "animate-spin" : ""}`}
               />
               <span className="ml-2">Atualizar</span>
             </Button>
@@ -186,9 +190,9 @@ export default function DashboardPage() {
         )}
 
         {/* User info card */}
-        <Card className="mb-8">
+        <Card className="mb-8 border border-border shadow-sm">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="font-serif tracking-wide text-xl">
               Bem-vindo ao Sistema de Matching de Currículos
             </CardTitle>
             <CardDescription>
@@ -197,9 +201,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Alert>
-                <Shield className="h-4 w-4" />
-                <AlertTitle>Status do seu currículo</AlertTitle>
+              <Alert className="border-border">
+                <Shield className="h-4 w-4 stroke-[1.5]" />
+                <AlertTitle className="font-serif tracking-wide">Status do seu currículo</AlertTitle>
                 <AlertDescription>
                   {hasResume
                     ? "Seu currículo foi processado e está pronto para matching com vagas."
@@ -265,7 +269,7 @@ export default function DashboardPage() {
               )}
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="border-t border-border pt-4 bg-muted/10 rounded-b-lg">
             <p className="text-sm text-muted-foreground">
               Seu último acesso foi em:{" "}
             {user?.ultimoAcesso
@@ -277,15 +281,15 @@ export default function DashboardPage() {
 
         {/* Curriculum Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileUp className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
+                <FileUp className="h-5 w-5 text-primary stroke-[1.5]" />
                 Upload de Currículo
               </CardTitle>
               <CardDescription>Envie seu currículo em PDF</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <p className="mb-4">
                 Faça upload do seu currículo em PDF e nosso sistema usará IA
                 para extrair informações relevantes automaticamente.
@@ -301,15 +305,15 @@ export default function DashboardPage() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileEdit className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
+                <FileEdit className="h-5 w-5 text-primary stroke-[1.5]" />
                 Editar Currículo
               </CardTitle>
               <CardDescription>Revise e edite suas informações</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <p className="mb-4">
                 {hasResume
                   ? "Revise e edite as informações extraídas do seu currículo para melhorar suas chances de matching."
@@ -338,17 +342,17 @@ export default function DashboardPage() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
+                <Briefcase className="h-5 w-5 text-primary stroke-[1.5]" />
                 Vagas Disponíveis
               </CardTitle>
               <CardDescription>
                 Explore oportunidades de trabalho disponíveis
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <p className="mb-4">
                 {hasResume
                   ? "Encontre as melhores oportunidades para sua carreira e cadastre-se para vagas que correspondam ao seu perfil profissional."
@@ -368,9 +372,9 @@ export default function DashboardPage() {
 
         {/* Placeholder content for other features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+          <Card className="border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
             <CardHeader>
-              <CardTitle>Pesquisar Vagas</CardTitle>
+              <CardTitle className="font-serif tracking-wide text-lg">Pesquisar Vagas</CardTitle>
               <CardDescription>
                 Busque vagas por título, empresa ou localização
               </CardDescription>
@@ -387,33 +391,7 @@ export default function DashboardPage() {
                 className="w-full"
                 onClick={() => router.push(`/${params.id}/jobs`)}
               >
-                <Search className="h-4 w-4 mr-2" /> Explorar Vagas
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-600" />
-                Otimizar Currículo
-              </CardTitle>
-              <CardDescription>
-                Ajuste seu perfil profissional para uma vaga
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Use o Gemma 4 para reescrever seu currículo de forma personalizada e focada nas competências exigidas por uma vaga.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold"
-                onClick={() => router.push(`/${params.id}/resume/optimize`)}
-                disabled={!hasResume}
-              >
-                <Sparkles className="h-4 w-4 mr-2" /> Otimizar com IA
+                <Search className="h-4 w-4 mr-2 stroke-[1.5]" /> Explorar Vagas
               </Button>
             </CardFooter>
           </Card>

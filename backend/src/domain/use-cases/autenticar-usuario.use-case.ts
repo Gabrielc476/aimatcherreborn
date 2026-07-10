@@ -16,6 +16,7 @@ export interface AutenticarUsuarioOutput {
     id: string;
     nomeCompleto: string;
     email: string;
+    role: string;
   };
 }
 
@@ -52,6 +53,7 @@ export class AutenticarUsuarioUseCase {
     const token = this.tokenService.gerarToken({
       userId: usuario.id,
       email: usuario.email,
+      role: usuario.role,
     });
 
     return {
@@ -60,6 +62,7 @@ export class AutenticarUsuarioUseCase {
         id: usuario.id,
         nomeCompleto: usuario.nomeCompleto,
         email: usuario.email,
+        role: usuario.role,
       },
     };
   }

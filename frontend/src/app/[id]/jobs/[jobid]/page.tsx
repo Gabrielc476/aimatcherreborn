@@ -137,7 +137,7 @@ export default function JobDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-muted-foreground">
@@ -149,10 +149,10 @@ export default function JobDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-4xl mx-auto">
         <Button variant="ghost" className="mb-4" onClick={handleBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para Vagas
+          <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar para Vagas
         </Button>
 
         {error ? (
@@ -334,7 +334,7 @@ function renderMatchingDetails(matching: any) {
           {matching.analise.categorias.habilidadesTecnicas.correspondentes.length >
             0 && (
             <div className="mb-2">
-              <p className="text-sm font-medium text-green-600">
+              <p className="text-sm font-medium text-emerald-400">
                 Pontos fortes:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -342,7 +342,7 @@ function renderMatchingDetails(matching: any) {
                   (skill: string, index: number) => (
                     <span
                       key={index}
-                      className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
+                      className="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-400"
                     >
                       {skill}
                     </span>
@@ -354,7 +354,7 @@ function renderMatchingDetails(matching: any) {
 
           {matching.analise.categorias.habilidadesTecnicas.faltantes.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-red-600">
+              <p className="text-sm font-medium text-red-400">
                 Áreas para desenvolvimento:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -362,7 +362,7 @@ function renderMatchingDetails(matching: any) {
                   (skill: string, index: number) => (
                     <span
                       key={index}
-                      className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800"
+                      className="inline-flex items-center rounded-full bg-destructive/10 border border-destructive/20 px-2 py-1 text-xs font-medium text-red-400"
                     >
                       {skill}
                     </span>
@@ -389,15 +389,15 @@ function renderMatchingDetails(matching: any) {
           <p className="text-sm">
             <span className="font-medium">Tempo de experiência:</span>{" "}
             {matching.analise.categorias.experiencia.tempoAtende ? (
-              <span className="text-green-600">Atende aos requisitos</span>
+              <span className="text-emerald-400 font-medium">Atende aos requisitos</span>
             ) : (
-              <span className="text-red-600">Não atende aos requisitos</span>
+              <span className="text-red-400 font-medium">Não atende aos requisitos</span>
             )}
           </p>
 
           {matching.analise.categorias.experiencia.areasCorrespondentes.length > 0 && (
             <div className="mt-2">
-              <p className="text-sm font-medium text-green-600">
+              <p className="text-sm font-medium text-emerald-400">
                 Áreas de experiência compatíveis:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -405,7 +405,7 @@ function renderMatchingDetails(matching: any) {
                   (area: string, index: number) => (
                     <span
                       key={index}
-                      className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800"
+                      className="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-400"
                     >
                       {area}
                     </span>
@@ -433,17 +433,17 @@ function renderMatchingDetails(matching: any) {
             <div>
               <span className="font-medium">Nível acadêmico:</span>{" "}
               {matching.analise.categorias.formacao.nivelAtende ? (
-                <span className="text-green-600">Adequado</span>
+                <span className="text-emerald-400 font-medium">Adequado</span>
               ) : (
-                <span className="text-red-600">Não adequado</span>
+                <span className="text-red-400 font-medium">Não adequado</span>
               )}
             </div>
             <div>
               <span className="font-medium">Área de formação:</span>{" "}
               {matching.analise.categorias.formacao.areaAtende ? (
-                <span className="text-green-600">Compatível</span>
+                <span className="text-emerald-400 font-medium">Compatível</span>
               ) : (
-                <span className="text-red-600">Não compatível</span>
+                <span className="text-red-400 font-medium">Não compatível</span>
               )}
             </div>
           </div>

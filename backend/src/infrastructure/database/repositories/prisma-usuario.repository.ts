@@ -91,6 +91,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
       dbUser.curriculoUrl || undefined,
       dbUser.curriculoTexto || undefined,
       dbUser.curriculoExtraido || undefined,
+      dbUser.role as any,
     );
   }
 
@@ -106,6 +107,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           telefone: usuario.telefone,
           dataNascimento: usuario.dataNascimento,
           status: usuario.status,
+          role: usuario.role,
           ultimoAcesso: usuario.ultimoAcesso,
           curriculoUrl: usuario.curriculoUrl,
           curriculoTexto: usuario.curriculoTexto,
@@ -119,6 +121,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           telefone: usuario.telefone,
           dataNascimento: usuario.dataNascimento,
           status: usuario.status,
+          role: usuario.role,
           dataCriacao: usuario.dataCriacao,
           ultimoAcesso: usuario.ultimoAcesso,
           curriculoUrl: usuario.curriculoUrl,
@@ -468,6 +471,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           telefone: usuario.telefone,
           dataNascimento: usuario.dataNascimento,
           status: usuario.status,
+          role: usuario.role,
           ultimoAcesso: usuario.ultimoAcesso,
           curriculoUrl: usuario.curriculoUrl,
           curriculoTexto: usuario.curriculoTexto,

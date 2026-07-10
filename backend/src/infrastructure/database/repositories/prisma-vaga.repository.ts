@@ -132,6 +132,27 @@ export class PrismaVagaRepository implements VagaRepository {
     });
   }
 
+  async buscarPorRecrutador(recrutadorId: string, limite: number, pagina: number): Promise<{ total: number; vagas: Vaga[] }> {
+    return this.prisma.runWithRLS(async (tx) => {
+      const skip = (pagina - 1) * limite;
+
+      const [total, dbVagas] = await Promise.all([
+        tx.vaga.count({ where: { recrutadorId } }),
+        tx.vaga.findMany({
+          where: { recrutadorId },
+          skip,
+          take: limite,
+          orderBy: { dataCriacao: 'desc' },
+        }),
+      ]);
+
+      return {
+        total,
+        vagas: dbVagas.map((v) => this.mapToDomain(v)!),
+      };
+    });
+  }
+
   async atualizar(id: string, vaga: Partial<Vaga>): Promise<Vaga> {
     return this.prisma.runWithRLS(async (tx) => {
       const dbVaga = await tx.vaga.update({
