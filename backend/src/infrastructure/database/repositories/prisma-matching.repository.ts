@@ -19,6 +19,7 @@ export class PrismaMatchingRepository implements MatchingRepository {
       Number(dbMatching.score),
       dbMatching.analise as DetalhesMatching,
       dbMatching.dataMatching,
+      dbMatching.status,
       dbMatching.usuario
         ? {
             nomeCompleto: dbMatching.usuario.nomeCompleto,
@@ -41,6 +42,7 @@ export class PrismaMatchingRepository implements MatchingRepository {
         update: {
           score: matching.score,
           analise: (matching.analise as any) || undefined,
+          status: matching.status,
         },
         create: {
           id: matching.id,
@@ -49,6 +51,7 @@ export class PrismaMatchingRepository implements MatchingRepository {
           score: matching.score,
           analise: (matching.analise as any) || undefined,
           dataMatching: matching.dataMatching,
+          status: matching.status,
         },
       });
 
@@ -100,12 +103,14 @@ export class PrismaMatchingRepository implements MatchingRepository {
           where: {
             vagaId,
             score: { gte: scoreMinimo },
+            status: { not: 'rejeitado' },
           },
         }),
         tx.matching.findMany({
           where: {
             vagaId,
             score: { gte: scoreMinimo },
+            status: { not: 'rejeitado' },
           },
           include: {
             usuario: {

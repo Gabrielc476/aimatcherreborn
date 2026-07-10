@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ExecutarMatchingUseCase } from '../../domain/use-cases/executar-matching.use-case';
+import { NegarCandidaturaUseCase } from '../../domain/use-cases/negar-candidatura.use-case';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { ExecutarMatchingDto } from '../dtos/executar-matching.dto';
@@ -9,6 +10,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 export class MatchingController {
   constructor(
     private readonly executarMatchingUseCase: ExecutarMatchingUseCase,
+    private readonly negarCandidaturaUseCase: NegarCandidaturaUseCase,
     private readonly matchingRepository: MatchingRepository,
     private readonly vagaRepository: VagaRepository,
   ) {}
@@ -162,5 +164,35 @@ export class MatchingController {
     return {
       mensagem: 'Matching excluído com sucesso',
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':usuarioId/:vagaId/negar')
+  @HttpCode(HttpStatus.OK)
+  async negarCandidatura(
+    @Param('usuarioId') usuarioId: string,
+    @Param('vagaId') vagaId: string,
+    @Req() req: any,
+  ) {
+    try {
+      const matching = await this.negarCandidaturaUseCase.execute({
+        usuarioId,
+        vagaId,
+        recrutadorId: req.user.userId,
+      });
+
+      return {
+        mensagem: 'Candidatura negada com sucesso',
+        matching,
+      };
+    } catch (error: any) {
+      if (error.message.includes('não encontrada') || error.message.includes('não encontrado') || error.message.includes('Não encontrada')) {
+        throw new NotFoundException(error.message);
+      }
+      if (error.message.includes('Não autorizado')) {
+        throw new ForbiddenException(error.message);
+      }
+      throw error;
+    }
   }
 }

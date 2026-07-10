@@ -26,7 +26,8 @@ export class SupabaseStorageService implements StorageService {
     this.checkClientInitialized();
 
     const timestamp = Date.now();
-    const path = `${userId}/${timestamp}_${fileName}`;
+    const cleanFileName = this.sanitizeFilename(fileName);
+    const path = `${userId}/${timestamp}_${cleanFileName}`;
 
     let uploadResponse = await this.supabase.storage
       .from(this.bucketName)
@@ -88,6 +89,21 @@ export class SupabaseStorageService implements StorageService {
     }
 
     return true;
+  }
+
+  private sanitizeFilename(fileName: string): string {
+    let decoded = fileName;
+    try {
+      decoded = decodeURIComponent(escape(fileName));
+    } catch (e) {
+      // Ignora se falhar
+    }
+
+    return decoded
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .replace(/\s+/g, '_') // substitui espaços por _
+      .replace(/[^a-zA-Z0-9.\-_]/g, ''); // remove caracteres especiais
   }
 
   private checkClientInitialized(): void {

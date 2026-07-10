@@ -3,6 +3,7 @@
 import { Module } from '@nestjs/common';
 import { MatchingController } from '../controllers/matching.controller';
 import { ExecutarMatchingUseCase } from '../../domain/use-cases/executar-matching.use-case';
+import { NegarCandidaturaUseCase } from '../../domain/use-cases/negar-candidatura.use-case';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
 import { UsuarioRepository } from '../../domain/repositories/usuario.repository';
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
@@ -21,6 +22,15 @@ import { AIService } from '../../domain/services/ai.service';
       ) => new ExecutarMatchingUseCase(matchingRepo, usuarioRepo, vagaRepo, ai),
       inject: [MatchingRepository, UsuarioRepository, VagaRepository, AIService],
     },
+    {
+      provide: NegarCandidaturaUseCase,
+      useFactory: (
+        matchingRepo: MatchingRepository,
+        vagaRepo: VagaRepository,
+      ) => new NegarCandidaturaUseCase(matchingRepo, vagaRepo),
+      inject: [MatchingRepository, VagaRepository],
+    },
   ],
+  exports: [ExecutarMatchingUseCase, NegarCandidaturaUseCase],
 })
 export class MatchingModule {}

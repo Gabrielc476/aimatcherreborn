@@ -199,6 +199,7 @@ model Matching {
   vaga         Vaga     @relation(fields: [vagaId], references: [id], onDelete: Cascade)
   score        Decimal  @db.Decimal(5, 2)
   analise      Json     // Relatório estruturado gerado pela IA
+  status       String   @default("pendente")
   dataMatching DateTime @default(now()) @map("data_matching")
 
   @@unique([usuarioId, vagaId])

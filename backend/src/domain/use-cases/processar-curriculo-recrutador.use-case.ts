@@ -1,36 +1,22 @@
-// src/domain/use-cases/processar-curriculo.use-case.ts
+// src/domain/use-cases/processar-curriculo-recrutador.use-case.ts
 
+import { randomUUID } from 'crypto';
 import { Usuario } from '../entities/usuario.entity';
 import { UsuarioRepository } from '../repositories/usuario.repository';
+import { VagaRepository } from '../repositories/vaga.repository';
 import { PDFService } from '../services/pdf.service';
 import { StorageService } from '../services/storage.service';
 import { AIService } from '../services/ai.service';
+import { CryptographyService } from '../services/cryptography.service';
+import { ExecutarMatchingUseCase } from './executar-matching.use-case';
+import { Matching } from '../entities/matching.entity';
 
-export interface ProcessarCurriculoInput {
-  userId: string;
+export interface ProcessarCurriculoRecrutadorInput {
+  vagaId: string;
   fileBuffer: Buffer;
   fileName: string;
 }
 
-export interface ProcessarCurriculoOutput {
-  mensagem: string;
-  nomeArquivo: string;
-  dadosExtraidos: {
-    nome: string;
-    email: string;
-    perfil: string;
-    experiencias: number;
-    formacao: number;
-    habilidades: number;
-    idiomas: number;
-    projetos?: number;
-  };
-}
-
-/**
- * Converte com segurança uma string de data vinda da IA em um objeto Date.
- * Trata intervalos de anos (ex: "2019-2020") extraindo o ano de início para evitar falhas do Prisma.
- */
 function safeDate(dateStr: string | undefined): Date | undefined {
   if (!dateStr) return undefined;
   
@@ -54,19 +40,22 @@ function safeDate(dateStr: string | undefined): Date | undefined {
   return date;
 }
 
-export class ProcessarCurriculoUseCase {
+export class ProcessarCurriculoRecrutadorUseCase {
   constructor(
     private readonly usuarioRepository: UsuarioRepository,
+    private readonly vagaRepository: VagaRepository,
     private readonly pdfService: PDFService,
     private readonly storageService: StorageService,
     private readonly aiService: AIService,
-  ) { }
+    private readonly cryptographyService: CryptographyService,
+    private readonly executarMatchingUseCase: ExecutarMatchingUseCase,
+  ) {}
 
-  async execute(input: ProcessarCurriculoInput): Promise<ProcessarCurriculoOutput> {
-    // 1. Verifica se o usuário existe
-    const usuario = await this.usuarioRepository.buscarPorId(input.userId);
-    if (!usuario) {
-      throw new Error('Usuário não encontrado');
+  async execute(input: ProcessarCurriculoRecrutadorInput): Promise<Matching> {
+    // 1. Verifica se a vaga existe
+    const vaga = await this.vagaRepository.buscarPorId(input.vagaId);
+    if (!vaga) {
+      throw new Error('Vaga não encontrada');
     }
 
     // 2. Extrai o texto do PDF
@@ -75,27 +64,65 @@ export class ProcessarCurriculoUseCase {
       throw new Error('Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.');
     }
 
+    // 3. Processa o texto com a IA para obter a estrutura JSON
+    const dadosEstruturados = await this.aiService.extrairDadosCurriculo(textoExtraido);
 
-    // 3. Faz o upload do arquivo PDF para o Storage
+    // 4. Determina um e-mail único
+    let email = dadosEstruturados.email || `candidato_${randomUUID().slice(0, 8)}@aimatcher.com`;
+    email = email.trim().toLowerCase();
+    
+    // Verifica se já existe um usuário com esse e-mail
+    const usuarioExistente = await this.usuarioRepository.buscarPorEmail(email);
+    if (usuarioExistente) {
+      if (email.includes('@')) {
+        const [username, domain] = email.split('@');
+        email = `${username}+rec_${randomUUID().slice(0, 8)}@${domain}`;
+      } else {
+        email = `${email}+rec_${randomUUID().slice(0, 8)}@aimatcher.com`;
+      }
+    }
+
+    // 5. Criptografa uma senha aleatória
+    const senhaHash = await this.cryptographyService.hash(randomUUID());
+    const candidatoId = randomUUID();
+
+    // 6. Faz o upload do arquivo PDF para o Storage
     const pathStorage = await this.storageService.uploadCurriculo(
-      usuario.id,
+      candidatoId,
       input.fileBuffer,
       input.fileName,
     );
 
-    // 4. Processa o texto com a IA para obter a estrutura JSON
-    const dadosEstruturados = await this.aiService.extrairDadosCurriculo(textoExtraido);
+    // 7. Mapeia a entidade do usuário com os dados extraídos
+    const nomeCompleto = dadosEstruturados.nome_completo || input.fileName.replace(/\.pdf$/i, '');
+    
+    const novoUsuario = new Usuario(
+      candidatoId,
+      nomeCompleto,
+      email,
+      senhaHash,
+      'ATIVO',
+      new Date(),
+      dadosEstruturados.telefone || undefined,
+      dadosEstruturados.data_nascimento ? safeDate(dadosEstruturados.data_nascimento) : undefined,
+      undefined,
+      undefined,
+      [],
+      [],
+      [],
+      [],
+      [],
+      undefined,
+      [],
+      pathStorage,
+      textoExtraido,
+      dadosEstruturados,
+      'CANDIDATO',
+    );
 
-    // 5. Atualiza a entidade do usuário com os dados extraídos e metadados
-    usuario.nomeCompleto = dadosEstruturados.nome_completo || usuario.nomeCompleto;
-    usuario.telefone = dadosEstruturados.telefone || usuario.telefone;
-    if (dadosEstruturados.data_nascimento) {
-      usuario.dataNascimento = safeDate(dadosEstruturados.data_nascimento);
-    }
-
-    // Atualiza o perfil profissional
+    // Mapeia perfil profissional
     if (dadosEstruturados.perfil) {
-      usuario.perfil = {
+      novoUsuario.perfil = {
         titulo: dadosEstruturados.perfil.titulo,
         resumoProfissional: dadosEstruturados.perfil.resumo_profissional,
         anosExperiencia: Number(dadosEstruturados.perfil.anos_experiencia || 0),
@@ -106,7 +133,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia experiências
     if (dadosEstruturados.experiencias) {
-      usuario.experiencias = dadosEstruturados.experiencias
+      novoUsuario.experiencias = dadosEstruturados.experiencias
         .filter((exp: any) => exp && exp.empresa && exp.cargo)
         .map((exp: any) => {
           let descricaoCompleta = exp.descricao || '';
@@ -133,7 +160,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia formação
     if (dadosEstruturados.formacao) {
-      usuario.formacoes = dadosEstruturados.formacao
+      novoUsuario.formacoes = dadosEstruturados.formacao
         .filter((f: any) => f && f.instituicao && f.curso)
         .map((f: any) => ({
           instituicao: f.instituicao,
@@ -148,7 +175,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia habilidades técnicas
     if (dadosEstruturados.habilidades_tecnicas) {
-      usuario.habilidades = dadosEstruturados.habilidades_tecnicas
+      novoUsuario.habilidades = dadosEstruturados.habilidades_tecnicas
         .filter((h: any) => h && h.nome)
         .map((h: any) => ({
           nome: h.nome,
@@ -159,7 +186,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia certificações
     if (dadosEstruturados.certificacoes) {
-      usuario.certificacoes = dadosEstruturados.certificacoes
+      novoUsuario.certificacoes = dadosEstruturados.certificacoes
         .filter((c: any) => c && c.nome && c.emissor)
         .map((c: any) => ({
           nome: c.nome,
@@ -172,7 +199,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia idiomas
     if (dadosEstruturados.idiomas) {
-      usuario.idiomas = dadosEstruturados.idiomas
+      novoUsuario.idiomas = dadosEstruturados.idiomas
         .filter((i: any) => i && i.nome)
         .map((i: any) => ({
           nome: i.nome,
@@ -184,7 +211,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia preferências
     if (dadosEstruturados.preferencias) {
-      usuario.preferencias = {
+      novoUsuario.preferencias = {
         modalidades: dadosEstruturados.preferencias.modalidades || [],
         cidades: dadosEstruturados.preferencias.cidades_interesse || [],
         cargos: dadosEstruturados.preferencias.cargos_interesse || [],
@@ -195,7 +222,7 @@ export class ProcessarCurriculoUseCase {
 
     // Mapeia projetos
     if (dadosEstruturados.projetos) {
-      usuario.projetos = dadosEstruturados.projetos
+      novoUsuario.projetos = dadosEstruturados.projetos
         .filter((p: any) => p && p.nome)
         .map((p: any) => ({
           nome: p.nome,
@@ -205,27 +232,13 @@ export class ProcessarCurriculoUseCase {
         }));
     }
 
-    usuario.curriculoUrl = pathStorage;
-    usuario.curriculoTexto = textoExtraido;
-    usuario.curriculoExtraido = dadosEstruturados;
-    console.log(usuario.preferencias)
+    // 8. Salva o novo candidato no banco
+    await this.usuarioRepository.salvar(novoUsuario);
 
-    // 6. Salva as atualizações do perfil do usuário no banco
-    await this.usuarioRepository.salvar(usuario);
-
-    return {
-      mensagem: 'Currículo processado e salvo com sucesso',
-      nomeArquivo: input.fileName,
-      dadosExtraidos: {
-        nome: usuario.nomeCompleto,
-        email: usuario.email,
-        perfil: usuario.perfil?.titulo || '',
-        experiencias: usuario.experiencias.length,
-        formacao: usuario.formacoes.length,
-        habilidades: usuario.habilidades.length,
-        idiomas: usuario.idiomas.length,
-        projetos: usuario.projetos.length,
-      },
-    };
+    // 9. Executa o matching do candidato contra a vaga
+    return this.executarMatchingUseCase.execute({
+      usuarioId: candidatoId,
+      vagaId: input.vagaId,
+    });
   }
 }

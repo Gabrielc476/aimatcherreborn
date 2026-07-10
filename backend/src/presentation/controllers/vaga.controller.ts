@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, NotFoundException, UnauthorizedException, BadRequestException, ForbiddenException, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { AnalisarVagaUseCase } from '../../domain/use-cases/analisar-vaga.use-case';
+import { ProcessarCurriculoRecrutadorUseCase } from '../../domain/use-cases/processar-curriculo-recrutador.use-case';
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { AdicionarVagaDto } from '../dtos/adicionar-vaga.dto';
 import { IntegrarVagaExternaDto } from '../dtos/integrar-vaga-externa.dto';
@@ -10,6 +12,7 @@ import { PrismaService } from '../../infrastructure/database/prisma.service';
 export class VagaController {
   constructor(
     private readonly analisarVagaUseCase: AnalisarVagaUseCase,
+    private readonly processarCurriculoRecrutadorUseCase: ProcessarCurriculoRecrutadorUseCase,
     private readonly vagaRepository: VagaRepository,
     private readonly prisma: PrismaService,
   ) {}
@@ -155,6 +158,82 @@ export class VagaController {
       mensagem: 'Vaga integrada e estruturada com sucesso',
       vagaId: vaga.id,
       vaga,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/candidatos/lote')
+  @UseInterceptors(FilesInterceptor('curriculos'))
+  @HttpCode(HttpStatus.OK)
+  async uploadCurriculosLote(
+    @Param('id') vagaId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Nenhum arquivo enviado');
+    }
+
+    // 1. Verifica se a vaga existe e se pertence ao recrutador logado
+    const vaga = await this.vagaRepository.buscarPorId(vagaId);
+    if (!vaga) {
+      throw new NotFoundException('Vaga não encontrada');
+    }
+
+    if (vaga.recrutadorId !== req.user.userId && !req.query.admin) {
+      throw new ForbiddenException('Acesso não autorizado a esta vaga');
+    }
+
+    const sucessos = [];
+    const falhas = [];
+
+    // 2. Processa cada arquivo sequencialmente para evitar sobrecarregar a IA/Storage
+    for (const file of files) {
+      if (!file.originalname.toLowerCase().endsWith('.pdf')) {
+        falhas.push({
+          arquivo: file.originalname,
+          erro: 'O arquivo deve ter extensão .pdf',
+        });
+        continue;
+      }
+
+      // Limite de 5MB por arquivo
+      const maxTamanho = 5 * 1024 * 1024;
+      if (file.size > maxTamanho) {
+        falhas.push({
+          arquivo: file.originalname,
+          erro: 'O arquivo excede o tamanho máximo de 5MB',
+        });
+        continue;
+      }
+
+      try {
+        const matching = await this.processarCurriculoRecrutadorUseCase.execute({
+          vagaId,
+          fileBuffer: file.buffer,
+          fileName: file.originalname,
+        });
+
+        sucessos.push({
+          arquivo: file.originalname,
+          candidato: matching.candidato?.nomeCompleto,
+          email: matching.candidato?.email,
+          score: matching.score,
+        });
+      } catch (err) {
+        console.error(`Erro ao processar currículo ${file.originalname}:`, err);
+        falhas.push({
+          arquivo: file.originalname,
+          erro: err instanceof Error ? err.message : 'Erro interno de processamento',
+        });
+      }
+    }
+
+    return {
+      mensagem: 'Processamento em lote concluído',
+      totalProcessados: files.length,
+      sucessos,
+      falhas,
     };
   }
 }

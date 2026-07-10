@@ -75,6 +75,7 @@ export class Matching {
     public score: number,
     public analise: DetalhesMatching,
     public dataMatching: Date,
+    public status: string = 'pendente',
     public candidato?: {
       nomeCompleto: string;
       email: string;

@@ -130,6 +130,88 @@ export class RecruiterVagasApi {
       };
     }
   }
+
+  /**
+   * Upload multiple PDF resumes for a job vacancy (batch processing)
+   */
+  public static async enviarCurriculosLote(
+    vagaId: string,
+    files: File[]
+  ): Promise<ApiResponse<{ totalProcessados: number; sucessos: any[]; falhas: any[] }>> {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("curriculos", file);
+      });
+
+      const response = await apiClient.post<{
+        totalProcessados: number;
+        sucessos: any[];
+        falhas: any[];
+      }>(`/vaga/${vagaId}/candidatos/lote`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao processar currículos em lote",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error uploading resumes in batch:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao processar currículos",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Reject a candidate's matching/candidacy for a vacancy
+   */
+  public static async negarCandidatura(
+    usuarioId: string,
+    vagaId: string
+  ): Promise<ApiResponse<{ mensagem: string; matching: any }>> {
+    try {
+      const response = await apiClient.post<{
+        mensagem: string;
+        matching: any;
+      }>(`/matching/${usuarioId}/${vagaId}/negar`);
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao negar candidatura",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error rejecting candidacy:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao negar candidatura",
+        status: 500,
+      };
+    }
+  }
 }
 
 export default RecruiterVagasApi;

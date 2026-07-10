@@ -25,8 +25,19 @@ import {
   Calendar,
   Sparkles,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  FileUp,
+  UserX
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import MatchingDetailsDialog from "./MatchingDetailsDialog";
 import { Header } from "@/components/dashboard/Header";
 
@@ -45,6 +56,64 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
   // Dialog state for matching details
   const [selectedMatching, setSelectedMatching] = useState<any | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Dialog state for rejecting candidacy
+  const [rejectingMatching, setRejectingMatching] = useState<any | null>(null);
+  const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+
+  // Dialog state for batch upload
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{
+    sucessos: any[];
+    falhas: any[];
+  } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const pdfFiles = filesArray.filter((file) => file.name.toLowerCase().endsWith(".pdf"));
+      
+      if (pdfFiles.length !== filesArray.length) {
+        setUploadError("Apenas arquivos PDF são permitidos.");
+      } else {
+        setUploadError(null);
+      }
+      
+      setSelectedFiles(pdfFiles);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedFiles.length === 0 || !job.id) return;
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const response = await RecruiterVagasApi.enviarCurriculosLote(job.id, selectedFiles);
+      if (response.status === 200 && response.data) {
+        setUploadResult({
+          sucessos: response.data.sucessos || [],
+          falhas: response.data.falhas || [],
+        });
+        setSelectedFiles([]);
+        fetchCandidates(); // Reload candidates list
+      } else {
+        setUploadError(response.erro || "Erro ao processar currículos.");
+      }
+    } catch (err) {
+      console.error(err);
+      setUploadError("Erro ao se conectar ao servidor.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const fetchCandidates = async () => {
     if (!job.id) return;
@@ -75,6 +144,34 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
     setIsDetailOpen(true);
   };
 
+  const handleOpenRejectConfirm = (matching: any) => {
+    setRejectingMatching(matching);
+    setIsRejectConfirmOpen(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingMatching || !job.id) return;
+    setRejecting(true);
+    try {
+      const response = await RecruiterVagasApi.negarCandidatura(
+        rejectingMatching.usuarioId,
+        job.id
+      );
+      if (response.status === 200) {
+        setMatchings((prev) => prev.filter((m) => m.id !== rejectingMatching.id));
+        setIsRejectConfirmOpen(false);
+      } else {
+        alert(response.erro || "Erro ao negar candidatura.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao se conectar ao servidor.");
+    } finally {
+      setRejecting(false);
+      setRejectingMatching(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Subtle grid line illustration background */}
@@ -93,10 +190,22 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
             <h2 className="text-3xl font-serif font-bold tracking-wide mt-1">Candidatos Compatíveis</h2>
           </div>
           
-          <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading} className="h-9 px-3 dark:bg-input/30">
-            <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${loading ? "animate-spin" : ""}`} />
-            Atualizar Lista
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUploadOpen(true)}
+              className="h-9 px-3 border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 transition-all"
+            >
+              <FileUp className="h-4 w-4 mr-2 stroke-[1.5]" />
+              Analisar Currículos (Lote)
+            </Button>
+            
+            <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading} className="h-9 px-3 dark:bg-input/30">
+              <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${loading ? "animate-spin" : ""}`} />
+              Atualizar Lista
+            </Button>
+          </div>
         </div>
 
         {/* Job Info Banner */}
@@ -196,11 +305,21 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
                     
                     <Button 
                       onClick={() => handleOpenDetails(matching)}
-                      className="font-medium flex items-center gap-1 group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                      className="font-medium flex items-center gap-1 hover:bg-primary hover:text-primary-foreground transition-all"
                       size="sm"
                     >
                       <Sparkles className="h-4 w-4 stroke-[1.5]" />
                       Ver Análise de IA
+                    </Button>
+
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleOpenRejectConfirm(matching)}
+                      className="font-medium flex items-center gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive border-border/40 transition-all"
+                      size="sm"
+                    >
+                      <UserX className="h-4 w-4 stroke-[1.5]" />
+                      Negar
                     </Button>
                   </div>
                 </div>
@@ -215,6 +334,206 @@ export function JobCandidatesList({ job, user, onBack, onLogout }: JobCandidates
           onOpenChange={setIsDetailOpen} 
           matching={selectedMatching} 
         />
+
+        {/* Confirmation dialog for rejection */}
+        <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive font-serif font-bold text-xl">
+                <UserX className="h-5 w-5" />
+                Negar Candidatura
+              </DialogTitle>
+              <DialogDescription className="mt-2 text-sm text-muted-foreground">
+                Tem certeza que deseja negar a candidatura de <strong>{rejectingMatching?.candidato?.nomeCompleto || "este candidato"}</strong>? 
+                Esta ação fará com que ele não apareça mais nesta listagem.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-6 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsRejectConfirmOpen(false)}
+                disabled={rejecting}
+                className="h-9 px-4 hover:bg-muted"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={rejecting}
+                className="h-9 px-4 font-semibold"
+              >
+                {rejecting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Negando...
+                  </>
+                ) : (
+                  "Confirmar Rejeição"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Batch Upload Dialog */}
+        <Dialog open={isUploadOpen} onOpenChange={(open) => {
+          setIsUploadOpen(open);
+          if (!open) {
+            setUploadResult(null);
+            setUploadError(null);
+            setSelectedFiles([]);
+          }
+        }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-serif font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                Análise de Currículos em Lote
+              </DialogTitle>
+              <DialogDescription>
+                Selecione múltiplos arquivos PDF de currículos para que a IA analise e calcule a compatibilidade com a vaga instantaneamente.
+              </DialogDescription>
+            </DialogHeader>
+
+            {uploadError && (
+              <Alert variant="destructive" className="my-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{uploadError}</AlertDescription>
+              </Alert>
+            )}
+
+            {!uploadResult ? (
+              <form onSubmit={handleUploadSubmit} className="space-y-6 py-4">
+                <div className="border-2 border-dashed border-border/60 hover:border-primary/60 rounded-lg p-8 text-center cursor-pointer relative bg-card/10 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={uploading}
+                  />
+                  <div className="space-y-2">
+                    <div className="flex justify-center">
+                      <FileUp className="h-10 w-10 text-muted-foreground/60 stroke-[1.5]" />
+                    </div>
+                    <p className="text-sm font-semibold">
+                      Arraste seus PDFs aqui ou clique para selecionar
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas arquivos PDF (Limite de 5MB por arquivo)
+                    </p>
+                  </div>
+                </div>
+
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold font-mono uppercase tracking-wider text-muted-foreground">
+                      Arquivos Selecionados ({selectedFiles.length})
+                    </Label>
+                    <div className="border border-border/40 rounded-md divide-y divide-border/30 max-h-[180px] overflow-y-auto bg-card/5">
+                      {selectedFiles.map((file, idx) => (
+                        <div key={idx} className="p-2.5 flex items-center justify-between text-xs">
+                          <span className="font-mono truncate max-w-[400px]">{file.name}</span>
+                          <span className="text-muted-foreground font-mono">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <DialogFooter className="border-t pt-4 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsUploadOpen(false)}
+                    disabled={uploading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex items-center justify-center gap-1.5"
+                    disabled={uploading || selectedFiles.length === 0}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processando com IA...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Analisar {selectedFiles.length} Currículo(s)
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            ) : (
+              <div className="space-y-6 py-4">
+                <div className="border border-border/40 rounded-lg p-5 bg-card/20 space-y-4">
+                  <h4 className="font-bold text-foreground font-serif text-lg">Resultado do Processamento</h4>
+                  
+                  {uploadResult.sucessos.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-emerald-400 font-mono uppercase tracking-wider">
+                        Processados com Sucesso ({uploadResult.sucessos.length})
+                      </p>
+                      <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-md divide-y divide-emerald-500/10 max-h-[200px] overflow-y-auto">
+                        {uploadResult.sucessos.map((res, idx) => (
+                          <div key={idx} className="p-3 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="font-semibold block">{res.candidato}</span>
+                              <span className="text-muted-foreground font-mono text-[10px]">{res.arquivo}</span>
+                            </div>
+                            <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold font-mono">
+                              {Math.round(res.score)}% Match
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadResult.falhas.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-destructive font-mono uppercase tracking-wider">
+                        Falhas no Processamento ({uploadResult.falhas.length})
+                      </p>
+                      <div className="border border-destructive/20 bg-destructive/5 rounded-md divide-y divide-destructive/10 max-h-[150px] overflow-y-auto">
+                        {uploadResult.falhas.map((res, idx) => (
+                          <div key={idx} className="p-3 flex flex-col gap-0.5 text-xs">
+                            <span className="font-semibold text-foreground">{res.arquivo}</span>
+                            <span className="text-destructive font-mono text-[10px]">{res.erro}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="border-t pt-4">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setUploadResult(null);
+                      setIsUploadOpen(false);
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    Concluir
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
