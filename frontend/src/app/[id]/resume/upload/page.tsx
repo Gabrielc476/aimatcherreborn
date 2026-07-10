@@ -58,15 +58,33 @@ export default function ResumeUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => router.push(`/${params.id}/dashboard`)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-        </Button>
+    <div className="min-h-screen bg-background text-foreground p-8 lg:p-12 relative overflow-hidden">
+      {/* Subtle grid line background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      <div className="max-w-xl mx-auto relative z-10 space-y-8">
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 text-muted-foreground hover:text-foreground mb-4"
+            onClick={() => router.push(`/${params.id}/dashboard`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1 stroke-[1.5]" /> Voltar ao Dashboard
+          </Button>
+
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold text-primary font-mono uppercase tracking-wider block">
+              Currículo PDF
+            </span>
+            <h1 className="text-3xl font-serif font-bold tracking-wide">
+              Upload de Currículo
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Faça upload do seu currículo em formato PDF para que possamos extrair e analisar suas experiências e habilidades via IA.
+            </p>
+          </div>
+        </div>
 
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -74,27 +92,15 @@ export default function ResumeUploadPage() {
           </Alert>
         )}
 
-        <div className="w-full max-w-md mx-auto mb-8">
-          <h1 className="text-3xl font-bold text-center mb-2">
-            Upload de Currículo
-          </h1>
-          <p className="text-center text-muted-foreground">
-            Faça upload do seu currículo para que possamos analisar e encontrar
-            as melhores vagas para você
-          </p>
-        </div>
-
-        <div className="w-full max-w-md mx-auto">
+        <div className="border border-border/50 bg-card/10 p-6 rounded-lg space-y-6">
           <ResumeUploadForm
             onSuccess={handleSuccess}
             redirectPath={`/${params.id}/resume/edit`}
           />
 
-          <div className="mt-6 text-center text-sm text-muted-foreground max-w-md">
+          <div className="text-xs text-muted-foreground leading-relaxed font-mono pt-4 border-t border-border/30">
             <p>
-              Após o upload, nosso sistema usará IA para extrair informações do
-              seu currículo. Você poderá revisar e editar essas informações na
-              próxima etapa.
+              * Após o processamento, você poderá revisar e ajustar todas as informações extraídas antes de calcular sua compatibilidade com as vagas.
             </p>
           </div>
         </div>

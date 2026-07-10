@@ -178,40 +178,36 @@ export function RecruiterDashboard({ user, onLogout }: RecruiterDashboardProps) 
           </Alert>
         )}
 
-        {/* Dashboard summary stats card */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-primary/10 border-primary/20 text-foreground shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-primary">Total de Vagas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-[#d4a373]">{jobs.length}</div>
-              <p className="text-xs mt-1 text-muted-foreground">Vagas cadastradas por sua conta</p>
-            </CardContent>
-          </Card>
+        {/* Dashboard summary stats flat row */}
+        <div className="border border-border/50 rounded-lg bg-card/10 overflow-hidden mb-8 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
+          <div className="p-5 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Total de Vagas</span>
+              <div className="text-3xl font-bold font-serif text-accent-foreground">{jobs.length}</div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Vagas cadastradas por sua conta</p>
+          </div>
           
-          <Card className="shadow-sm border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Vagas Ativas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-foreground">
+          <div className="p-5 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Vagas Ativas</span>
+              <div className="text-3xl font-bold font-serif text-foreground">
                 {jobs.filter(j => j.status === "ativa").length}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Recebendo candidaturas</p>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Recebendo candidaturas em tempo real</p>
+          </div>
 
-          <Card className="shadow-sm border-dashed border-border flex items-center justify-center p-4">
+          <div className="p-4 flex items-center justify-center bg-card/20">
             <Button 
               onClick={() => setIsCreateOpen(true)}
-              className="w-full h-full py-8 text-primary hover:text-primary-foreground hover:bg-primary border-primary/20"
+              className="w-full h-full py-5 text-primary hover:text-primary-foreground hover:bg-primary border-primary/10 hover:border-transparent transition-all duration-200"
               variant="outline"
             >
-              <Plus className="h-6 w-6 mr-2 stroke-[1.5]" />
-              Adicionar Nova Vaga
+              <Plus className="h-4 w-4 mr-2 stroke-[1.5]" />
+              Cadastrar Nova Vaga
             </Button>
-          </Card>
+          </div>
         </div>
 
         {/* Jobs List Section */}
@@ -236,53 +232,61 @@ export function RecruiterDashboard({ user, onLogout }: RecruiterDashboardProps) 
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="border border-border/50 divide-y divide-border/40 rounded-lg overflow-hidden bg-card/10">
             {jobs.map((job) => (
-              <Card key={job.id} className="flex flex-col shadow-sm border border-border hover:border-primary/50 transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start gap-2">
+              <div 
+                key={job.id} 
+                className="p-5 hover:bg-card/40 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+              >
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={job.status === "ativa" ? "default" : "secondary"}>
                       {job.status === "ativa" ? "Ativa" : "Inativa"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3 stroke-[1.5]" />
-                      {job.dataCriacao ? new Date(job.dataCriacao).toLocaleDateString() : ""}
+                      {job.dataCriacao ? new Date(job.dataCriacao).toLocaleDateString("pt-BR") : ""}
                     </span>
                   </div>
-                  <CardTitle className="text-lg font-bold text-foreground mt-2 line-clamp-1 font-serif tracking-wide">
-                    {job.titulo}
-                  </CardTitle>
-                  <CardDescription className="font-semibold text-accent-foreground line-clamp-1">
-                    {job.empresaNome}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-3 flex-1">
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 shrink-0 text-primary/70 stroke-[1.5]" />
-                      <span className="line-clamp-1">{job.localizacao || "Remoto / Não especificado"}</span>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground font-serif group-hover:text-primary transition-colors">
+                      {job.titulo}
+                    </h3>
+                    <p className="text-xs font-semibold text-accent-foreground mt-0.5">
+                      {job.empresaNome}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70 stroke-[1.5]" />
+                      <span>{job.localizacao || "Remoto / Não especificado"}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 shrink-0 text-primary/70 stroke-[1.5]" />
+                    <div className="flex items-center gap-1.5">
+                      <Briefcase className="h-3.5 w-3.5 shrink-0 text-primary/70 stroke-[1.5]" />
                       <span>{job.modalidade} • {job.nivel}</span>
                     </div>
                   </div>
+                  
                   {job.resumo && (
-                    <p className="text-xs text-muted-foreground mt-3 line-clamp-2 italic">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-1 italic max-w-2xl">
                       {`"${job.resumo}"`}
                     </p>
                   )}
-                </CardContent>
-                <CardFooter className="pt-3 border-t border-border bg-muted/20 rounded-b-lg">
+                </div>
+
+                <div className="flex sm:justify-end shrink-0">
                   <Button 
                     onClick={() => handleViewCandidates(job)}
-                    className="w-full font-medium flex items-center justify-center gap-1.5"
+                    size="sm"
+                    className="font-medium flex items-center gap-1.5 group-hover:bg-primary group-hover:text-primary-foreground transition-all"
                   >
                     <Users className="h-4 w-4 stroke-[1.5]" />
-                    Ver Candidatos Compatíveis
+                    Candidatos Compatíveis
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}

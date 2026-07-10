@@ -92,29 +92,27 @@ export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListPr
         </div>
 
         {/* Job Info Banner */}
-        <Card className="mb-8 border border-border shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <CardDescription className="font-semibold text-primary uppercase tracking-wide text-xs">
-                  Candidatos Compatíveis para
-                </CardDescription>
-                <CardTitle className="text-2xl font-bold text-foreground mt-1 font-serif tracking-wide">
-                  {job.titulo}
-                </CardTitle>
-                <p className="text-foreground font-medium text-sm mt-1">{job.empresaNome} • {job.localizacao || "Remoto"}</p>
-              </div>
-              <Badge variant={job.status === "ativa" ? "default" : "secondary"}>
-                {job.status === "ativa" ? "Ativa" : "Inativa"}
-              </Badge>
+        <div className="mb-8 border-b border-border/50 pb-6">
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <span className="font-bold text-primary uppercase tracking-wider text-xs font-mono">
+                Candidatos Compatíveis para
+              </span>
+              <h1 className="text-3xl font-bold text-foreground mt-1 font-serif tracking-wide">
+                {job.titulo}
+              </h1>
+              <p className="text-muted-foreground font-medium text-sm mt-1">{job.empresaNome} • {job.localizacao || "Remoto"}</p>
             </div>
-          </CardHeader>
+            <Badge variant={job.status === "ativa" ? "default" : "secondary"}>
+              {job.status === "ativa" ? "Ativa" : "Inativa"}
+            </Badge>
+          </div>
           {job.resumo && (
-            <CardContent className="border-t border-border pt-4 text-sm text-muted-foreground italic">
+            <p className="text-sm text-muted-foreground mt-3 italic max-w-3xl">
               {`"${job.resumo}"`}
-            </CardContent>
+            </p>
           )}
-        </Card>
+        </div>
 
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -146,7 +144,7 @@ export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListPr
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="border border-border/50 divide-y divide-border/40 rounded-lg overflow-hidden bg-card/10">
             {matchings.map((matching) => {
               const score = Math.round(Number(matching.score));
               let scoreColorClass = "bg-destructive/10 text-destructive border-destructive/20";
@@ -157,21 +155,21 @@ export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListPr
               }
 
               return (
-                <Card 
+                <div 
                   key={matching.id} 
-                  className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 shadow-sm border border-border hover:border-primary/50 transition-all duration-300 gap-4"
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 hover:bg-card/40 transition-all duration-200 gap-4 group"
                 >
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-lg text-foreground">
+                      <h3 className="font-bold text-lg text-foreground font-serif group-hover:text-primary transition-colors">
                         {matching.candidato?.nomeCompleto || "Candidato Anônimo"}
                       </h3>
-                      <Badge className="font-bold text-sm px-2.5 py-0.5 border" variant="outline">
+                      <Badge className="font-bold text-[10px] px-2.5 py-0.5 border" variant="outline">
                         Candidatou-se / Analisou
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-1 gap-x-4 text-sm text-muted-foreground">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-1 gap-x-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <Mail className="h-4 w-4 text-primary/70 stroke-[1.5]" />
                         <span>{matching.candidato?.email || "N/A"}</span>
@@ -184,30 +182,31 @@ export function JobCandidatesList({ job, onBack, onLogout }: JobCandidatesListPr
                       )}
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-primary/70 stroke-[1.5]" />
-                        <span>Match em {new Date(matching.dataMatching).toLocaleDateString()}</span>
+                        <span>Match em {new Date(matching.dataMatching).toLocaleDateString("pt-BR")}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Matching Compatibility Score & Action Button */}
-                  <div className="flex items-center gap-4 w-full md:w-auto shrink-0 border-t border-border md:border-t-0 pt-4 md:pt-0 justify-between md:justify-end">
-                    <div className={`flex flex-col items-center px-4 py-2 rounded-lg border ${scoreColorClass} text-center min-w-[100px]`}>
-                      <span className="text-2xl font-extrabold flex items-center gap-0.5">
+                  <div className="flex items-center gap-4 w-full md:w-auto shrink-0 border-t border-border/40 md:border-t-0 pt-4 md:pt-0 justify-between md:justify-end">
+                    <div className={`flex flex-col items-center px-4 py-1.5 rounded-lg border ${scoreColorClass} text-center min-w-[100px]`}>
+                      <span className="text-xl font-extrabold flex items-center gap-0.5">
                         {score}%
                         <TrendingUp className="h-4 w-4 shrink-0 stroke-[1.5]" />
                       </span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">Compatibilidade</span>
+                      <span className="text-[9px] uppercase font-bold tracking-wider opacity-80">Compatibilidade</span>
                     </div>
                     
                     <Button 
                       onClick={() => handleOpenDetails(matching)}
-                      className="font-medium flex items-center gap-1"
+                      className="font-medium flex items-center gap-1 group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                      size="sm"
                     >
                       <Sparkles className="h-4 w-4 stroke-[1.5]" />
                       Ver Análise de IA
                     </Button>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>

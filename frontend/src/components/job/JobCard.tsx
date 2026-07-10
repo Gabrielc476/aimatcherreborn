@@ -29,6 +29,8 @@ interface JobCardProps {
   onApply?: (jobId: string) => void;
   onMatchAnalysis?: (jobId: string) => void;
   showActions?: boolean;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
 export function JobCard({
@@ -38,6 +40,8 @@ export function JobCard({
   onApply,
   onMatchAnalysis,
   showActions = true,
+  isActive = false,
+  onClick,
 }: JobCardProps) {
   // Format posted date as "Posted X days ago"
   const formattedDate = job.dataCriacao
@@ -87,7 +91,10 @@ export function JobCard({
   };
 
   return (
-    <Card className="w-full hover:shadow-md transition-shadow duration-200">
+    <Card 
+      onClick={onClick}
+      className={`w-full transition-all duration-200 ${onClick ? "cursor-pointer" : ""} ${isActive ? "border-primary bg-card/70 ring-1 ring-primary/20" : "hover:border-border/80 border-border bg-card/10"}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="flex-1">

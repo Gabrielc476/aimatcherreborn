@@ -161,15 +161,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold font-serif tracking-wide">Dashboard</h1>
-          <div className="flex gap-2">
+    <div className="min-h-screen bg-background text-foreground p-8 lg:p-12 relative overflow-hidden">
+      {/* Subtle grid line illustration background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/50 mb-10">
+          <div>
+            <h1 className="text-4xl font-bold font-serif tracking-wide">Dashboard</h1>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">
+              Painel do Candidato
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
             <Button
               variant="outline"
+              size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
+              className="h-9 px-3 dark:bg-input/30"
               title="Atualizar dados do usuário"
             >
               <RefreshCw
@@ -177,225 +190,160 @@ export default function DashboardPage() {
               />
               <span className="ml-2">Atualizar</span>
             </Button>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button variant="outline" size="sm" className="h-9 px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:bg-input/30" onClick={handleLogout}>
               Sair
             </Button>
           </div>
         </div>
 
         {error && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* User info card */}
-        <Card className="mb-8 border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-serif tracking-wide text-xl">
-              Bem-vindo ao Sistema de Matching de Currículos
-            </CardTitle>
-            <CardDescription>
-              Você está conectado como {user?.nomeCompleto || "Usuário"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Alert className="border-border">
-                <Shield className="h-4 w-4 stroke-[1.5]" />
-                <AlertTitle className="font-serif tracking-wide">Status do seu currículo</AlertTitle>
-                <AlertDescription>
-                  {hasResume
-                    ? "Seu currículo foi processado e está pronto para matching com vagas."
-                    : "Você ainda não fez upload do seu currículo. Faça o upload para começar a encontrar vagas compatíveis."}
-                </AlertDescription>
-              </Alert>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Left Column (2/3 width - 8 cols) - Information and Stats */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Status do Currículo */}
+            <div className="bg-card/25 border border-border/40 p-5 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Shield className={`h-5 w-5 mt-0.5 stroke-[1.5] ${hasResume ? "text-emerald-400" : "text-amber-400"}`} />
+                <div className="space-y-1">
+                  <h3 className="font-serif tracking-wide text-lg">Status do seu currículo</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {hasResume
+                      ? "Seu currículo foi processado com sucesso e está pronto para ser comparado com vagas do mercado."
+                      : "Você ainda não carregou o seu currículo. Faça o upload do seu arquivo PDF para começarmos a calcular a sua compatibilidade com as vagas."}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              {/* User info summary */}
+            {/* Profile Info in Swiss Grid format */}
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-widest">
+                Informações de Perfil
+              </h2>
+              
               {user && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Email:
-                    </h3>
-                    <p>{user.email}</p>
+                <div className="border border-border/50 rounded-lg overflow-hidden divide-y divide-border/40 bg-card/10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
+                    <div className="p-4">
+                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">E-mail de Contato</span>
+                      <span className="text-sm font-medium">{user.email}</span>
+                    </div>
+                    <div className="p-4">
+                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Telefone</span>
+                      <span className="text-sm font-medium">{user.telefone || "Não informado"}</span>
+                    </div>
                   </div>
-                  {user.telefone && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Telefone:
-                      </h3>
-                      <p>{user.telefone}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
+                    <div className="p-4">
+                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Cargo / Especialidade</span>
+                      <span className="text-sm font-medium font-serif">{user.perfil?.titulo || "Não definido"}</span>
                     </div>
-                  )}
-                  {user.perfil?.titulo && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Cargo:
-                      </h3>
-                      <p>{user.perfil.titulo}</p>
+                    <div className="p-4">
+                      <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Experiência Comprovada</span>
+                      <span className="text-sm font-medium">{user.perfil?.anosExperiencia !== undefined && user.perfil.anosExperiencia > 0 ? `${user.perfil.anosExperiencia} anos` : "Não informada"}</span>
                     </div>
-                  )}
-                  {user.perfil?.anosExperiencia !== undefined && user.perfil.anosExperiencia > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Experiência:
-                      </h3>
-                      <p>{user.perfil.anosExperiencia} anos</p>
+                  </div>
+
+                  {(user.experiencias && user.experiencias.length > 0) || (user.formacoes && user.formacoes.length > 0) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
+                      <div className="p-4">
+                        <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Última Experiência</span>
+                        <span className="text-sm font-medium">
+                          {user.experiencias && user.experiencias.length > 0
+                            ? `${user.experiencias[0].cargo} na ${user.experiencias[0].empresa}`
+                            : "Nenhuma cadastrada"}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block mb-1">Formação Acadêmica</span>
+                        <span className="text-sm font-medium">
+                          {user.formacoes && user.formacoes.length > 0
+                            ? `${user.formacoes[0].grau} em ${user.formacoes[0].curso}`
+                            : "Nenhuma cadastrada"}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                  {user.experiencias && user.experiencias.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Última empresa:
-                      </h3>
-                      <p>
-                        {user.experiencias[0].empresa} -{" "}
-                        {user.experiencias[0].cargo}
-                      </p>
-                    </div>
-                  )}
-                  {user.formacoes && user.formacoes.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Formação:
-                      </h3>
-                      <p>
-                        {user.formacoes[0].grau} em {user.formacoes[0].curso}
-                      </p>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
-          </CardContent>
-          <CardFooter className="border-t border-border pt-4 bg-muted/10 rounded-b-lg">
-            <p className="text-sm text-muted-foreground">
-              Seu último acesso foi em:{" "}
-            {user?.ultimoAcesso
-              ? new Date(user.ultimoAcesso).toLocaleString()
-              : "N/A"}
-            </p>
-          </CardFooter>
-        </Card>
 
-        {/* Curriculum Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
-                <FileUp className="h-5 w-5 text-primary stroke-[1.5]" />
-                Upload de Currículo
-              </CardTitle>
-              <CardDescription>Envie seu currículo em PDF</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <p className="mb-4">
-                Faça upload do seu currículo em PDF e nosso sistema usará IA
-                para extrair informações relevantes automaticamente.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full"
+            {/* General Metadata footer */}
+            <div className="pt-4 text-xs text-muted-foreground/50 font-mono">
+              Último acesso: {user?.ultimoAcesso ? new Date(user.ultimoAcesso).toLocaleString("pt-BR") : "N/A"}
+            </div>
+
+          </div>
+
+          {/* Right Column (1/3 width - 4 cols) - Quick Actions List */}
+          <div className="lg:col-span-4 space-y-6">
+            <h2 className="text-xs font-bold text-muted-foreground font-mono uppercase tracking-widest">
+              Ações Rápidas
+            </h2>
+            
+            <div className="flex flex-col border border-border/50 divide-y divide-border/40 rounded-lg overflow-hidden bg-card/10">
+              
+              {/* Action 1: Upload */}
+              <div 
                 onClick={() => router.push(`/${params.id}/resume/upload`)}
+                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
               >
-                Fazer Upload
-              </Button>
-            </CardFooter>
-          </Card>
+                <FileUp className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
+                <div>
+                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors flex items-center gap-1.5">
+                    Upload de Currículo
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Envie um novo arquivo PDF para atualizar suas informações profissionais via IA.
+                  </p>
+                </div>
+              </div>
 
-          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
-                <FileEdit className="h-5 w-5 text-primary stroke-[1.5]" />
-                Editar Currículo
-              </CardTitle>
-              <CardDescription>Revise e edite suas informações</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <p className="mb-4">
-                {hasResume
-                  ? "Revise e edite as informações extraídas do seu currículo para melhorar suas chances de matching."
-                  : "Após fazer o upload do seu currículo, você poderá revisar e editar as informações extraídas."}
-              </p>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              <Button
-                className="w-full"
+              {/* Action 2: Editar */}
+              <div 
                 onClick={() => router.push(`/${params.id}/resume/edit`)}
-                disabled={!hasResume}
+                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
               >
-                Editar Currículo
-              </Button>
+                <FileEdit className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
+                <div>
+                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors">
+                    Revisar Perfil
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Ajuste manualmente seus dados extraídos para calibrar a precisão do matching.
+                  </p>
+                </div>
+              </div>
 
-              {/* Direct access button as a fallback */}
-              {!hasResume && (
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  onClick={() => router.push(`/${params.id}/resume/edit`)}
-                >
-                  Acessar Editor Diretamente
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-
-          <Card className="flex flex-col border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-serif tracking-wide text-lg">
-                <Briefcase className="h-5 w-5 text-primary stroke-[1.5]" />
-                Vagas Disponíveis
-              </CardTitle>
-              <CardDescription>
-                Explore oportunidades de trabalho disponíveis
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <p className="mb-4">
-                {hasResume
-                  ? "Encontre as melhores oportunidades para sua carreira e cadastre-se para vagas que correspondam ao seu perfil profissional."
-                  : "Explore as vagas disponíveis e comece sua jornada de busca por oportunidades."}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full"
+              {/* Action 3: Ver Vagas */}
+              <div 
                 onClick={() => router.push(`/${params.id}/jobs`)}
+                className="p-5 hover:bg-card/40 transition-all duration-200 cursor-pointer group flex items-start gap-4"
               >
-                Ver Vagas
-              </Button>
-            </CardFooter>
-          </Card>
+                <Briefcase className="h-5 w-5 text-primary stroke-[1.5] mt-0.5 group-hover:scale-105 transition-transform" />
+                <div>
+                  <h3 className="font-serif font-bold text-base group-hover:text-primary transition-colors">
+                    Explorar Vagas
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Acesse o painel integrado de vagas e analise sua compatibilidade com vagas ativas.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
 
-        {/* Placeholder content for other features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border border-border shadow-sm hover:border-primary/50 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="font-serif tracking-wide text-lg">Pesquisar Vagas</CardTitle>
-              <CardDescription>
-                Busque vagas por título, empresa ou localização
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Use filtros avançados para encontrar exatamente o que você está
-                procurando no mercado de trabalho.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => router.push(`/${params.id}/jobs`)}
-              >
-                <Search className="h-4 w-4 mr-2 stroke-[1.5]" /> Explorar Vagas
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
       </div>
     </div>
   );

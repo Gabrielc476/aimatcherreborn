@@ -346,27 +346,31 @@ export default function ResumeOptimizePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 text-foreground font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground p-6 lg:p-8 relative overflow-hidden font-sans">
+      {/* Subtle grid line background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
         
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          className="mb-4"
+          size="sm"
+          className="-ml-3 h-8 text-muted-foreground hover:text-foreground mb-1"
           onClick={() => {
             if (step === "workspace") setStep("select");
             else router.push(`/${userId}/dashboard`);
           }}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+          <ArrowLeft className="h-4 w-4 mr-1 stroke-[1.5]" /> Voltar
         </Button>
 
         {/* Header Title */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <Sparkles className="h-7 w-7 text-primary" /> Otimizar Currículo com IA
+        <div className="pb-4 border-b border-border/50">
+          <h1 className="text-3xl font-serif font-bold tracking-wide flex items-center gap-2">
+            <Sparkles className="h-7 w-7 text-primary animate-pulse" /> Otimizar Currículo com IA
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             Ajuste seu perfil profissional para uma vaga específica utilizando a inteligência artificial do Gemma 4.
           </p>
         </div>

@@ -27,6 +27,7 @@ import {
   ArrowUpAZ,
   ArrowDownAZ,
   Sparkles,
+  Briefcase,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -551,527 +552,328 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => router.push(`/${params.id}/dashboard`)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar ao Dashboard
-        </Button>
-
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2 font-serif tracking-wide">Vagas Disponíveis</h1>
-          <p className="text-muted-foreground">
-            Explore oportunidades profissionais e encontre a vaga ideal para
-            você
-          </p>
+    <div className="min-h-screen bg-background text-foreground p-6 lg:p-8 relative overflow-hidden">
+      {/* Subtle grid line background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
+        
+        {/* Navigation Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border/50">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-3 h-8 text-muted-foreground hover:text-foreground mb-1"
+              onClick={() => router.push(`/${params.id}/dashboard`)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1 stroke-[1.5]" /> Voltar ao Dashboard
+            </Button>
+            <h1 className="text-3xl font-serif font-bold tracking-wide">Workspace de Vagas</h1>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshJobs()}
+              disabled={isLoading}
+              className="h-9 px-3 dark:bg-input/30"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 stroke-[1.5] ${isLoading ? "animate-spin" : ""}`} />
+              Atualizar Vagas
+            </Button>
+          </div>
         </div>
 
-        {/* Main layout - Flexbox */}
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar - Filters - Only on large screens */}
-          <div className="hidden md:block w-full md:w-80 lg:w-96 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Filtros</CardTitle>
-                <CardDescription>
-                  Refine sua busca com os filtros disponíveis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <JobFilterPanel
-                  filters={filters}
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  setSearch={setSearch}
-                  setKeywords={setKeywords}
-                  addKeyword={addKeyword}
-                  removeKeyword={removeKeyword}
-                  toggleModalidade={toggleModalidade}
-                  toggleTipoContrato={toggleTipoContrato}
-                  toggleNivel={toggleNivel}
-                  setLocalizacao={setLocalizacao}
-                  setSalarioRange={setSalarioRange}
-                  toggleHabilidade={toggleHabilidade}
-                  setSortField={setSortField}
-                  setSortDirection={setSortDirection}
-                  toggleSortDirection={toggleSortDirection}
-                  resetFilters={resetFilters}
-                  resetSort={resetSort}
-                  resetAll={resetAll}
-                  availableModalidades={availableModalidades}
-                  availableTipoContratos={availableTipoContratos}
-                  availableNiveis={availableNiveis}
-                  availableHabilidades={availableHabilidades.slice(0, 20)}
-                  availableKeywords={availableKeywords.slice(0, 30)}
-                  className="py-2"
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erro ao carregar vagas</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Main layout - Split Pane Workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Pane - Jobs List (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            
+            {/* Search and filters controls */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground stroke-[1.5]" />
+                <Input
+                  type="text"
+                  placeholder="Buscar vagas..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSearch(e.target.value);
+                  }}
+                  className="pl-9 bg-card/25 border-border/50 h-9 text-sm"
                 />
-              </CardContent>
-              <CardFooter>
-                <Button onClick={resetAll} variant="outline" className="w-full">
-                  Limpar todos os filtros
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-
-          {/* Main content - Jobs list and inline filters */}
-          <div className="flex-1">
-            {/* Search and filter controls - Mobile and Desktop */}
-            <Card className="mb-4">
-              <CardContent className="p-4">
-                <div className="flex flex-col gap-4">
-                  {/* Search form */}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      setSearch((e.target as HTMLFormElement).search.value);
-                    }}
-                    className="flex gap-2"
-                  >
-                    <Input
-                      name="search"
-                      type="text"
-                      placeholder="Buscar vagas por título, empresa, localização..."
-                      defaultValue={filters.search || ""}
-                      className="flex-1"
-                    />
-                    <Button type="submit">
-                      <Search className="h-4 w-4 mr-2" />
-                      Buscar
-                    </Button>
-                  </form>
-
-                  {/* Filters row */}
-                  <div className="flex flex-wrap gap-2">
-                    {/* Mobile filter button */}
-                    <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-                      <SheetTrigger asChild>
-                        <Button variant="outline" className="md:hidden">
-                          <Filter className="h-4 w-4 mr-2" />
-                          Filtros
-                          {hasActiveFilters && (
-                            <Badge variant="default" className="ml-2 text-xs">
-                              {
-                                Object.values(filters).flat().filter(Boolean)
-                                  .length
-                              }
-                            </Badge>
-                          )}
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent
-                        side="left"
-                        className="w-full sm:max-w-md overflow-y-auto"
-                      >
-                        <SheetHeader>
-                          <SheetTitle>Filtrar vagas</SheetTitle>
-                          <SheetDescription>
-                            Aplique filtros para encontrar as vagas mais
-                            adequadas ao seu perfil
-                          </SheetDescription>
-                        </SheetHeader>
-
-                        <JobFilterPanel
-                          filters={filters}
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          setSearch={setSearch}
-                          setKeywords={setKeywords}
-                          addKeyword={addKeyword}
-                          removeKeyword={removeKeyword}
-                          toggleModalidade={toggleModalidade}
-                          toggleTipoContrato={toggleTipoContrato}
-                          toggleNivel={toggleNivel}
-                          setLocalizacao={setLocalizacao}
-                          setSalarioRange={setSalarioRange}
-                          toggleHabilidade={toggleHabilidade}
-                          setSortField={setSortField}
-                          setSortDirection={setSortDirection}
-                          toggleSortDirection={toggleSortDirection}
-                          resetFilters={resetFilters}
-                          resetSort={resetSort}
-                          resetAll={resetAll}
-                          availableModalidades={availableModalidades}
-                          availableTipoContratos={availableTipoContratos}
-                          availableNiveis={availableNiveis}
-                          availableHabilidades={availableHabilidades.slice(
-                            0,
-                            20
-                          )}
-                          availableKeywords={availableKeywords.slice(0, 30)}
-                          className="py-6"
-                        />
-
-                        <SheetFooter className="mt-6 flex justify-between">
-                          <Button
-                            variant="outline"
-                            onClick={resetAll}
-                            className="w-full"
-                          >
-                            Limpar todos
-                          </Button>
-                          <SheetClose asChild>
-                            <Button className="ml-2">Aplicar filtros</Button>
-                          </SheetClose>
-                        </SheetFooter>
-                      </SheetContent>
-                    </Sheet>
-
-                    {/* Keyword input - condensed inline form */}
-                    <div className="flex-1 flex items-center">
-                      <div className="relative flex-1">
-                        <Input
-                          placeholder="Adicionar palavra-chave..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && searchTerm.trim()) {
-                              e.preventDefault();
-                              addKeyword(searchTerm.trim());
-                              setSearchTerm("");
-                            }
-                          }}
-                          className="h-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8"
-                          onClick={() => {
-                            if (searchTerm.trim()) {
-                              addKeyword(searchTerm.trim());
-                              setSearchTerm("");
-                            }
-                          }}
-                        >
-                          <Tag className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Sort selection */}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant={expandedFilters ? "default" : "outline"}
-                            size="icon"
-                            onClick={toggleExpandFilters}
-                            className="h-10 w-10"
-                          >
-                            {expandedFilters ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {expandedFilters
-                            ? "Ocultar filtros"
-                            : "Mostrar mais filtros"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => refreshJobs()}
-                      className="h-10"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Atualizar
-                    </Button>
-                  </div>
-
-                  {/* Expanded filters section */}
-                  {expandedFilters && (
-                    <div className="pt-2 border-t">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Sort options */}
-                        <div>
-                          <h5 className="text-sm font-medium mb-1">
-                            Ordenar por
-                          </h5>
-                          <div className="flex gap-2">
-                            <Select
-                              value={sortField}
-                              onValueChange={(value) =>
-                                setSortField(value as any)
-                              }
-                            >
-                              <SelectTrigger className="flex-1">
-                                <SelectValue placeholder="Ordenar por" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="dataCriacao">
-                                  Data de publicação
-                                </SelectItem>
-                                <SelectItem value="empresaNome">
-                                  Nome da empresa
-                                </SelectItem>
-                                <SelectItem value="titulo">Título</SelectItem>
-                                <SelectItem value="matching_score">
-                                  Compatibilidade
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={toggleSortDirection}
-                            >
-                              {sortDirection === "asc" ? (
-                                <ArrowUpAZ className="h-4 w-4" />
-                              ) : (
-                                <ArrowDownAZ className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Modalidade filter */}
-                        <div>
-                          <h5 className="text-sm font-medium mb-1">
-                            Modalidade
-                          </h5>
-                          <div className="flex flex-wrap gap-1">
-                            {availableModalidades.map((modalidade) => (
-                              <Badge
-                                key={modalidade}
-                                variant={
-                                  filters.modalidade?.includes(modalidade)
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className="cursor-pointer"
-                                onClick={() => toggleModalidade(modalidade)}
-                              >
-                                {modalidade}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Nível filter */}
-                        <div>
-                          <h5 className="text-sm font-medium mb-1">Nível</h5>
-                          <div className="flex flex-wrap gap-1">
-                            {availableNiveis.map((nivel) => (
-                              <Badge
-                                key={nivel}
-                                variant={
-                                  filters.nivel?.includes(nivel)
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className="cursor-pointer"
-                                onClick={() => toggleNivel(nivel)}
-                              >
-                                {nivel}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Active filters display */}
-            {renderActiveFilters()}
-
-            {/* Error display */}
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Erro ao carregar vagas</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-                <Button
-                  onClick={() => refreshJobs()}
-                  variant="outline"
-                  className="mt-2"
-                >
-                  Tentar novamente
-                </Button>
-              </Alert>
-            )}
-
-            {/* Sort order display and batch analysis button */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <span>Ordenado por:</span>
-                <Badge variant="outline" className="ml-2">
-                  {sortField === "dataCriacao" && "Data de publicação"}
-                  {sortField === "empresaNome" && "Nome da empresa"}
-                  {sortField === "titulo" && "Título"}
-                  {sortField === "matching_score" && "Compatibilidade"}
-                  {sortDirection === "asc" ? " (crescente)" : " (decrescente)"}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 ml-1"
-                  onClick={resetSort}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
               </div>
-
-              {/* Batch analysis button */}
-              {filteredJobs.length > 0 && (
-                <Button
-                  variant="secondary"
-                  onClick={handleAnalyzeAllJobs}
-                  disabled={isMatchingLoading || !!matchingInProgress}
-                >
-                  <BarChart className="h-4 w-4 mr-2" />
-                  {matchingInProgress
-                    ? "Analisando compatibilidade..."
-                    : "Analisar compatibilidade de todas as vagas"}
-                </Button>
-              )}
+              
+              {/* Collapsible Filter Sheet Button */}
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 px-3 border-border/50 bg-card/25">
+                    <Filter className="h-4 w-4 mr-1.5 stroke-[1.5]" />
+                    Filtros
+                    {hasActiveFilters && (
+                      <Badge variant="default" className="ml-1.5 text-[9px] h-4 min-w-4 px-1 rounded-full">
+                        {Object.values(filters).flat().filter(Boolean).length}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                  <SheetHeader className="pb-4 border-b border-border/50 mb-4">
+                    <SheetTitle className="font-serif">Filtros</SheetTitle>
+                    <SheetDescription>
+                      Refine a busca por vagas e compatibilidade.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <JobFilterPanel
+                    filters={filters}
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                    setSearch={setSearch}
+                    setKeywords={setKeywords}
+                    addKeyword={addKeyword}
+                    removeKeyword={removeKeyword}
+                    toggleModalidade={toggleModalidade}
+                    toggleTipoContrato={toggleTipoContrato}
+                    toggleNivel={toggleNivel}
+                    setLocalizacao={setLocalizacao}
+                    setSalarioRange={setSalarioRange}
+                    toggleHabilidade={toggleHabilidade}
+                    setSortField={setSortField}
+                    setSortDirection={setSortDirection}
+                    toggleSortDirection={toggleSortDirection}
+                    resetFilters={resetFilters}
+                    resetSort={resetSort}
+                    resetAll={resetAll}
+                    availableModalidades={availableModalidades}
+                    availableTipoContratos={availableTipoContratos}
+                    availableNiveis={availableNiveis}
+                    availableHabilidades={availableHabilidades.slice(0, 20)}
+                    availableKeywords={availableKeywords.slice(0, 30)}
+                    className="py-2"
+                  />
+                </SheetContent>
+              </Sheet>
             </div>
 
-            {/* Jobs list */}
-            {filteredJobs.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 mb-6">
-                {filteredJobs.map((job) => {
-                  const jobId = job.id?.toString() || "";
-                  const isAnalyzing = matchingInProgress === jobId;
+            {/* Selected active tags row */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] text-muted-foreground font-mono uppercase mr-1">Filtros:</span>
+                {renderActiveFilters()}
+              </div>
+            )}
 
+            {/* Jobs list inside Scroll Area */}
+            <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+              {filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => {
+                  const jobId = job.id?.toString() || "";
+                  const isActive = selectedJobId === jobId;
+                  
                   return (
                     <JobCard
                       key={jobId}
                       job={job}
-                      onViewDetails={handleViewJobDetails}
-                      onApply={handleApplyToJob}
-                      onMatchAnalysis={handleMatchAnalysis}
                       matching={jobMatchings[jobId] || null}
-                      showActions={true}
+                      isActive={isActive}
+                      onClick={() => {
+                        setSelectedJobId(jobId);
+                      }}
+                      showActions={false} // Hide bottom card actions to keep left list super compact
                     />
                   );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-lg border">
-                <div className="mb-4 p-4 bg-muted rounded-full">
-                  <Search className="h-8 w-8 text-muted-foreground" />
+                })
+              ) : (
+                <div className="text-center py-12 px-4 border border-border/50 rounded-lg bg-card/10">
+                  <Search className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2 stroke-[1.5]" />
+                  <p className="text-sm font-medium text-foreground">Nenhuma vaga encontrada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Experimente limpar alguns filtros.</p>
                 </div>
-                <h3 className="text-lg font-medium mb-2">
-                  Nenhuma vaga encontrada
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-md">
-                  {jobs.length > 0
-                    ? "Nenhuma vaga corresponde aos filtros aplicados. Tente remover alguns filtros ou usar outros termos de busca."
-                    : "Não encontramos vagas disponíveis no momento. Tente atualizar a página ou voltar mais tarde."}
-                </p>
-                {jobs.length > 0 && hasActiveFilters ? (
-                  <Button onClick={resetFilters}>Limpar filtros</Button>
-                ) : (
-                  <Button onClick={() => refreshJobs()}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Atualizar
-                  </Button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Pagination controls */}
+            {/* Pagination block */}
             {filteredJobs.length > 0 && (
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                <div className="text-sm text-muted-foreground">
-                  Mostrando {filteredJobs.length} de {totalJobs} vagas
-                </div>
-
+              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  {filteredJobs.length} de {totalJobs} vagas
+                </span>
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setPage}
                 />
+              </div>
+            )}
 
-                <PageSizeSelector
-                  pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
-                />
+          </div>
+
+          {/* Right Pane - Details & Compatibility (7 cols) */}
+          <div className="lg:col-span-7 bg-card/10 border border-border/50 rounded-lg p-6 min-h-[calc(100vh-280px)] overflow-y-auto max-h-[calc(100vh-280px)]">
+            {selectedJobId ? (
+              (() => {
+                const selectedJob = jobs.find(j => j.id?.toString() === selectedJobId);
+                const matchingData = jobMatchings[selectedJobId];
+                const isAnalyzing = matchingInProgress === selectedJobId;
+                
+                if (!selectedJob) return null;
+
+                return (
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 pb-4 border-b border-border/50">
+                      <div>
+                        <span className="text-[10px] font-bold text-primary font-mono uppercase tracking-wider block">
+                          Detalhes da Vaga
+                        </span>
+                        <h2 className="text-2xl font-bold font-serif mt-1">{selectedJob.titulo}</h2>
+                        <p className="text-xs font-semibold text-accent-foreground mt-1">
+                          {selectedJob.empresaNome} • {selectedJob.localizacao || "Remoto"}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2 shrink-0">
+                        {selectedJob.link && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-9 text-xs"
+                            onClick={() => window.open(selectedJob.link, "_blank")}
+                          >
+                            Candidatar-se
+                          </Button>
+                        )}
+                        {!matchingData && (
+                          <Button 
+                            size="sm" 
+                            className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center gap-1.5 h-9 text-xs"
+                            disabled={isAnalyzing}
+                            onClick={async () => {
+                              setMatchingInProgress(selectedJobId);
+                              try {
+                                await analyzeJobMatching(selectedJobId);
+                              } catch (e) {
+                                console.error(e);
+                              } finally {
+                                setMatchingInProgress(null);
+                              }
+                            }}
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                Analisando...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4" />
+                                Analisar Match
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Compatibility/Matching Panel or Option to calculate */}
+                    {matchingData ? (
+                      <div className="space-y-6 pt-4">
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div>
+                            <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5 font-serif">
+                              <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+                              Compatibilidade de {Math.round(matchingData.score)}%
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Esta análise compara os requisitos da vaga com o seu currículo.
+                            </p>
+                          </div>
+                          
+                          <Button 
+                            size="sm"
+                            className="flex items-center gap-1.5 cursor-pointer bg-primary text-primary-foreground font-semibold h-8 text-xs shrink-0"
+                            onClick={() => {
+                              router.push(`/${params.id}/resume/optimize?vagaId=${selectedJobId}`);
+                            }}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Otimizar com IA
+                          </Button>
+                        </div>
+
+                        <MatchingDetailsContent matching={matchingData} />
+                      </div>
+                    ) : (
+                      // Render default Job Details fields without matching
+                      <div className="space-y-6 pt-4">
+                        {/* Summary */}
+                        {selectedJob.resumo && (
+                          <div className="bg-card/30 border border-border/40 p-4 rounded-lg italic text-xs text-muted-foreground leading-relaxed">
+                            "{selectedJob.resumo}"
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4 border border-border/40 bg-card/10 rounded-lg p-4 text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block">Modalidade</span>
+                            <span className="font-medium text-foreground">{selectedJob.modalidade}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground font-mono uppercase tracking-wider block">Nível</span>
+                            <span className="font-medium text-foreground">{selectedJob.nivel}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição Completa</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line bg-card/5 p-4 rounded-lg border border-border/30 max-h-[300px] overflow-y-auto">
+                            {selectedJob.descricao}
+                          </p>
+                        </div>
+
+                        {selectedJob.requisitos?.habilidadesTecnicas && selectedJob.requisitos.habilidadesTecnicas.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Técnicas Requeridas</h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedJob.requisitos.habilidadesTecnicas.map((tech, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs font-mono font-normal">
+                                  {tech.nome} ({tech.nivel}){tech.obrigatorio ? " *" : ""}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                <Briefcase className="h-12 w-12 text-muted-foreground/30 mb-4 stroke-[1.5]" />
+                <h3 className="text-lg font-serif font-bold text-foreground">Nenhuma vaga selecionada</h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  Selecione uma vaga na lista à esquerda para visualizar seus detalhes completos e análise de compatibilidade.
+                </p>
               </div>
             )}
           </div>
+
         </div>
 
-        {/* Matching Analysis Dialog */}
-        <Dialog open={matchingDialogOpen} onOpenChange={setMatchingDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Análise de Compatibilidade</DialogTitle>
-              <DialogDescription>
-                Veja como seu perfil se compara com os requisitos da vaga
-              </DialogDescription>
-            </DialogHeader>
-
-            {isMatchingLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="text-center">
-                  <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="mb-4">Analisando compatibilidade...</p>
-                  <p className="text-sm text-muted-foreground">
-                    Estamos utilizando IA para analisar a compatibilidade entre
-                    seu perfil e esta vaga. Isso pode levar alguns segundos.
-                  </p>
-                </div>
-              </div>
-            ) : matchingError ? (
-              <div className="bg-red-50 text-red-800 p-4 rounded-md my-4">
-                <p className="font-medium">Erro ao analisar compatibilidade</p>
-                <p className="mt-1">{matchingError}</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() =>
-                    selectedJobId && analyzeJobMatching(selectedJobId)
-                  }
-                >
-                  Tentar novamente
-                </Button>
-              </div>
-            ) : selectedJobId && jobMatchings[selectedJobId] ? (
-              <div className="space-y-6">
-                {/* Use the matching data from our state map */}
-                {renderMatchingDetails(jobMatchings[selectedJobId])}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma análise disponível
-              </div>
-            )}
-
-            <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 border-t pt-4">
-              {selectedJobId && jobMatchings[selectedJobId] ? (
-                <Button 
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 cursor-pointer"
-                  onClick={() => {
-                    setMatchingDialogOpen(false);
-                    router.push(`/${params.id}/resume/optimize?vagaId=${selectedJobId}`);
-                  }}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Otimizar Currículo com IA
-                </Button>
-              ) : (
-                <div />
-              )}
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setMatchingDialogOpen(false)}>
-                Fechar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
