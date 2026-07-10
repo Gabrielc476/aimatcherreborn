@@ -10,6 +10,7 @@ import { Job } from "@/types/job/Job";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Header } from "@/components/dashboard/Header";
 import {
   Dialog,
   DialogContent,
@@ -149,14 +150,16 @@ export default function JobDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-4xl mx-auto">
-        <Button variant="ghost" className="mb-4" onClick={handleBack}>
-          <ArrowLeft className="h-4 w-4 mr-2 stroke-[1.5]" /> Voltar para Vagas
-        </Button>
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      {/* Subtle grid line background */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, var(--color-border) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      
+      {/* Global Header */}
+      <Header userId={userId} activeTab="jobs" />
 
+      <div className="max-w-7xl mx-auto px-6 py-10 relative z-10 animate-fade-in">
         {error ? (
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center max-w-md mx-auto">
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -174,7 +177,7 @@ export default function JobDetailsPage() {
             onBack={handleBack}
           />
         ) : (
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center max-w-md mx-auto">
             <p className="text-muted-foreground mb-4">
               Vaga não encontrada ou excluída
             </p>

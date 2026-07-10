@@ -677,16 +677,15 @@ export default function JobsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map((job) => {
               const jobId = job.id?.toString() || "";
-              const isActive = selectedJobId === jobId;
               
               return (
                 <JobCard
                   key={jobId}
                   job={job}
                   matching={jobMatchings[jobId] || null}
-                  isActive={isActive}
+                  isActive={false}
                   onClick={() => {
-                    setSelectedJobId(jobId);
+                    router.push(`/${params.id}/jobs/${jobId}`);
                   }}
                   showActions={false}
                 />
@@ -716,191 +715,6 @@ export default function JobsPage() {
             />
           </div>
         )}
-
-        {/* sliding Drawer / Sheet for Job Details & Matching */}
-        <Sheet open={selectedJobId !== null} onOpenChange={(open) => { if (!open) setSelectedJobId(null); }}>
-          <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto bg-card/95 border-l border-border/40 p-6 flex flex-col h-full">
-            
-            {selectedJobId && (() => {
-              const selectedJob = jobs.find(j => j.id?.toString() === selectedJobId);
-              const matchingData = jobMatchings[selectedJobId];
-              const isAnalyzing = matchingInProgress === selectedJobId;
-              
-              if (!selectedJob) return null;
-
-              return (
-                <div className="space-y-6 flex-1 flex flex-col justify-between">
-                  <div className="space-y-6">
-                    {/* Header */}
-                    <div className="border-b border-border/40 pb-5">
-                      <div className="flex items-center justify-between gap-4 mb-3">
-                        <span className="text-[10px] font-mono text-primary uppercase tracking-widest font-bold">
-                          Detalhes da Oportunidade
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedJobId(null)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <h3 className="text-3xl font-serif font-bold text-foreground leading-tight tracking-wide">
-                        {selectedJob.titulo}
-                      </h3>
-                      <p className="text-lg font-medium text-muted-foreground mt-1">
-                        {selectedJob.empresaNome} {selectedJob.localizacao ? `• ${selectedJob.localizacao}` : ""}
-                      </p>
-
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <Badge variant="outline" className="text-xs font-mono font-normal">
-                          {selectedJob.modalidade}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs font-mono font-normal">
-                          {selectedJob.nivel}
-                        </Badge>
-                        {selectedJob.salarioMin && (
-                          <Badge variant="outline" className="text-xs font-mono font-normal text-primary">
-                            R$ {selectedJob.salarioMin.toLocaleString("pt-BR")} {selectedJob.salarioMax ? `- R$ ${selectedJob.salarioMax.toLocaleString("pt-BR")}` : ""}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Primary action buttons row */}
-                      <div className="flex flex-wrap gap-2 mt-5">
-                        {selectedJob.link ? (
-                          <a href={selectedJob.link} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial">
-                            <Button size="sm" className="w-full flex items-center gap-1.5 h-9 text-xs">
-                              Candidatar-se
-                            </Button>
-                          </a>
-                        ) : (
-                          <Button size="sm" disabled className="flex-1 sm:flex-initial flex items-center gap-1.5 h-9 text-xs">
-                            Candidatura não disponível
-                          </Button>
-                        )}
-
-                        {matchingData && (
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 sm:flex-initial flex items-center gap-1.5 h-9 text-xs dark:bg-input/30"
-                            onClick={() => {
-                              router.push(`/${params.id}/resume/optimize?vagaId=${selectedJobId}`);
-                            }}
-                          >
-                            <Sparkles className="h-3.5 w-3.5" />
-                            Otimizar Currículo com IA
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Job Details Section (Sempre Visível) */}
-                    <div className="space-y-4">
-                      {/* Summary */}
-                      {selectedJob.resumo && (
-                        <div className="bg-card/40 border border-border/40 p-4 rounded-lg italic text-sm text-muted-foreground leading-relaxed">
-                          "{selectedJob.resumo}"
-                        </div>
-                      )}
-
-                      {/* Description */}
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Descrição Completa</h4>
-                        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line bg-card/10 p-5 rounded-lg border border-border/30 max-h-[350px] overflow-y-auto pr-2">
-                          {selectedJob.descricao}
-                        </p>
-                      </div>
-
-                      {/* Requirements */}
-                      {selectedJob.requisitos?.habilidadesTecnicas && selectedJob.requisitos.habilidadesTecnicas.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">Habilidades Requeridas</h4>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedJob.requisitos.habilidadesTecnicas.map((tech, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs font-mono font-normal">
-                                {tech.nome} ({tech.nivel}){tech.obrigatorio ? " *" : ""}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="border-t border-border/40 my-6" />
-
-                    {/* Compatibility/Matching Area (Sempre Visível ao final) */}
-                    <div>
-                      <h4 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider mb-3">Análise de Match com IA</h4>
-                      
-                      {matchingData ? (
-                        <div className="space-y-6">
-                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <div>
-                              <h5 className="font-bold text-sm text-foreground flex items-center gap-1.5 font-serif">
-                                <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-                                Compatibilidade de {Math.round(matchingData.score)}%
-                              </h5>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Esta análise compara os requisitos da vaga com o seu currículo.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="pt-2">
-                            <MatchingDetailsContent matching={matchingData} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-card/20 border border-border/50 p-6 rounded-lg text-center space-y-4">
-                          <Sparkles className="h-8 w-8 text-primary/60 mx-auto stroke-[1.5]" />
-                          <div>
-                            <h5 className="text-sm font-serif font-bold text-foreground">Análise Pendente</h5>
-                            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto leading-relaxed">
-                              Compare os requisitos desta oportunidade com o conteúdo do seu currículo cadastrado para ver os pontos fortes e áreas de melhoria.
-                            </p>
-                          </div>
-                          
-                          <Button 
-                            size="sm" 
-                            disabled={isAnalyzing}
-                            onClick={async () => {
-                              setMatchingInProgress(selectedJobId);
-                              try {
-                                await analyzeJobMatching(selectedJobId);
-                              } catch (e) {
-                                console.error(e);
-                              } finally {
-                                setMatchingInProgress(null);
-                              }
-                            }}
-                            className="w-full max-w-xs font-semibold"
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <RefreshCw className="h-4 w-4 animate-spin mr-1.5" />
-                                Analisando perfil...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-1.5" />
-                                Calcular Match com IA
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-          </SheetContent>
-        </Sheet>
 
       </div>
     </div>

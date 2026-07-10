@@ -3,15 +3,10 @@ import { Job } from "@/types/job/Job";
 import { Matching } from "@/types/matching/Matching";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   MapPin,
   Building,
@@ -22,14 +17,12 @@ import {
   DollarSign,
   Users,
   Share2,
-  BarChart,
-  CheckCircle,
+  Sparkles,
+  ArrowLeft,
+  CheckCircle2,
   XCircle,
-  ChevronDown,
-  ChevronUp,
+  TrendingUp,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface JobDetailsProps {
   job: Job;
@@ -48,13 +41,6 @@ export function JobDetails({
   onMatchAnalysis,
   onBack,
 }: JobDetailsProps) {
-  const [showFullDescription, setShowFullDescription] = React.useState(false);
-  const [expandedSections, setExpandedSections] = React.useState({
-    requirements: true,
-    benefits: true,
-    process: true,
-  });
-
   // Format posted date
   const formattedDate = job.dataCriacao
     ? formatDistanceToNow(new Date(job.dataCriacao), {
@@ -76,533 +62,441 @@ export function JobDetails({
       ? `${job.salarioMin !== undefined ? job.salarioMin.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""} - ${job.salarioMax !== undefined ? job.salarioMax.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}`
       : "Não informado";
 
-  // Toggle section expansion
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections({
-      ...expandedSections,
-      [section]: !expandedSections[section],
-    });
-  };
-
   // Get matching score color based on the score value
   const getScoreColor = (score: number) => {
-    if (score >= 75) return "text-emerald-400 font-semibold";
-    if (score >= 50) return "text-amber-400 font-semibold";
-    return "text-red-400 font-semibold";
+    if (score >= 75) return "text-emerald-500 dark:text-emerald-400";
+    if (score >= 50) return "text-amber-500 dark:text-amber-400";
+    return "text-red-500 dark:text-red-400";
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 75) return "bg-emerald-500/10 border-emerald-500/20";
+    if (score >= 50) return "bg-amber-500/10 border-amber-500/20";
+    return "bg-red-500/10 border-red-500/20";
   };
 
   return (
-    <div className="space-y-6">
-      {/* Back button */}
-      {onBack && (
-        <Button variant="ghost" onClick={onBack} className="mb-4 pl-0">
-          <ChevronUp className="mr-1 h-4 w-4" /> Voltar para lista de vagas
-        </Button>
-      )}
+    <div className="space-y-8 pb-16">
+      {/* Top Navigation Row */}
+      <div className="flex items-center justify-between">
+        {onBack && (
+          <Button variant="ghost" onClick={onBack} className="pl-0 text-muted-foreground hover:text-foreground hover:bg-transparent">
+            <ArrowLeft className="mr-2 h-4 w-4 stroke-[1.5]" /> Voltar para o Workspace
+          </Button>
+        )}
+        
+        {onShare && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onShare}
+            className="flex items-center gap-1.5 h-9 text-xs dark:bg-input/20 border-border/40"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Compartilhar Vaga
+          </Button>
+        )}
+      </div>
 
-      {/* Job header card */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-2xl">{job.titulo}</CardTitle>
-              <div className="flex items-center mt-2">
-                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="font-medium">{job.empresaNome}</span>
-              </div>
-            </div>
-
-            {matching && (
-              <div className="bg-primary/10 rounded-lg p-3 text-center">
-                <div
-                  className={`text-3xl font-bold ${getScoreColor(
-                    matching.score
-                  )}`}
-                >
-                  {Math.round(matching.score)}%
-                </div>
-                <div className="text-sm font-medium">Compatibilidade</div>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 mb-6">
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>
-                {job.localizacao || job.modalidade}
+      {/* Main Title Banner */}
+      <div className="border-b border-border/40 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2 max-w-3xl">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-primary uppercase tracking-widest font-bold">
+                Oportunidade Disponível
               </span>
+              {job.dataCriacao && (
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  • Publicada {formattedDate}
+                </span>
+              )}
             </div>
-
-            <div className="flex items-center">
-              <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground leading-tight tracking-tight">
+              {job.titulo}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-muted-foreground text-sm">
+              <span className="flex items-center gap-1 font-medium text-foreground">
+                <Building className="h-4 w-4 stroke-[1.5]" />
+                {job.empresaNome}
+              </span>
+              {job.localizacao && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4 stroke-[1.5]" />
+                  {job.localizacao}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Briefcase className="h-4 w-4 stroke-[1.5]" />
                 {job.tipoContrato} • {job.modalidade}
               </span>
             </div>
-
-            <div className="flex items-center">
-              <Award className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>Nível: {job.nivel}</span>
-            </div>
-
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span title={fullDate}>Publicada {formattedDate}</span>
-            </div>
-
-            {job.modalidade && (
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Modalidade: {job.modalidade}</span>
-              </div>
-            )}
-
-            {(job.salarioMin !== undefined || job.salarioMax !== undefined) && (
-              <div className="flex items-center">
-                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{formattedSalary}</span>
-              </div>
-            )}
           </div>
 
-          {/* Job description */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Descrição da vaga</h3>
-            <div
-              className={`text-sm whitespace-pre-line ${
-                !showFullDescription && "line-clamp-6"
-              }`}
-            >
-              {job.descricao}
-            </div>
-            {job.descricao && job.descricao.length > 300 && (
-              <Button
-                variant="ghost"
-                className="mt-2 p-0 h-auto text-primary"
-                onClick={() => setShowFullDescription(!showFullDescription)}
-              >
-                {showFullDescription ? "Ver menos" : "Ver descrição completa"}
-                {showFullDescription ? (
-                  <ChevronUp className="ml-1 h-4 w-4" />
-                ) : (
-                  <ChevronDown className="ml-1 h-4 w-4" />
-                )}
+          <div className="flex flex-wrap gap-2 shrink-0">
+            {job.link ? (
+              <a href={job.link} target="_blank" rel="noopener noreferrer">
+                <Button className="h-11 px-6 font-semibold text-sm">
+                  Candidatar-se na Origem
+                </Button>
+              </a>
+            ) : (
+              <Button disabled className="h-11 px-6 text-sm">
+                Candidatura não disponível
               </Button>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Matching summary if available */}
-          {matching && (
-            <Alert className="mt-6">
-              <BarChart className="h-4 w-4" />
-              <AlertTitle>Compatibilidade com seu perfil</AlertTitle>
-              <AlertDescription className="text-sm">
-                {matching.analise.diferenciais.pontosFortes.length > 0 && (
-                  <div className="mt-2">
-                    <span className="font-medium">Pontos fortes:</span>{" "}
-                    {matching.analise.diferenciais.pontosFortes[0]}
+      {/* 2-Column Responsive Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column - Dedicated Content */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Section 1: Descrição */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">
+              Descrição da Oportunidade
+            </h3>
+            <div className="text-base text-foreground/90 leading-relaxed whitespace-pre-line bg-card/5 border border-border/30 p-6 md:p-8 rounded-xl font-sans">
+              {job.descricao}
+            </div>
+          </div>
+
+          {/* Section 2: Requisitos e Habilidades */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">
+              Requisitos & Competências
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Habilidades Técnicas */}
+              {job.requisitos?.habilidadesTecnicas && job.requisitos.habilidadesTecnicas.length > 0 && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-3">
+                  <h4 className="font-serif font-bold text-base text-foreground flex items-center gap-1.5">
+                    Habilidades Técnicas
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.requisitos.habilidadesTecnicas.map((tech, idx) => (
+                      <Badge key={idx} variant={tech.obrigatorio ? "default" : "outline"} className="text-xs font-mono py-0.5 px-2 font-normal">
+                        {tech.nome} ({tech.nivel}){tech.obrigatorio ? " *" : ""}
+                      </Badge>
+                    ))}
                   </div>
-                )}
-                {matching.analise.diferenciais.pontosFracos.length > 0 && (
-                  <div className="mt-1">
-                    <span className="font-medium">Pontos a melhorar:</span>{" "}
-                    {matching.analise.diferenciais.pontosFracos[0]}
-                  </div>
-                )}
-                <div className="mt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onMatchAnalysis}
-                    className="mt-2"
-                  >
-                    <BarChart className="mr-1 h-4 w-4" />
-                    Ver análise completa
-                  </Button>
                 </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Requirements section */}
-          <div className="mt-6">
-            <button
-              className="flex items-center justify-between w-full text-left text-lg font-semibold mb-2"
-              onClick={() => toggleSection("requirements")}
-            >
-              <span>Requisitos</span>
-              {expandedSections.requirements ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
               )}
-            </button>
 
-            {expandedSections.requirements && (
-              <div className="space-y-4">
-                {/* Technical skills */}
-                {job.requisitos?.habilidadesTecnicas &&
-                  job.requisitos?.habilidadesTecnicas.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Habilidades Técnicas
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {job.requisitos?.habilidadesTecnicas.map(
-                          (skill, index) => (
-                            <Badge
-                              key={`skill-${index}`}
-                              variant={
-                                skill.obrigatorio ? "default" : "outline"
-                              }
-                              className="text-xs"
-                            >
-                              {skill.nome}
-                              {skill.nivel && ` (${skill.nivel})`}
-                              {skill.obrigatorio && (
-                                <span className="ml-1">*</span>
-                              )}
-                            </Badge>
-                          )
-                        )}
+              {/* Experiência */}
+              {job.requisitos?.experiencia && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-2">
+                  <h4 className="font-serif font-bold text-base text-foreground">
+                    Experiência Exigida
+                  </h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p className="font-medium text-foreground">
+                      Mínimo de {job.requisitos.experiencia.tempoMinimo}{" "}
+                      {job.requisitos.experiencia.tempoMinimo === 1 ? "ano" : "anos"} de atuação.
+                    </p>
+                    <p>Nível esperado: <span className="font-semibold text-foreground">{job.requisitos.experiencia.nivel || job.nivel}</span></p>
+                    
+                    {job.requisitos.experiencia.areas && job.requisitos.experiencia.areas.length > 0 && (
+                      <div className="mt-2">
+                        <span className="text-xs font-mono uppercase text-foreground">Áreas principais:</span>
+                        <ul className="list-disc list-inside text-xs mt-1 space-y-0.5">
+                          {job.requisitos.experiencia.areas.map((area, idx) => (
+                            <li key={idx}>{area}</li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Idiomas */}
+              {job.requisitos?.idiomas && job.requisitos.idiomas.length > 0 && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-2">
+                  <h4 className="font-serif font-bold text-base text-foreground">
+                    Idiomas
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.requisitos.idiomas.map((idioma, idx) => (
+                      <Badge key={idx} variant={idioma.obrigatorio ? "default" : "outline"} className="text-xs font-mono font-normal">
+                        {idioma.nome} ({idioma.nivel}){idioma.obrigatorio ? " *" : ""}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Habilidades Comportamentais */}
+              {job.requisitos?.habilidadesComportamentais && job.requisitos.habilidadesComportamentais.length > 0 && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-2">
+                  <h4 className="font-serif font-bold text-base text-foreground">
+                    Soft Skills
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.requisitos.habilidadesComportamentais.map((skill, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs font-normal">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Formação Acadêmica */}
+              {job.requisitos?.formacao && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-1">
+                  <h4 className="font-serif font-bold text-base text-foreground">
+                    Escolaridade
+                  </h4>
+                  <p className="text-sm text-foreground">
+                    {job.requisitos.formacao.nivel} em <span className="font-medium">{job.requisitos.formacao.area}</span>
+                  </p>
+                  {job.requisitos.formacao.obrigatorio && (
+                    <span className="text-[10px] font-mono text-primary font-bold uppercase">Formação Obrigatória *</span>
                   )}
+                </div>
+              )}
 
-                {/* Experience */}
-                {job.requisitos?.experiencia && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Experiência</h4>
-                    <div className="text-sm">
-                      <p>
-                        {job.requisitos?.experiencia.tempoMinimo > 0 && (
-                          <>
-                            Mínimo de {job.requisitos?.experiencia.tempoMinimo}{" "}
-                            {job.requisitos?.experiencia.tempoMinimo === 1
-                              ? "ano"
-                              : "anos"}{" "}
-                            de experiência
-                          </>
-                        )}
-                        {job.requisitos?.experiencia.nivel && (
-                          <> (Nível: {job.requisitos?.experiencia.nivel})</>
-                        )}
-                      </p>
-
-                      {job.requisitos?.experiencia.areas &&
-                        job.requisitos?.experiencia.areas.length > 0 && (
-                          <div className="mt-1">
-                            <p className="font-medium">
-                              Áreas de experiência necessárias:
-                            </p>
-                            <ul className="list-disc pl-5 mt-1">
-                              {job.requisitos?.experiencia.areas.map(
-                                (area, index) => (
-                                  <li key={`area-${index}`}>{area}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                        )}
+              {/* Disponibilidade */}
+              {job.requisitos?.disponibilidade && (
+                <div className="bg-card/20 border border-border/30 p-5 rounded-lg space-y-2">
+                  <h4 className="font-serif font-bold text-base text-foreground">
+                    Disponibilidade
+                  </h4>
+                  <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${job.requisitos.disponibilidade.viagens ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                      <span>Viagens: {job.requisitos.disponibilidade.viagens ? "Disponibilidade exigida" : "Não exige"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${job.requisitos.disponibilidade.mudanca ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                      <span>Mudança de Cidade: {job.requisitos.disponibilidade.mudanca ? "Disponibilidade exigida" : "Não exige"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${job.requisitos.disponibilidade.inicioImediato ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                      <span>Início: {job.requisitos.disponibilidade.inicioImediato ? "Imediato" : "Flexível"}</span>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+            
+            <p className="text-[10px] font-mono text-muted-foreground italic mt-2">
+              * Itens marcados com asterisco representam requisitos obrigatórios.
+            </p>
+          </div>
 
-                {/* Education */}
-                {job.requisitos?.formacao && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Formação</h4>
-                    <div className="text-sm">
-                      <p>
-                        {job.requisitos?.formacao.nivel} em{" "}
-                        {job.requisitos?.formacao.area}
-                        {job.requisitos?.formacao.obrigatorio && (
-                          <span className="ml-1 text-red-500">*</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
+          {/* Section 3: Benefícios & Processo Seletivo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            {job.beneficios && job.beneficios.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">
+                  Benefícios Oferecidos
+                </h3>
+                <ul className="bg-card/10 border border-border/30 p-5 rounded-lg space-y-2 text-sm text-foreground/90 font-sans">
+                  {job.beneficios.map((beneficio, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-primary font-bold mt-0.5">•</span>
+                      <span>{beneficio}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-                {/* Languages */}
-                {job.requisitos?.idiomas &&
-                  job.requisitos?.idiomas.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Idiomas</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {job.requisitos?.idiomas.map((idioma, index) => (
-                          <Badge
-                            key={`idioma-${index}`}
-                            variant={idioma.obrigatorio ? "default" : "outline"}
-                            className="text-xs"
-                          >
-                            {idioma.nome} ({idioma.nivel})
-                            {idioma.obrigatorio && (
-                              <span className="ml-1">*</span>
-                            )}
-                          </Badge>
-                        ))}
-                      </div>
+            {job.processo_seletivo && job.processo_seletivo.etapas && job.processo_seletivo.etapas.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold font-mono uppercase text-muted-foreground tracking-wider">
+                  Etapas do Processo Seletivo
+                </h3>
+                <div className="bg-card/10 border border-border/30 p-5 rounded-lg space-y-3 text-sm">
+                  <ol className="space-y-2 font-sans">
+                    {job.processo_seletivo.etapas.map((etapa, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <span className="font-mono text-xs text-primary font-bold bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span className="text-foreground/90">{etapa}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  {job.processo_seletivo.email_contato && (
+                    <div className="pt-2 border-t border-border/20 text-xs">
+                      <span className="text-muted-foreground">E-mail para dúvidas:</span>{" "}
+                      <span className="font-mono text-foreground font-semibold">{job.processo_seletivo.email_contato}</span>
                     </div>
                   )}
-
-                {/* Soft skills */}
-                {job.requisitos?.habilidadesComportamentais &&
-                  job.requisitos?.habilidadesComportamentais.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Habilidades Comportamentais
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {job.requisitos?.habilidadesComportamentais.map(
-                          (skill, index) => (
-                            <Badge
-                              key={`soft-${index}`}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {skill}
-                            </Badge>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                {/* Availability */}
-                {job.requisitos?.disponibilidade && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">
-                      Requisitos de disponibilidade
-                    </h4>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      <div className="flex items-center">
-                        {job.requisitos?.disponibilidade.viagens ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
-                        )}
-                        <span>
-                          {job.requisitos?.disponibilidade.viagens
-                            ? "Disponibilidade para viagens"
-                            : "Sem necessidade de viagens"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        {job.requisitos?.disponibilidade.mudanca ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
-                        )}
-                        <span>
-                          {job.requisitos?.disponibilidade.mudanca
-                            ? "Disponibilidade para mudança"
-                            : "Sem necessidade de mudança"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        {job.requisitos?.disponibilidade.inicioImediato ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-muted-foreground mr-1" />
-                        )}
-                        <span>
-                          {job.requisitos?.disponibilidade.inicioImediato
-                            ? "Disponibilidade para início imediato"
-                            : "Sem necessidade de início imediato"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Note about required fields */}
-                <div className="text-xs text-muted-foreground mt-2">
-                  * Campos obrigatórios
                 </div>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Benefits section */}
-          {job.beneficios && job.beneficios.length > 0 && (
-            <div className="mt-6">
-              <button
-                className="flex items-center justify-between w-full text-left text-lg font-semibold mb-2"
-                onClick={() => toggleSection("benefits")}
-              >
-                <span>Benefícios</span>
-                {expandedSections.benefits ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </button>
+        {/* Right Column - IA Compatibility and General Metadata */}
+        <div className="space-y-6">
+          
+          {/* IA Compatibility Card */}
+          <Card className="border-border/40 relative overflow-hidden bg-card/40">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+            <CardHeader className="pb-4">
+              <CardTitle className="font-serif text-lg flex items-center gap-1.5">
+                <Sparkles className="h-4.5 w-4.5 text-primary" />
+                Match com Inteligência Artificial
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Análise de aderência de perfil baseada no seu currículo cadastrado.
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {matching ? (
+                <div className="space-y-4">
+                  {/* Score circle banner */}
+                  <div className={`border p-4 rounded-xl flex items-center gap-4 ${getScoreBg(matching.score)}`}>
+                    <div className={`text-4xl font-serif font-black tracking-tight ${getScoreColor(matching.score)}`}>
+                      {Math.round(matching.score)}%
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs font-mono uppercase text-foreground">
+                        Aderência Calculada
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground font-sans">
+                        Seu perfil atende aos requisitos analisados.
+                      </p>
+                    </div>
+                  </div>
 
-              {expandedSections.benefits && (
-                <ul className="list-disc pl-5 text-sm">
-                  {job.beneficios.map((beneficio, index) => (
-                    <li key={`beneficio-${index}`}>{beneficio}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {/* Selection process section */}
-          {job.processo_seletivo &&
-            job.processo_seletivo.etapas &&
-            job.processo_seletivo.etapas.length > 0 && (
-              <div className="mt-6">
-                <button
-                  className="flex items-center justify-between w-full text-left text-lg font-semibold mb-2"
-                  onClick={() => toggleSection("process")}
-                >
-                  <span>Processo Seletivo</span>
-                  {expandedSections.process ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
+                  {/* Summary */}
+                  {matching.analise.resumoCandidato && (
+                    <div className="bg-input/20 border border-border/30 p-3 rounded-lg text-xs leading-relaxed text-muted-foreground font-sans">
+                      "{matching.analise.resumoCandidato}"
+                    </div>
                   )}
-                </button>
 
-                {expandedSections.process && (
-                  <div className="space-y-2 text-sm">
-                    <ol className="list-decimal pl-5">
-                      {job.processo_seletivo.etapas.map((etapa, index) => (
-                        <li key={`etapa-${index}`}>{etapa}</li>
-                      ))}
-                    </ol>
-
-                    {job.processo_seletivo.email_contato && (
-                      <div className="mt-4">
-                        <p className="font-medium">Email para contato:</p>
-                        <p>{job.processo_seletivo.email_contato}</p>
-                      </div>
+                  {/* CTAs */}
+                  <div className="space-y-2 pt-2">
+                    {onMatchAnalysis && (
+                      <Button onClick={onMatchAnalysis} className="w-full flex items-center gap-1.5 h-9 text-xs">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                        Ver Análise Detalhada
+                      </Button>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-
-          {/* Company info */}
-          {job.empresa?.descricao && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2">Sobre a empresa</h3>
-              <p className="text-sm">{job.empresa?.descricao}</p>
-              <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                {job.empresa?.tamanho && (
-                  <div>
-                    <span className="font-medium">Tamanho:</span>{" "}
-                    {job.empresa?.tamanho}
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-4 bg-input/10 border border-dashed border-border/50 rounded-lg">
+                  <Sparkles className="h-7 w-7 text-primary/60 mx-auto stroke-[1.5]" />
+                  <div className="space-y-1 px-4">
+                    <h4 className="text-sm font-serif font-bold">Cálculo de Match Pendente</h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
+                      Compare as exigências de tecnologia, nível e escolaridade com o seu perfil para mapear pontos fortes.
+                    </p>
                   </div>
-                )}
-                {job.empresa?.setor && (
-                  <div>
-                    <span className="font-medium">Setor:</span>{" "}
-                    {job.empresa?.setor}
+                  
+                  <div className="px-4 font-sans">
+                    <Button onClick={onMatchAnalysis} size="sm" className="w-full h-8 text-xs font-semibold">
+                      Analisar Compatibilidade
+                    </Button>
                   </div>
-                )}
-              </div>
-              {(job.empresa?.site || job.empresa?.linkedin) && (
-                <div className="flex gap-2 mt-3">
-                  {job.empresa?.site && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => window.open(job.empresa?.site, "_blank")}
-                    >
-                      Visitar site
-                    </Button>
-                  )}
-                  {job.empresa?.linkedin && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() =>
-                        window.open(job.empresa?.linkedin, "_blank")
-                      }
-                    >
-                      LinkedIn
-                    </Button>
-                  )}
                 </div>
               )}
-            </div>
-          )}
+            </CardContent>
+          </Card>
 
-          {/* Statistics */}
-          {job.estatisticas && (
-            <div className="flex gap-6 text-sm text-muted-foreground mt-8">
-              <div className="flex items-center">
-                <Users className="h-4 w-4 mr-1" />
-                <span>
-                  {job.estatisticas.candidaturas}{" "}
-                  {job.estatisticas.candidaturas === 1
-                    ? "candidatura"
-                    : "candidaturas"}
-                </span>
+          {/* Quick Details Sidebar Card */}
+          <Card className="border-border/40 bg-card/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-mono text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Ficha Técnica
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-xs font-mono text-muted-foreground">
+              <div className="flex justify-between items-center py-1 border-b border-border/20">
+                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 shrink-0" /> Local</span>
+                <span className="text-foreground font-sans font-medium">{job.localizacao || "Remoto"}</span>
               </div>
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                <span>
-                  {job.data_expiracao
-                    ? `Expira em ${formatDistanceToNow(
-                        new Date(job.data_expiracao),
-                        { locale: ptBR }
-                      )}`
-                    : "Sem data de expiração"}
-                </span>
+              <div className="flex justify-between items-center py-1 border-b border-border/20">
+                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 shrink-0" /> Jornada</span>
+                <span className="text-foreground font-sans font-medium">{job.modalidade}</span>
               </div>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex flex-wrap gap-2 justify-end">
-          {!isLoading && (
-            <>
-              {onShare && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onShare}
-                  title="Compartilhar esta vaga"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Compartilhar
-                </Button>
+              <div className="flex justify-between items-center py-1 border-b border-border/20">
+                <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5 shrink-0" /> Regime</span>
+                <span className="text-foreground font-sans font-medium">{job.tipoContrato}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-border/20">
+                <span className="flex items-center gap-1"><Award className="h-3.5 w-3.5 shrink-0" /> Nível</span>
+                <span className="text-foreground font-sans font-medium">{job.nivel}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-border/20">
+                <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 shrink-0" /> Remuneração</span>
+                <span className="text-foreground font-sans font-medium">{formattedSalary}</span>
+              </div>
+              {job.estatisticas && (
+                <div className="flex justify-between items-center py-1 border-b border-border/20">
+                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 shrink-0" /> Candidatos</span>
+                  <span className="text-foreground font-sans font-medium">{job.estatisticas.candidaturas} inscritos</span>
+                </div>
               )}
-
-              {onMatchAnalysis && (
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={onMatchAnalysis}
-                  title="Analisar compatibilidade com seu perfil"
-                >
-                  <BarChart className="h-4 w-4 mr-2" />
-                  Analisar compatibilidade
-                </Button>
+              {job.data_expiracao && (
+                <div className="flex justify-between items-center py-1">
+                  <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 shrink-0" /> Expira em</span>
+                  <span className="text-foreground font-sans font-medium">
+                    {format(new Date(job.data_expiracao), "dd/MM/yyyy", { locale: ptBR })}
+                  </span>
+                </div>
               )}
-            </>
+            </CardContent>
+          </Card>
+
+          {/* About Company sidebar */}
+          {job.empresa?.descricao && (
+            <Card className="border-border/40 bg-card/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif text-sm">
+                  Sobre a {job.empresaNome}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
+                  {job.empresa.descricao}
+                </p>
+                
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-mono text-muted-foreground">
+                  {job.empresa.tamanho && (
+                    <span>Tamanho: <span className="text-foreground font-sans">{job.empresa.tamanho}</span></span>
+                  )}
+                  {job.empresa.setor && (
+                    <span>Setor: <span className="text-foreground font-sans">{job.empresa.setor}</span></span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-1.5 font-sans">
+                  {job.empresa.site && (
+                    <a href={job.empresa.site} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5">
+                        Site Oficial
+                      </Button>
+                    </a>
+                  )}
+                  {job.empresa.linkedin && (
+                    <a href={job.empresa.linkedin} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5">
+                        LinkedIn
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          {isLoading && (
-            <Button variant="default" disabled>
-              Carregando...
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default JobDetails;
