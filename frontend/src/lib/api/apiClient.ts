@@ -34,12 +34,14 @@ export class ApiClient {
 
     // Add response interceptor for common error handling
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        return response;
+      },
       (error) => {
         // Handle specific error codes
         if (error.response) {
           const { status } = error.response;
-
+ 
           // If token is invalid or expired
           if (status === 401) {
             this.clearToken();

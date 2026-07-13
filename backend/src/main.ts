@@ -3,9 +3,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { LoggingInterceptor } from './presentation/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Registra interceptador global de logging e RAM
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Habilita CORS
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';

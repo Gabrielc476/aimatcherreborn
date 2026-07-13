@@ -102,11 +102,11 @@ export default function JobDetailsPage() {
 
   // Fetch existing matching data when job loads
   useEffect(() => {
-    if (job && !loading && userId && jobId) {
+    if (job && !loading && userId && jobId && !matching && !isMatchingLoading) {
       // Fetch existing matching data without affecting loading state
       fetchExistingMatching(userId, jobId);
     }
-  }, [job, loading, userId, jobId, fetchExistingMatching]);
+  }, [job, loading, userId, jobId, matching, isMatchingLoading, fetchExistingMatching]);
 
   // Handle back button click
   const handleBack = () => {

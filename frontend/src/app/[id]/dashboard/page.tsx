@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AuthApi } from "@/lib/api/authApi";
 import { Button } from "@/components/ui/button";
+import { profileAsync } from "@/lib/utils/profiler";
 import {
   Card,
   CardContent,
@@ -39,7 +40,7 @@ export default function DashboardPage() {
     setRefreshing(true);
     try {
       // Fetch fresh user data from the server
-      const response = await AuthApi.getUserDetails(userId);
+      const response = await profileAsync("AuthApi.getUserDetails", () => AuthApi.getUserDetails(userId));
 
       if (response.status === 200 && response.data) {
         // Update the user state with fresh data

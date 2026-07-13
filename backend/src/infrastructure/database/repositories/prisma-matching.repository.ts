@@ -4,10 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { MatchingRepository } from '../../../domain/repositories/matching.repository';
 import { Matching, DetalhesMatching } from '../../../domain/entities/matching.entity';
 import { PrismaService } from '../prisma.service';
+import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 
 @Injectable()
 export class PrismaMatchingRepository implements MatchingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: InMemoryCacheService,
+  ) {}
 
   private mapToDomain(dbMatching: any): Matching | null {
     if (!dbMatching) return null;
@@ -55,11 +59,18 @@ export class PrismaMatchingRepository implements MatchingRepository {
         },
       });
 
+      this.cache.deleteByPrefix(`matching:lista:usuario:${matching.usuarioId}:`);
+      this.cache.delete(`matching:single:${matching.usuarioId}:${matching.vagaId}`);
+
       return this.mapToDomain(dbMatching)!;
     });
   }
 
   async buscar(usuarioId: string, vagaId: string): Promise<Matching | null> {
+    const cacheKey = `matching:single:${usuarioId}:${vagaId}`;
+    const cached = this.cache.get<Matching | null>(cacheKey);
+    if (cached !== null) return cached;
+
     return this.prisma.runWithRLS(async (tx) => {
       const dbMatching = await tx.matching.findUnique({
         where: {
@@ -69,11 +80,17 @@ export class PrismaMatchingRepository implements MatchingRepository {
           },
         },
       });
-      return this.mapToDomain(dbMatching);
+      const result = this.mapToDomain(dbMatching);
+      this.cache.set(cacheKey, result, 30); // 30 segundos
+      return result;
     });
   }
 
   async buscarPorUsuario(usuarioId: string, limite: number, pagina: number): Promise<{ total: number; matchings: Matching[] }> {
+    const cacheKey = `matching:lista:usuario:${usuarioId}:pag:${pagina}:lim:${limite}`;
+    const cached = this.cache.get<{ total: number; matchings: Matching[] }>(cacheKey);
+    if (cached) return cached;
+
     return this.prisma.runWithRLS(async (tx) => {
       const skip = (pagina - 1) * limite;
 
@@ -87,10 +104,12 @@ export class PrismaMatchingRepository implements MatchingRepository {
         }),
       ]);
 
-      return {
+      const result = {
         total,
         matchings: dbMatchings.map((m) => this.mapToDomain(m)!),
       };
+      this.cache.set(cacheKey, result, 30); // 30 segundos
+      return result;
     });
   }
 
@@ -145,6 +164,10 @@ export class PrismaMatchingRepository implements MatchingRepository {
           },
         },
       });
+
+      this.cache.deleteByPrefix(`matching:lista:usuario:${usuarioId}:`);
+      this.cache.delete(`matching:single:${usuarioId}:${vagaId}`);
+
       return !!result;
     });
   }

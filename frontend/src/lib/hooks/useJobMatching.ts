@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { VagasApi } from "../api/vagasApi";
 import { Matching } from "@/types/matching/Matching";
 import { AuthApi } from "../api/authApi";
@@ -32,7 +32,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
    * @param userId Optional user ID (defaults to current user)
    * @returns Promise that resolves to true if analysis was successful
    */
-  const analyzeJobMatching = async (
+  const analyzeJobMatching = useCallback(async (
     jobId: string,
     userId?: string
   ): Promise<boolean> => {
@@ -78,14 +78,14 @@ export const useJobMatching = (): UseJobMatchingReturn => {
       setIsLoading(false);
       return false;
     }
-  };
+  }, []);
 
   /**
    * Fetch all matchings for the current user
    *
    * @returns Promise that resolves to a map of job IDs to matchings
    */
-  const fetchUserMatchings = async (): Promise<Record<string, Matching>> => {
+  const fetchUserMatchings = useCallback(async (): Promise<Record<string, Matching>> => {
     // If no userId provided, use the current user's ID
     const currentUserId = AuthApi.getCurrentUserId();
 
@@ -119,7 +119,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
       );
       return {};
     }
-  };
+  }, []);
 
   /**
    * Fetch existing matching analysis by user ID and job ID
@@ -128,7 +128,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
    * @param jobId Job ID
    * @returns Promise that resolves to true if matching was found
    */
-  const fetchExistingMatching = async (
+  const fetchExistingMatching = useCallback(async (
     userId: string,
     jobId: string
   ): Promise<boolean> => {
@@ -152,7 +152,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
       console.error("Erro ao buscar análise existente:", err);
       return false;
     }
-  };
+  }, []);
 
   return {
     matching,

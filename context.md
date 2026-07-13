@@ -212,3 +212,23 @@ Abaixo estão os endpoints reais expostos pelo servidor backend:
 
 ### Scraper (`/scraper`)
 *   `POST /scraper/disparar`: Dispara de forma assíncrona o orquestrador do Web Scraper em Python a partir do backend (requer parâmetro `engine`, `query` e limite).
+
+---
+
+## 9. Simulação de Infraestrutura Local & Preparação para Deploy (Docker)
+
+Para validar a integridade da aplicação sob condições reais de servidores de produção e custos econômicos, o sistema foi dockerizado simulando as restrições e timeouts das plataformas de hospedagem gratuitas e de baixo custo:
+
+### 9.1. Backend NestJS (Simulando Render Starter)
+*   **Limites de Recursos**: Restrito fisicamente a **512MB de RAM** e **0.5 de CPU** no `docker-compose.yml`.
+*   **Controle de Heap V8**: O container roda Node com a flag `--max-old-space-size=450` para forçar o Garbage Collector a atuar ativamente antes de atingir o limite físico da máquina virtual, eliminando riscos de Out-Of-Memory (OOM).
+*   **Prevenção de IPv6 do Prisma**: Bancos de dados recentes do Supabase usam conexões diretas IPv6-only na porta 5432. Como redes locais de desenvolvimento Docker/WSL2 raramente possuem roteamento IPv6 ativo para a internet, configuramos a aplicação para conectar através do **Session Pooler IPv4** (`aws-1-us-east-2.pooler.supabase.com:5432`) injetando o mapeamento estático do IP correspondente no arquivo `/etc/hosts` do container via `extra_hosts` do Docker Compose (para impedir que o Prisma Query Engine em Rust tente a conexão via IPv6).
+
+### 9.2. Frontend NextJS (Simulando Vercel Hobby)
+*   **Build Multi-Stage**: O frontend Next.js é compilado em ambiente isolado e roda na porta 3000 de forma otimizada para produção.
+*   **Bypass de Timeout (10s)**: A Vercel Hobby impõe um timeout estrito de 10 segundos em funções Serverless. Para evitar que chamadas pesadas de inteligência artificial falhem por timeout, o Next.js realiza as requisições de IA e PDF diretamente do navegador do usuário (Client-side) para a API do backend exposta no Render (onde o limite de requisição é de 10 minutos).
+
+### 9.3. Execução do Scraper (Bypass de Captchas)
+*   Embora o scraper possua Dockerfile preparado, a estratégia recomendada para burlar barreiras contra bots do LinkedIn e Gupy é executá-lo diretamente no **host físico (Windows)**.
+*   Isso permite que o script utilize o perfil real do Chrome local do usuário (mantendo cookies e logins ativos) e permite a **resolução manual na tela de Captchas** que possam surgir durante a raspagem. As vagas extraídas localmente são enviadas via requisição HTTP POST para `http://localhost:10000/vaga/integrar-externo` (porta do backend mapeada do Docker Compose).
+

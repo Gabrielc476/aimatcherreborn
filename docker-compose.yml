@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # BACKEND (NestJS) - Simulando o Render Starter
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aimatcher-backend
+    ports:
+      - "10000:10000"
+    env_file:
+      - .env.docker
+    environment:
+      - PORT=10000
+      - NODE_ENV=production
+    # Força a resolução do Pooler do Supabase para o IPv4 resolvido na AWS (Ohio us-east-2, cluster aws-1),
+    # impedindo que o Prisma em Rust tente fazer a conexão via IPv6 que falha localmente no Docker/WSL2.
+    extra_hosts:
+      - "aws-1-us-east-2.pooler.supabase.com:13.58.13.125"
+    # Restrições de recursos físicas do Render Starter:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:10000/vaga/listar || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # FRONTEND (NextJS) - Simulando a Vercel Hobby
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:10000
+    container_name: aimatcher-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # SCRAPER WORKER (Python Selenium Headless) - Simulando o GitHub Actions
+  # ----------------------------------------------------------------------------
+  scraper-worker:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: aimatcher-scraper-worker
+    env_file:
+      - .env.docker
+    environment:
+      - HEADLESS=true
+      - INTEGRATION_MODE=API
+      - BACKEND_URL=http://backend:10000
+    # Não reinicia o container após terminar a execução (comportamento de cron job efêmero)
+    restart: "no"
+    depends_on:
+      backend:
+        condition: service_healthy

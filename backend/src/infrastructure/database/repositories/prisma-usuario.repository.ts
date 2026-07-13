@@ -4,10 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { UsuarioRepository } from '../../../domain/repositories/usuario.repository';
 import { Usuario, StatusUsuario, ModalidadeTrabalho } from '../../../domain/entities/usuario.entity';
 import { PrismaService } from '../prisma.service';
+import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 
 @Injectable()
 export class PrismaUsuarioRepository implements UsuarioRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: InMemoryCacheService,
+  ) {}
 
   private mapToDomain(dbUser: any): Usuario | null {
     if (!dbUser) return null;
@@ -284,9 +288,14 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
   }
 
   async buscarPorId(id: string): Promise<Usuario | null> {
+    const cacheKey = `usuario:perfil:${id}`;
+    const cached = this.cache.get<Usuario | null>(cacheKey);
+    if (cached !== null) return cached;
+
     return this.prisma.runWithRLS(async (tx) => {
       const dbUser = await tx.usuario.findUnique({
         where: { id },
+        relationLoadStrategy: 'join',
         include: {
           perfil: true,
           experiencias: true,
@@ -298,7 +307,9 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           projetos: true,
         },
       });
-      return this.mapToDomain(dbUser);
+      const result = this.mapToDomain(dbUser);
+      this.cache.set(cacheKey, result, 120); // 120 segundos
+      return result;
     });
   }
 
@@ -307,6 +318,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     // então roda diretamente no PrismaClient sem RLS.
     const dbUser = await this.prisma.usuario.findUnique({
       where: { email },
+      relationLoadStrategy: 'join',
       include: {
         perfil: true,
         experiencias: true,
@@ -488,6 +500,9 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
           projetos: true,
         },
       });
+
+      this.cache.delete(`usuario:perfil:${id}`);
+
       return this.mapToDomain(dbUser)!;
     });
   }

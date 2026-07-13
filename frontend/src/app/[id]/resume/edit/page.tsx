@@ -7,6 +7,7 @@ import { ResumeEditForm } from "@/components/resume/ResumeEditForm";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, RefreshCw } from "lucide-react";
+import { profileAsync } from "@/lib/utils/profiler";
 
 export default function ResumeEditPage() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function ResumeEditPage() {
       // Ensure we have the latest user data
       const fetchUserData = async () => {
         try {
-          const response = await AuthApi.getUserDetails(userId);
+          const response = await profileAsync("AuthApi.getUserDetails", () => AuthApi.getUserDetails(userId));
           if (response.status === 200 && response.data) {
             // Update local storage with the latest data
             localStorage.setItem(
@@ -71,7 +72,7 @@ export default function ResumeEditPage() {
 
     setRefreshing(true);
     try {
-      const response = await AuthApi.getUserDetails(userId);
+      const response = await profileAsync("AuthApi.getUserDetails (Refresh)", () => AuthApi.getUserDetails(userId));
       if (response.status === 200 && response.data) {
         // Update local storage with the latest data
         localStorage.setItem(AuthApi.USER_KEY, JSON.stringify(response.data));

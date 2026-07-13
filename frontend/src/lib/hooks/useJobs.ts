@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { VagasApi } from "../api/vagasApi";
 import { Job } from "@/types/job/Job";
+import { profileAsync } from "../utils/profiler";
 
 interface UseJobsReturn {
   jobs: Job[];
@@ -37,12 +38,15 @@ export const useJobs = (
   const totalPages = Math.ceil(totalJobs / pageSize);
 
   // Fetch jobs function
-  const fetchJobs = async (page: number, limit: number) => {
+  const fetchJobs = useCallback(async (page: number, limit: number) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await VagasApi.listarVagas(page, limit);
+      const response = await profileAsync(
+        `VagasApi.listarVagas(page=${page}, limit=${limit})`,
+        () => VagasApi.listarVagas(page, limit)
+      );
 
       if (response.status === 200 && response.data) {
         setJobs(response.data.data);
@@ -66,30 +70,35 @@ export const useJobs = (
       setIsLoading(false);
       return false;
     }
-  };
+  }, []);
 
   // Change page handler
-  const setPage = (page: number) => {
+  const setPage = useCallback((page: number) => {
     if (page < 1) page = 1;
-    if (page > totalPages && totalPages > 0) page = totalPages;
-    setCurrentPage(page);
-  };
+    setCurrentPage((prev) => {
+      // Usando prev e totalPages de forma inline para evitar recriação
+      const maxPages = Math.ceil(totalJobs / pageSize);
+      let targetPage = page;
+      if (targetPage > maxPages && maxPages > 0) targetPage = maxPages;
+      return targetPage;
+    });
+  }, [totalJobs, pageSize]);
 
   // Set page size handler
-  const setPageSizeHandler = (size: number) => {
+  const setPageSizeHandler = useCallback((size: number) => {
     setPageSize(size);
     setCurrentPage(1); // Reset to first page when changing page size
-  };
+  }, []);
 
   // Refresh jobs handler
-  const refreshJobs = async () => {
+  const refreshJobs = useCallback(async () => {
     await fetchJobs(currentPage, pageSize);
-  };
+  }, [currentPage, pageSize, fetchJobs]);
 
   // Fetch jobs when page or page size changes
   useEffect(() => {
     fetchJobs(currentPage, pageSize);
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, fetchJobs]);
 
   return {
     jobs,

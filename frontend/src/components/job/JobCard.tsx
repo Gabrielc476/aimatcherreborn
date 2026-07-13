@@ -31,6 +31,7 @@ interface JobCardProps {
   showActions?: boolean;
   isActive?: boolean;
   onClick?: () => void;
+  showMatchingDetails?: boolean;
 }
 
 export function JobCard({
@@ -42,6 +43,7 @@ export function JobCard({
   showActions = true,
   isActive = false,
   onClick,
+  showMatchingDetails = false,
 }: JobCardProps) {
   // Format posted date as "Posted X days ago"
   const formattedDate = job.dataCriacao
@@ -149,7 +151,7 @@ export function JobCard({
         </div>
 
         {/* Matching information - Only show if matching data exists */}
-        {matching && (
+        {matching && showMatchingDetails && (
           <div className="mt-4 border-t pt-3">
             <div className="text-sm font-medium mb-2">
               Análise de compatibilidade:
@@ -223,22 +225,22 @@ export function JobCard({
         )}
 
         {/* Job summary or snippet - only show when matching is not displayed */}
-        {!matching && job.resumo && (
+        {(!matching || !showMatchingDetails) && job.resumo && (
           <div className="mt-4">
             <p className="text-sm line-clamp-3">{job.resumo}</p>
           </div>
         )}
-
+ 
         {/* Salary information if available - only show when matching is not displayed */}
-        {!matching && job.salarioMin !== undefined || job.salarioMax !== undefined && (
+        {(!matching || !showMatchingDetails) && (job.salarioMin !== undefined || job.salarioMax !== undefined) && (
           <div className="mt-3">
             <div className="text-sm font-medium">Faixa salarial:</div>
             <div className="text-sm">{formattedSalary}</div>
           </div>
         )}
-
+ 
         {/* Skills tags - only show when matching is not displayed */}
-        {!matching &&
+        {(!matching || !showMatchingDetails) &&
           job.requisitos?.habilidadesTecnicas &&
           job.requisitos?.habilidadesTecnicas.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">

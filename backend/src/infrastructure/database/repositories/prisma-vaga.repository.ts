@@ -1,14 +1,20 @@
 // src/infrastructure/database/repositories/prisma-vaga.repository.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { VagaRepository } from '../../../domain/repositories/vaga.repository';
 import { Vaga, RequisitosVaga } from '../../../domain/entities/vaga.entity';
 import { ModalidadeTrabalho } from '../../../domain/entities/usuario.entity';
 import { PrismaService } from '../prisma.service';
+import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 
 @Injectable()
 export class PrismaVagaRepository implements VagaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PrismaVagaRepository.name);
+  
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: InMemoryCacheService,
+  ) {}
 
   private mapToDomain(dbVaga: any): Vaga | null {
     if (!dbVaga) return null;
@@ -76,60 +82,67 @@ export class PrismaVagaRepository implements VagaRepository {
         },
       });
 
+      this.cache.deleteByPrefix('vagas:listar:');
+      this.cache.delete(`vaga:detalhes:${vaga.id}`);
+
       return this.mapToDomain(dbVaga)!;
     });
   }
 
   async buscarPorId(id: string): Promise<Vaga | null> {
-    // Buscar vaga específica. Vagas podem ser públicas, mas vamos rodar no contexto RLS
-    // de quem está buscando ou bypassando se for necessário. Roda com RLS.
-    return this.prisma.runWithRLS(async (tx) => {
-      const dbVaga = await tx.vaga.findUnique({
-        where: { id },
-      });
-      return this.mapToDomain(dbVaga);
+    const cacheKey = `vaga:detalhes:${id}`;
+    const cached = this.cache.get<Vaga | null>(cacheKey);
+    if (cached !== null) return cached;
+
+    const dbVaga = await this.prisma.vaga.findUnique({
+      where: { id },
     });
+    const result = this.mapToDomain(dbVaga);
+    this.cache.set(cacheKey, result, 300); // 5 minutos
+    return result;
   }
 
   async listarAtivas(limite: number, pagina: number): Promise<{ total: number; vagas: Vaga[] }> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const skip = (pagina - 1) * limite;
+    const cacheKey = `vagas:listar:pag:${pagina}:lim:${limite}`;
+    const cached = this.cache.get<{ total: number; vagas: Vaga[] }>(cacheKey);
+    if (cached) return cached;
 
-      const [total, dbVagas] = await Promise.all([
-        tx.vaga.count({ where: { status: 'ativa' } }),
-        tx.vaga.findMany({
-          where: { status: 'ativa' },
-          skip,
-          take: limite,
-          orderBy: { dataCriacao: 'desc' },
-        }),
-      ]);
+    const skip = (pagina - 1) * limite;
 
-      return {
-        total,
-        vagas: dbVagas.map((v) => this.mapToDomain(v)!),
-      };
-    });
-  }
-
-  async buscarPorPalavrasChave(palavrasChave: string[], limite: number, pagina: number): Promise<Vaga[]> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const skip = (pagina - 1) * limite;
-
-      const dbVagas = await tx.vaga.findMany({
-        where: {
-          status: 'ativa',
-          palavrasChave: {
-            hasSome: palavrasChave,
-          },
-        },
+    const [total, dbVagas] = await Promise.all([
+      this.prisma.vaga.count({ where: { status: 'ativa' } }),
+      this.prisma.vaga.findMany({
+        where: { status: 'ativa' },
         skip,
         take: limite,
         orderBy: { dataCriacao: 'desc' },
-      });
+      }),
+    ]);
 
-      return dbVagas.map((v) => this.mapToDomain(v)!);
+    const result = {
+      total,
+      vagas: dbVagas.map((v) => this.mapToDomain(v)!),
+    };
+    this.cache.set(cacheKey, result, 60); // 60 segundos
+    return result;
+  }
+
+  async buscarPorPalavrasChave(palavrasChave: string[], limite: number, pagina: number): Promise<Vaga[]> {
+    const skip = (pagina - 1) * limite;
+
+    const dbVagas = await this.prisma.vaga.findMany({
+      where: {
+        status: 'ativa',
+        palavrasChave: {
+          hasSome: palavrasChave,
+        },
+      },
+      skip,
+      take: limite,
+      orderBy: { dataCriacao: 'desc' },
     });
+
+    return dbVagas.map((v) => this.mapToDomain(v)!);
   }
 
   async buscarPorRecrutador(recrutadorId: string, limite: number, pagina: number): Promise<{ total: number; vagas: Vaga[] }> {
@@ -174,6 +187,10 @@ export class PrismaVagaRepository implements VagaRepository {
           link: vaga.link,
         },
       });
+
+      this.cache.deleteByPrefix('vagas:listar:');
+      this.cache.delete(`vaga:detalhes:${id}`);
+
       return this.mapToDomain(dbVaga)!;
     });
   }
@@ -183,6 +200,10 @@ export class PrismaVagaRepository implements VagaRepository {
       const result = await tx.vaga.delete({
         where: { id },
       });
+
+      this.cache.deleteByPrefix('vagas:listar:');
+      this.cache.delete(`vaga:detalhes:${id}`);
+
       return !!result;
     });
   }

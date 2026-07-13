@@ -8,11 +8,13 @@ import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { PrismaVagaRepository } from '../../infrastructure/database/repositories/prisma-vaga.repository';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
 import { PrismaMatchingRepository } from '../../infrastructure/database/repositories/prisma-matching.repository';
+import { InMemoryCacheService } from '../../infrastructure/cache/in-memory-cache.service';
 
-@Global() // Torna o DatabaseModule global para que o PrismaService e Repositórios fiquem disponíveis em toda a aplicação
+@Global()
 @Module({
   providers: [
     PrismaService,
+    InMemoryCacheService,
     {
       provide: UsuarioRepository,
       useClass: PrismaUsuarioRepository,
@@ -28,6 +30,7 @@ import { PrismaMatchingRepository } from '../../infrastructure/database/reposito
   ],
   exports: [
     PrismaService,
+    InMemoryCacheService,
     UsuarioRepository,
     VagaRepository,
     MatchingRepository,

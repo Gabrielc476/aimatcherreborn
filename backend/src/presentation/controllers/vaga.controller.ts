@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, NotFoundException, UnauthorizedException, BadRequestException, ForbiddenException, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, NotFoundException, UnauthorizedException, BadRequestException, ForbiddenException, UseInterceptors, UploadedFiles, Logger, Headers } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AnalisarVagaUseCase } from '../../domain/use-cases/analisar-vaga.use-case';
 import { ProcessarCurriculoRecrutadorUseCase } from '../../domain/use-cases/processar-curriculo-recrutador.use-case';
@@ -10,6 +10,8 @@ import { PrismaService } from '../../infrastructure/database/prisma.service';
 
 @Controller('vaga')
 export class VagaController {
+  private readonly logger = new Logger(VagaController.name);
+
   constructor(
     private readonly analisarVagaUseCase: AnalisarVagaUseCase,
     private readonly processarCurriculoRecrutadorUseCase: ProcessarCurriculoRecrutadorUseCase,

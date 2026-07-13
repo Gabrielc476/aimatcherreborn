@@ -40,7 +40,7 @@ export class LibPdfService implements PDFService {
         }
 
         const ai = new GoogleGenAI({ apiKey });
-        const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const modelName = 'gemma-4-12b-it';
 
         let response;
         const ocrPayload = {
@@ -62,15 +62,11 @@ export class LibPdfService implements PDFService {
           });
         } catch (primaryError: any) {
           const fallbackModel = 'gemini-3.1-flash-lite';
-          if (modelName !== fallbackModel) {
-            this.logger.warn(`Erro no OCR com modelo principal '${modelName}'. Tentando fallback com '${fallbackModel}'... Erro: ${primaryError.message || primaryError}`);
-            response = await ai.models.generateContent({
-              model: fallbackModel,
-              ...ocrPayload
-            });
-          } else {
-            throw primaryError;
-          }
+          this.logger.warn(`Erro no OCR com modelo principal '${modelName}'. Tentando fallback com '${fallbackModel}'... Erro: ${primaryError.message || primaryError}`);
+          response = await ai.models.generateContent({
+            model: fallbackModel,
+            ...ocrPayload
+          });
         }
 
         const ocrText = response.text || '';

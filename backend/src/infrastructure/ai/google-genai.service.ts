@@ -1,6 +1,6 @@
 // src/infrastructure/ai/google-genai.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { AIService } from '../../domain/services/ai.service';
 import { DetalhesMatching } from '../../domain/entities/matching.entity';
@@ -11,6 +11,7 @@ export class GoogleGenAIService implements AIService {
   private ai: GoogleGenAI;
   private readonly modelName: string;
   private readonly isThinking: boolean;
+  private readonly logger = new Logger(GoogleGenAIService.name);
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -18,7 +19,7 @@ export class GoogleGenAIService implements AIService {
     this.isThinking = this.modelName.includes('thinking');
 
     if (!apiKey) {
-      console.warn('GEMINI_API_KEY não configurada no arquivo .env. O serviço de IA não funcionará.');
+      this.logger.warn('GEMINI_API_KEY não configurada no arquivo .env. O serviço de IA não funcionará.');
       return;
     }
 
@@ -48,10 +49,37 @@ export class GoogleGenAIService implements AIService {
 
   async extrairDadosCurriculo(textoCurriculo: string): Promise<any> {
     this.checkClientInitialized();
-    console.log(textoCurriculo)
+    this.logger.log(`Iniciando extração de dados do currículo. Tamanho do texto: ${textoCurriculo.length} caracteres.`);
 
-    const systemInstruction = `Você é um sistema especializado em extração e estruturação de dados de currículos. 
-Sua tarefa é extrair as informações do texto do currículo fornecido e organizá-las no formato JSON especificado.
+    // ETAPA 1: ANÁLISE SEMÂNTICA (gemma-4-31b-it - Modelo Denso Principal)
+    const analysisSystemInstruction = 'Você é um analista especialista em recrutamento técnico. Sua tarefa é analisar o currículo bruto fornecido e gerar uma análise semântica e factual detalhada de todas as informações profissionais.';
+    const analysisPrompt = `Por favor, faça uma análise detalhada do seguinte currículo bruto. Extraia e resuma com precisão:
+1. Nome completo, telefone, e-mail, redes sociais, data de nascimento e localização.
+2. Perfil profissional e resumo da carreira.
+3. Cada uma das experiências profissionais (empresa, cargo, datas de início e fim, tecnologias reais utilizadas, e principais realizações).
+4. Formação acadêmica (instituição, curso, grau e período).
+5. Habilidades técnicas listadas e anos de experiência em cada uma.
+6. Certificações e idiomas.
+Retorne esta análise estruturada em formato de texto Markdown rico.
+
+TEXTO DO CURRÍCULO:
+${textoCurriculo}`;
+
+    const analysisResponse = await this.generateContentWithFallback({
+      contents: analysisPrompt,
+      config: this.buildConfig(analysisSystemInstruction)
+    });
+
+    const analiseTextual = analysisResponse.text || '';
+    if (!analiseTextual) {
+      throw new Error('A IA retornou uma resposta vazia ao processar o currículo na etapa de análise.');
+    }
+
+    // ETAPA 2: ESTRUTURAÇÃO JSON (gemma-4-26b-a4b-it - Modelo MoE Rápido)
+    const structuringModel = 'gemma-4-26b-a4b-it';
+    const isGemmaStruct = structuringModel.toLowerCase().includes('gemma');
+
+    const structuringSystemInstruction = `Você é um tradutor de dados de texto para JSON. Sua tarefa é mapear a análise detalhada do currículo fornecida em um JSON estrito que segue exatamente a estrutura solicitada.
 
 Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados:
 1. Para cada habilidade em 'habilidades_tecnicas', calcule o campo 'anos_experiencia' de forma lógica: identifique todas as experiências profissionais ('experiencias') onde o candidato utilizou aquela tecnologia/ferramenta e some as durações dessas experiências. Se houver sobreposição de períodos, compute a duração da sobreposição apenas uma vez. Não chute valores aleatórios.
@@ -61,9 +89,7 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
 5. Seja preciso e extraia o que está escrito. Não invente informações fictícias.
 6. Identifique projetos pessoais, acadêmicos ou open source relevantes citados no currículo que não estejam atrelados diretamente a uma experiência profissional, extraindo o nome, descrição, tecnologias utilizadas e link/URL se disponíveis no array 'projetos'.`;
 
-    const prompt = `Extraia os dados do seguinte currículo:\n\n${textoCurriculo}`;
-
-    // Schema para validação do retorno do currículo
+    // Schema para validação do retorno do currículo (usado se não for Gemma)
     const cvSchema: Schema = {
       type: Type.OBJECT,
       properties: {
@@ -188,21 +214,44 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
       required: ['nome_completo', 'email', 'habilidades_tecnicas']
     };
 
-    const isGemma = this.modelName.toLowerCase().includes('gemma');
-    let activeInstruction = systemInstruction;
-    if (isGemma) {
+    let activeInstruction = structuringSystemInstruction;
+    if (isGemmaStruct) {
       activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
 {
   "nome_completo": "string",
   "email": "string",
   "telefone": "string",
-  "localizacao": {
-    "cidade": "string",
-    "estado": "string",
-    "pais": "string"
+  "data_nascimento": "YYYY-MM-DD",
+  "perfil": {
+    "titulo": "string",
+    "resumo_profissional": "string",
+    "anos_experiencia": 0,
+    "pretensao_salarial": 0,
+    "disponibilidade": "string"
   },
-  "sobre": "string",
-  "objetivo_profissional": "string",
+  "experiencias": [
+    {
+      "empresa": "string",
+      "cargo": "string",
+      "descricao": "string",
+      "data_inicio": "YYYY-MM",
+      "data_fim": "YYYY-MM",
+      "atual": false,
+      "tecnologias_utilizadas": ["string"],
+      "principais_realizacoes": ["string"]
+    }
+  ],
+  "formacao": [
+    {
+      "instituicao": "string",
+      "curso": "string",
+      "grau": "string",
+      "area": "string",
+      "data_inicio": "YYYY-MM",
+      "data_fim": "YYYY-MM",
+      "concluido": false
+    }
+  ],
   "habilidades_tecnicas": [
     {
       "nome": "string",
@@ -210,36 +259,28 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
       "anos_experiencia": 0
     }
   ],
-  "habilidades_comportamentais": ["string"],
-  "experiencia_profissional": [
+  "certificacoes": [
     {
-      "empresa": "string",
-      "cargo": "string",
-      "periodo": "string",
-      "atividades": "string",
-      "tecnologias": ["string"],
-      "atual": false
-    }
-  ],
-  "formacao_academica": [
-    {
-      "instituicao": "string",
-      "curso": "string",
-      "nivel": "string",
-      "status": "string",
-      "ano_conclusao": 0
+      "nome": "string",
+      "emissor": "string",
+      "data_obtencao": "YYYY-MM-DD",
+      "data_validade": "YYYY-MM-DD",
+      "codigo_validacao": "string"
     }
   ],
   "idiomas": [
     {
-      "idioma": "string",
-      "nivel": "string"
+      "nome": "string",
+      "nivel_leitura": "string",
+      "nivel_escrita": "string",
+      "nivel_conversacao": "string"
     }
   ],
-  "dados_complementares": {
-    "pretensao_salarial": 0,
-    "disponibilidade_inicio": "string",
-    "modelo_trabalho_preferido": "string",
+  "preferencias": {
+    "modalidades": ["REMOTO", "HIBRIDO", "PRESENCIAL"],
+    "cidades_interesse": ["string"],
+    "cargos_interesse": ["string"],
+    "tipo_contrato": ["string"],
     "disponibilidade_mudanca": false
   },
   "projetos": [
@@ -254,16 +295,22 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
 }`;
     }
 
-    const response = await this.generateContentWithFallback({
-      contents: prompt,
-      config: this.buildConfig(activeInstruction, isGemma ? undefined : cvSchema)
+    const structPrompt = `Com base na análise textual detalhada do currículo a seguir, preencha exatamente a estrutura JSON especificada nas instruções do sistema.
+
+ANÁLISE DO CURRÍCULO:
+${analiseTextual}`;
+
+    const structResponse = await this.generateContentWithFallback({
+      model: structuringModel,
+      contents: structPrompt,
+      config: this.buildConfig(activeInstruction, isGemmaStruct ? undefined : cvSchema)
     });
 
-    if (!response.text) {
-      throw new Error('A IA retornou uma resposta vazia ao processar o currículo.');
+    if (!structResponse.text) {
+      throw new Error('A IA retornou uma resposta vazia ao estruturar o currículo.');
     }
 
-    return JSON.parse(this.cleanJsonResponse(response.text));
+    return JSON.parse(this.cleanJsonResponse(structResponse.text));
   }
 
   async extrairEstruturaVaga(textoVaga: string): Promise<Partial<RequisitosVaga> & any> {
@@ -414,17 +461,17 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
   async analisarCompatibilidade(dadosCurriculo: any, dadosVaga: any, scoresSuporte?: any): Promise<DetalhesMatching & { score: number }> {
     this.checkClientInitialized();
 
-    const systemInstruction = `Você é um especialista em recrutamento e seleção de pessoas (Tech Recruiter). 
+    // ETAPA 1: ANÁLISE QUALITATIVA DE COMPATIBILIDADE (gemma-4-31b-it - Modelo Denso Principal)
+    const analysisSystemInstruction = `Você é um especialista em recrutamento e seleção de pessoas (Tech Recruiter). 
 Sua tarefa é analisar detalhadamente a compatibilidade entre o perfil estruturado de um candidato (currículo) e os requisitos estruturados de uma vaga de emprego.
-Use raciocínio lógico profundo para avaliar cada item. Atribua um score geral de 0 a 100, um score de ATS de 0 a 100, um score de Recrutador de 0 a 100 e scores para cada categoria.
-Você deve retornar o relatório completo em formato JSON estrito conforme o esquema fornecido.`;
+Use raciocínio lógico profundo para avaliar cada item. Atribua notas de 0 a 100 e justificativas qualitativas detalhadas para as categorias e scores de ATS e Recrutador.`;
 
-    let prompt = `Analise a compatibilidade entre este candidato e esta vaga:
+    let analysisPrompt = `Analise a compatibilidade entre este candidato e esta vaga:
 Candidato: ${JSON.stringify(dadosCurriculo)}
 Vaga: ${JSON.stringify(dadosVaga)}`;
 
     if (scoresSuporte) {
-      prompt += `\n\nScores de Suporte pré-calculados pelo algoritmo determinístico do backend para sua assistência:
+      analysisPrompt += `\n\nScores de Suporte pré-calculados pelo algoritmo determinístico do backend para sua assistência:
 ${JSON.stringify(scoresSuporte)}
 
 Instruções para uso dos Scores de Suporte:
@@ -432,6 +479,30 @@ Instruções para uso dos Scores de Suporte:
 2. Você tem total liberdade para refinar semanticamente essas notas de ATS para cima ou para baixo (ex: se o candidato não tem a palavra exata 'SQL' na habilidade calculada pelo algoritmo, mas possui 'PostgreSQL' ou 'MySQL', você pode ajustar o 'skillScore' positivamente no 'atsBreakdown' e refletir no 'atsScore' final). Justifique esse refinamento na análise qualitativa da categoria correspondente.
 3. Calcule o "recruiterScore" (e seu "recruiterBreakdown") com base na avaliação qualitativa clássica de recrutamento humano (velocidade de progressão de carreira, relevância de realizações/projetos, soft skills e facilidade de transição tecnológica/stack correlato).`;
     }
+
+    analysisPrompt += `\n\nPor favor, retorne sua análise detalhada em formato Markdown rico contendo as seguintes seções:
+1. Score Geral, Score ATS e Score de Recrutador.
+2. Análise detalhada por categoria (Habilidades Técnicas, Experiência, Formação, Idiomas, Localização e Disponibilidade, Soft Skills e Cultura). Para cada categoria, forneça uma nota de 0 a 100, um peso de relevância (0 a 1), uma análise qualitativa e o nível de relevância. Indique também itens específicos como correspondentes/faltantes/excedentes de competências, áreas correspondentes/faltantes, proficiência de idiomas, e compatibilidade geográfica.
+3. Diferenciais (Pontos Fortes, Pontos Fracos, Vantagens Competitivas).
+4. Recomendações (Gerais, Habilidades Técnicas, Experiência, Formação, Desenvolvimento, Abordagem em Entrevista, e Prioridades de Ação).
+5. Compatibilidade Cultural e Probabilidade de Sucesso (com scores correspondentes e justificativas).
+6. Meta-Análise (Confiabilidade de 0 a 1, Fatores Incertos, Potencial de Desenvolvimento de 0 a 1, Observações).`;
+
+    const analysisResponse = await this.generateContentWithFallback({
+      contents: analysisPrompt,
+      config: this.buildConfig(analysisSystemInstruction)
+    });
+
+    const analiseTextual = analysisResponse.text || '';
+    if (!analiseTextual) {
+      throw new Error('A IA retornou uma resposta vazia na etapa de análise de compatibilidade.');
+    }
+
+    // ETAPA 2: ESTRUTURAÇÃO DO JSON DE MATCHING (gemma-4-26b-a4b-it - Modelo MoE Rápido)
+    const structuringModel = 'gemma-4-26b-a4b-it';
+    const isGemmaStruct = structuringModel.toLowerCase().includes('gemma');
+
+    const structuringSystemInstruction = `Você é um tradutor de dados de texto para JSON. Sua tarefa é mapear a análise detalhada de compatibilidade fornecida em um JSON estrito que segue exatamente a estrutura solicitada.`;
 
     const categoriaSchema = (extraProps: Record<string, Schema> = {}): Schema => ({
       type: Type.OBJECT,
@@ -560,9 +631,8 @@ Instruções para uso dos Scores de Suporte:
       required: ['score', 'atsScore', 'recruiterScore', 'atsBreakdown', 'recruiterBreakdown', 'categorias', 'resumoCandidato', 'resumoVaga', 'diferenciais', 'recomendacoes', 'compatibilidadeCultural', 'probabilidadeSucesso', 'metaAnalise']
     };
 
-    const isGemma = this.modelName.toLowerCase().includes('gemma');
-    let activeInstruction = systemInstruction;
-    if (isGemma) {
+    let activeInstruction = structuringSystemInstruction;
+    if (isGemmaStruct) {
       activeInstruction += `\nVocê deve retornar o relatório no seguinte formato JSON estrito:
 {
   "score": 0 a 100,
@@ -614,14 +684,22 @@ Instruções para uso dos Scores de Suporte:
 }`;
     }
 
-    const config = this.buildConfig(activeInstruction, isGemma ? undefined : matchingSchema);
+    const structPrompt = `Com base na análise de compatibilidade a seguir, preencha exatamente a estrutura JSON especificada nas instruções do sistema.
 
-    const response = await this.generateContentWithFallback({
-      contents: prompt,
-      config
+ANÁLISE DE COMPATIBILIDADE:
+${analiseTextual}`;
+
+    const structResponse = await this.generateContentWithFallback({
+      model: structuringModel,
+      contents: structPrompt,
+      config: this.buildConfig(activeInstruction, isGemmaStruct ? undefined : matchingSchema)
     });
 
-    const parsedResult = JSON.parse(this.cleanJsonResponse(response.text));
+    if (!structResponse.text) {
+      throw new Error('A IA retornou uma resposta vazia ao estruturar a análise de compatibilidade.');
+    }
+
+    const parsedResult = JSON.parse(this.cleanJsonResponse(structResponse.text));
 
     return {
       categorias: parsedResult.categorias,
@@ -632,9 +710,9 @@ Instruções para uso dos Scores de Suporte:
       compatibilidadeCultural: parsedResult.compatibilidadeCultural,
       probabilidadeSucesso: parsedResult.probabilidadeSucesso,
       metaAnalise: parsedResult.metaAnalise,
-      score: parsedResult.score,
-      atsScore: parsedResult.atsScore,
-      recruiterScore: parsedResult.recruiterScore,
+      score: parsedResult.score !== undefined ? Number(parsedResult.score) : 0,
+      atsScore: parsedResult.atsScore !== undefined ? Number(parsedResult.atsScore) : 0,
+      recruiterScore: parsedResult.recruiterScore !== undefined ? Number(parsedResult.recruiterScore) : 0,
       atsBreakdown: parsedResult.atsBreakdown,
       recruiterBreakdown: parsedResult.recruiterBreakdown,
     } as any;
@@ -689,25 +767,53 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     return res.resumo || '';
   }
 
-  private async generateContentWithFallback(params: { contents: any; config?: any }): Promise<any> {
+  private async generateContentWithFallback(params: { contents: any; config?: any; model?: string }): Promise<any> {
+    const targetModel = params.model || this.modelName;
+    const startTime = Date.now();
+    const memBefore = process.memoryUsage().heapUsed;
+
+    this.logger.log(`[AI Call] Iniciando chamada com modelo '${targetModel}'. Tamanho do prompt: ${JSON.stringify(params.contents).length} caracteres.`);
+
     try {
-      return await this.callWithRetry(() => this.ai.models.generateContent({
-        model: this.modelName,
+      const response = await this.callWithRetry(() => this.ai.models.generateContent({
+        model: targetModel,
         contents: params.contents,
         config: params.config
       }));
+
+      const duration = Date.now() - startTime;
+      const memAfter = process.memoryUsage().heapUsed;
+      const diffMB = Math.round((memAfter - memBefore) / 1024 / 1024);
+      const diffSign = diffMB >= 0 ? `+${diffMB}` : `${diffMB}`;
+      
+      this.logger.log(
+        `[AI Call Success] Modelo '${targetModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB (${diffSign}MB)`
+      );
+      
+      return response;
     } catch (primaryError: any) {
       const fallbackModel = 'gemini-3.1-flash-lite';
-      if (this.modelName !== fallbackModel) {
-        console.warn(`Erro no modelo principal '${this.modelName}'. Tentando fallback com '${fallbackModel}'... Erro:`, primaryError.message || primaryError);
+      if (targetModel !== fallbackModel) {
+        this.logger.warn(
+          `[AI Call Fallback] Erro no modelo principal '${targetModel}'. Tentando fallback com '${fallbackModel}'... Erro: ${primaryError.message || primaryError}`
+        );
         try {
-          return await this.callWithRetry(() => this.ai.models.generateContent({
+          const response = await this.callWithRetry(() => this.ai.models.generateContent({
             model: fallbackModel,
             contents: params.contents,
             config: params.config
           }));
+
+          const duration = Date.now() - startTime;
+          const memAfter = process.memoryUsage().heapUsed;
+          this.logger.log(
+            `[AI Call Success - Fallback] Modelo '${fallbackModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB`
+          );
+          return response;
         } catch (fallbackError: any) {
-          console.error(`Erro também no modelo de fallback '${fallbackModel}':`, fallbackError.message || fallbackError);
+          this.logger.error(
+            `[AI Call CRITICAL ERROR] Erro também no modelo de fallback '${fallbackModel}': ${fallbackError.message || fallbackError}`
+          );
           throw fallbackError;
         }
       }
@@ -735,7 +841,9 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
         );
 
       if (isTransient) {
-        console.warn(`Gemini API returned a transient error. Retrying in ${delay}ms... (${retries} retries left). Error:`, error);
+        this.logger.warn(
+          `[AI Call Throttled] Erro transiente na API do Gemini. Retentando em ${delay}ms (${retries} retentativas restantes). Erro: ${error.message || error}`
+        );
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.callWithRetry(fn, retries - 1, delay * 2);
       }
