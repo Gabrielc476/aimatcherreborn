@@ -14,4 +14,4 @@ import { LibPdfService } from '../../infrastructure/pdf/pdf-parse.service';
   ],
   exports: [PDFService],
 })
-export class PDFModule { }
+export class PDFModule {}

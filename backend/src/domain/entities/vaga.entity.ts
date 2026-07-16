@@ -45,6 +45,7 @@ export class Vaga {
     public requisitos?: RequisitosVaga,
     public palavrasChave: string[] = [],
     public link?: string,
+    public etapas?: any,
   ) {}
 
   public encerrar(): void {

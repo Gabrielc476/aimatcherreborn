@@ -22,16 +22,26 @@ export class ScraperExecutionService {
   /**
    * Executa o script Python do scraper como um processo filho (child_process).
    */
-  public async executeScraper(engine: string, query: string, limit: number): Promise<boolean> {
+  public async executeScraper(
+    engine: string,
+    query: string,
+    limit: number,
+  ): Promise<boolean> {
     if (this.isRunning) {
-      this.logger.warn('O Scraper já está rodando em segundo plano. Abortando nova chamada.');
+      this.logger.warn(
+        'O Scraper já está rodando em segundo plano. Abortando nova chamada.',
+      );
       return false;
     }
 
-    const scraperPath = this.configService.get<string>('SCRAPER_PATH') || path.resolve(__dirname, '../../../../scraper');
+    const scraperPath =
+      this.configService.get<string>('SCRAPER_PATH') ||
+      path.resolve(__dirname, '../../../../scraper');
     const scraperToken = this.configService.get<string>('SCRAPER_API_TOKEN');
 
-    this.logger.log(`Iniciando execução do Scraper para engine=${engine}, query="${query}", limit=${limit}`);
+    this.logger.log(
+      `Iniciando execução do Scraper para engine=${engine}, query="${query}", limit=${limit}`,
+    );
     this.isRunning = true;
 
     return new Promise((resolve) => {
@@ -44,9 +54,12 @@ export class ScraperExecutionService {
 
       const args = [
         'main.py',
-        '--engine', engine,
-        '--query', query,
-        '--limit', limit.toString()
+        '--engine',
+        engine,
+        '--query',
+        query,
+        '--limit',
+        limit.toString(),
       ];
 
       // No Windows, a execução pode exigir shell, mas para python direto costuma funcionar sem shell
@@ -83,7 +96,9 @@ export class ScraperExecutionService {
 
       child.on('error', (err) => {
         this.isRunning = false;
-        this.logger.error(`Falha ao disparar o subprocesso Python: ${err.message}`);
+        this.logger.error(
+          `Falha ao disparar o subprocesso Python: ${err.message}`,
+        );
         resolve(false);
       });
     });

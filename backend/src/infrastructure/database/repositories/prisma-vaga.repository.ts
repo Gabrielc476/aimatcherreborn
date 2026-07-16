@@ -10,7 +10,7 @@ import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 @Injectable()
 export class PrismaVagaRepository implements VagaRepository {
   private readonly logger = new Logger(PrismaVagaRepository.name);
-  
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: InMemoryCacheService,
@@ -37,6 +37,7 @@ export class PrismaVagaRepository implements VagaRepository {
       dbVaga.requisitos ? (dbVaga.requisitos as RequisitosVaga) : undefined,
       dbVaga.palavrasChave,
       dbVaga.link || undefined,
+      dbVaga.etapas || undefined,
     );
   }
 
@@ -58,6 +59,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMin: vaga.salarioMin,
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
+          etapas: vaga.etapas || undefined,
           palavrasChave: vaga.palavrasChave,
           link: vaga.link,
         },
@@ -76,6 +78,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMin: vaga.salarioMin,
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
+          etapas: vaga.etapas || undefined,
           palavrasChave: vaga.palavrasChave,
           link: vaga.link,
           dataCriacao: vaga.dataCriacao,
@@ -102,7 +105,10 @@ export class PrismaVagaRepository implements VagaRepository {
     return result;
   }
 
-  async listarAtivas(limite: number, pagina: number): Promise<{ total: number; vagas: Vaga[] }> {
+  async listarAtivas(
+    limite: number,
+    pagina: number,
+  ): Promise<{ total: number; vagas: Vaga[] }> {
     const cacheKey = `vagas:listar:pag:${pagina}:lim:${limite}`;
     const cached = this.cache.get<{ total: number; vagas: Vaga[] }>(cacheKey);
     if (cached) return cached;
@@ -127,7 +133,11 @@ export class PrismaVagaRepository implements VagaRepository {
     return result;
   }
 
-  async buscarPorPalavrasChave(palavrasChave: string[], limite: number, pagina: number): Promise<Vaga[]> {
+  async buscarPorPalavrasChave(
+    palavrasChave: string[],
+    limite: number,
+    pagina: number,
+  ): Promise<Vaga[]> {
     const skip = (pagina - 1) * limite;
 
     const dbVagas = await this.prisma.vaga.findMany({
@@ -145,7 +155,11 @@ export class PrismaVagaRepository implements VagaRepository {
     return dbVagas.map((v) => this.mapToDomain(v)!);
   }
 
-  async buscarPorRecrutador(recrutadorId: string, limite: number, pagina: number): Promise<{ total: number; vagas: Vaga[] }> {
+  async buscarPorRecrutador(
+    recrutadorId: string,
+    limite: number,
+    pagina: number,
+  ): Promise<{ total: number; vagas: Vaga[] }> {
     return this.prisma.runWithRLS(async (tx) => {
       const skip = (pagina - 1) * limite;
 
@@ -183,6 +197,7 @@ export class PrismaVagaRepository implements VagaRepository {
           salarioMin: vaga.salarioMin,
           salarioMax: vaga.salarioMax,
           requisitos: (vaga.requisitos as any) || undefined,
+          etapas: vaga.etapas || undefined,
           palavrasChave: vaga.palavrasChave,
           link: vaga.link,
         },
@@ -205,6 +220,35 @@ export class PrismaVagaRepository implements VagaRepository {
       this.cache.delete(`vaga:detalhes:${id}`);
 
       return !!result;
+    });
+  }
+
+  async expirarVagasAntigas(
+    recrutadorId: string,
+    dataLimite: Date,
+  ): Promise<number> {
+    return this.prisma.runWithRLS(async (tx) => {
+      const result = await tx.vaga.updateMany({
+        where: {
+          recrutadorId,
+          status: 'ativa',
+          dataCriacao: {
+            lt: dataLimite,
+          },
+        },
+        data: {
+          status: 'encerrada',
+        },
+      });
+
+      if (result.count > 0) {
+        this.cache.deleteByPrefix('vagas:listar:');
+        this.logger.log(
+          `Expiradas/encerradas ${result.count} vagas antigas para o recrutador ${recrutadorId}.`,
+        );
+      }
+
+      return result.count;
     });
   }
 }

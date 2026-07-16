@@ -3,9 +3,10 @@
  * Interface for resume upload response
  */
 export interface ResumeUploadResponse {
+  jobId?: string;
   mensagem: string;
-  nomeArquivo: string;
-  dadosExtraidos: {
+  nomeArquivo?: string;
+  dadosExtraidos?: {
     nome: string;
     email: string;
     perfil: string;

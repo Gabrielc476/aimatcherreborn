@@ -137,7 +137,7 @@ export class RecruiterVagasApi {
   public static async enviarCurriculosLote(
     vagaId: string,
     files: File[]
-  ): Promise<ApiResponse<{ totalProcessados: number; sucessos: any[]; falhas: any[] }>> {
+  ): Promise<ApiResponse<{ jobId?: string; totalProcessados: number; sucessos?: any[]; falhas?: any[] }>> {
     try {
       const formData = new FormData();
       files.forEach((file) => {
@@ -145,16 +145,17 @@ export class RecruiterVagasApi {
       });
 
       const response = await apiClient.post<{
+        jobId?: string;
         totalProcessados: number;
-        sucessos: any[];
-        falhas: any[];
+        sucessos?: any[];
+        falhas?: any[];
       }>(`/vaga/${vagaId}/candidatos/lote`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      if (response.status === 200 && response.data) {
+      if ((response.status === 200 || response.status === 202) && response.data) {
         return {
           data: response.data,
           status: response.status,
@@ -243,6 +244,110 @@ export class RecruiterVagasApi {
           error instanceof Error
             ? error.message
             : "Erro desconhecido ao obter URL do currículo",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Update a vacancy's configuration (e.g. custom stages)
+   */
+  public static async atualizarVaga(
+    vagaId: string,
+    vagaData: any
+  ): Promise<ApiResponse<{ vaga: Job }>> {
+    try {
+      const response = await apiClient.patch<{ vaga: Job }>(
+        `/vaga/${vagaId}`,
+        vagaData
+      );
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao atualizar vaga",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error updating vacancy:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao atualizar vaga",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Update matching/candidacy status/stage for a vacancy
+   */
+  public static async atualizarStatusMatching(
+    usuarioId: string,
+    vagaId: string,
+    status: string
+  ): Promise<ApiResponse<{ matching: any }>> {
+    try {
+      const response = await apiClient.put<{ matching: any }>(
+        `/matching/${usuarioId}/${vagaId}/status`,
+        { status }
+      );
+
+      if (response.status === 200 && response.data) {
+        return {
+          data: response.data,
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao atualizar status do candidato",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error updating candidate status:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao atualizar status",
+        status: 500,
+      };
+    }
+  }
+
+  /**
+   * Delete a vacancy
+   */
+  public static async excluirVaga(
+    vagaId: string
+  ): Promise<ApiResponse<void>> {
+    try {
+      const response = await apiClient.delete<void>(`/vaga/${vagaId}`);
+
+      if (response.status === 200) {
+        return {
+          status: response.status,
+        };
+      } else {
+        return {
+          erro: response.erro || "Erro ao excluir vaga",
+          status: response.status,
+        };
+      }
+    } catch (error) {
+      console.error("Error deleting vacancy:", error);
+      return {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao excluir vaga",
         status: 500,
       };
     }

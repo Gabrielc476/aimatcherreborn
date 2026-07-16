@@ -1,4 +1,10 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
@@ -10,7 +16,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest();
     const { method, url, ip } = request;
-    
+
     // Ignora requisições de healthcheck para evitar poluição de logs
     const userAgent = request.headers['user-agent']?.toLowerCase() || '';
     if (
@@ -40,7 +46,7 @@ export class LoggingInterceptor implements NestInterceptor {
           const diffSign = diffMB >= 0 ? `+${diffMB}` : `${diffMB}`;
 
           const logMsg = `${method} ${url} ${statusCode} - ${duration}ms | Heap: ${heapAfterMB}MB (${diffSign}MB) | RSS: ${rssMB}MB | IP: ${ip}`;
-          
+
           if (duration > 5000) {
             this.logger.warn(`[SLOW ENDPOINT] ${logMsg}`);
           } else {
@@ -50,7 +56,7 @@ export class LoggingInterceptor implements NestInterceptor {
           // Alerta se a memória estiver perigosamente alta (acima de 400MB de RSS ou 380MB de Heap)
           if (rssMB > 400 || heapAfterMB > 380) {
             this.logger.error(
-              `[CRITICAL MEMORY WARNING] O container NestJS está usando ${rssMB}MB de RAM (RSS) e ${heapAfterMB}MB de Heap. Limite físico é de 512MB.`
+              `[CRITICAL MEMORY WARNING] O container NestJS está usando ${rssMB}MB de RAM (RSS) e ${heapAfterMB}MB de Heap. Limite físico é de 512MB.`,
             );
           }
         },
@@ -61,10 +67,10 @@ export class LoggingInterceptor implements NestInterceptor {
           const rssMB = Math.round(memAfter.rss / 1024 / 1024);
 
           this.logger.error(
-            `[ENDPOINT ERROR] ${method} ${url} - Falha após ${duration}ms | Erro: ${err.message || err} | Heap: ${heapAfterMB}MB | RSS: ${rssMB}MB`
+            `[ENDPOINT ERROR] ${method} ${url} - Falha após ${duration}ms | Erro: ${err.message || err} | Heap: ${heapAfterMB}MB | RSS: ${rssMB}MB`,
           );
-        }
-      })
+        },
+      }),
     );
   }
 }

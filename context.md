@@ -41,6 +41,11 @@ Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real 
 *   Geração de Tokens JWT no NestJS para autenticação stateless.
 *   Passagem de credenciais seguras para o banco de dados via variáveis locais para garantir proteção de dados multi-tenant.
 
+### Processamento em Segundo Plano e SSE (Real-time Streaming)
+*   **Processamento Assíncrono com SSE**: Candidatos e recrutadores recebem feedback visual em tempo real através de conexões Server-Sent Events (SSE) `/jobs/:id/stream` no backend para uploads de currículo, lotes de recrutador e cálculo de compatibilidade.
+*   **Limitação de Concorrência e Rate-Limiting**: Aceleração controlada via variáveis `@env.docker` (`BATCH_CONCURRENCY_LIMIT` e `GEMINI_MIN_REQUEST_INTERVAL_MS`) para garantir processamento paralelo robusto sem violar o limite de 30 requisições por minuto da API do Gemini.
+*   **Manutenção de Contexto RLS**: Os jobs em segundo plano preservam a sessão e políticas RLS de banco de dados do Supabase utilizando `AsyncLocalStorage`.
+
 ### Processamento Inteligente de Currículo (IA)
 *   Extração do conteúdo de arquivos PDF.
 *   Uso do **Gemma 4** (Google Gen AI) para estruturar os dados não estruturados do currículo em entidades formais de banco de dados (experiência, formação acadêmica, competências, projetos).
@@ -52,9 +57,17 @@ Ao invés de buscar palavras-chave simples, a IA analisa a compatibilidade real 
 *   Simulador de Matching Score: cálculo temporário e comparativo de score de compatibilidade a partir do editor.
 *   Exportação de PDF de alta fidelidade e ATS-friendly através de renderização headless com Playwright e Python.
 
-### Estruturação de Vagas (IA)
+### Estruturação e Customização de Vagas (IA)
 *   Análise de descrições brutas de vagas.
 *   Estruturação automática dos requisitos mínimos, desejáveis e diferenciais da vaga via inteligência artificial.
+*   **Customização do Pipeline**: O recrutador pode personalizar detalhadamente as etapas do processo seletivo e os templates de e-mail de feedback correspondentes antes de finalizar o cadastro da vaga.
+
+### Visualização de Candidatos e Gestão de Pipeline
+*   **Substituição do Quadro Kanban**: O antigo quadro Kanban foi substituído por uma visualização em lista premium estruturada em grid responsivo que exibe os candidatos de forma limpa, eliminando sobreposições.
+*   **Avatar e Identidade**: Exibição de bolha de avatar circular com iniciais do candidato.
+*   **Seletor Dropdown de Etapa**: Um seletor `<select>` integrado em cada linha permite alterar a etapa do candidato em tempo real de forma síncrona com o pipeline configurado.
+*   **Remoção de Ações de Rejeição**: O botão "Negar" foi completamente removido do fluxo para simplificar a tomada de decisão do recrutador.
+*   **Filtro Avançado por Etapa**: Filtro superior que permite segmentar a lista por fases específicas ("Todas as Etapas" ou etapas personalizadas da vaga), tratando candidatos em triagem (pendentes) corretamente de forma unificada.
 
 ### Garimpo e Agregação de Vagas (Scraping)
 *   Serviço autônomo escrito em Python que extrai vagas de tecnologia em tempo real.
@@ -197,18 +210,23 @@ Abaixo estão os endpoints reais expostos pelo servidor backend:
 *   `POST /curriculo/simular-matching`: Simula temporariamente o score de compatibilidade de um currículo sendo editado no workspace do candidato em relação aos requisitos da vaga.
 
 ### Vaga (`/vaga`)
-*   `POST /vaga/adicionar`: Cria e analisa semântica de uma nova vaga de trabalho (requer token de recrutador).
+*   `POST /vaga/adicionar`: Cria e analisa semântica de uma nova vaga de trabalho, aceitando opcionalmente uma lista de `etapas` customizadas e templates de e-mail (requer token de recrutador).
 *   `POST /vaga/integrar-externo`: Permite a inserção direta de vagas vindas de coletores externos (protegido por token secreto `x-scraper-token`).
 *   `GET /vaga/listar`: Retorna a lista de vagas ativas (paginado).
 *   `GET /vaga/:id`: Retorna os detalhes de uma vaga específica.
+*   `DELETE /vaga/:id`: Remove uma vaga e todas as dependências associadas (requer token de recrutador).
 
 ### Matching (`/matching`)
-*   `POST /matching/analisar`: Executa a análise de compatibilidade e gera ou atualiza o score de matching (requer token).
-*   `POST /matching/recalcular/:usuarioId/:vagaId`: Força o recálculo do matching entre um candidato e vaga (requer token/admin).
+*   `POST /matching/analisar`: Registra um job em segundo plano para análise de compatibilidade e retorna o `jobId` com status `202 Accepted`.
+*   `POST /matching/recalcular/:usuarioId/:vagaId`: Registra um job em segundo plano para recálculo do matching e retorna o `jobId` com status `202 Accepted`.
 *   `GET /matching/usuario/:usuarioId`: Lista todos os matchings vinculados àquele candidato.
 *   `GET /matching/vaga/:vagaId`: Retorna os candidatos com matchings ordenados pelo score mais alto para a vaga especificada.
 *   `GET /matching/:usuarioId/:vagaId`: Obtém a ficha detalhada de matching de um par específico de candidato e vaga.
 *   `DELETE /matching/:usuarioId/:vagaId`: Remove um matching existente.
+
+### Jobs (`/jobs`)
+*   `GET /jobs/:id/stream`: Canal de streaming (Server-Sent Events) para acompanhamento em tempo real de status, passos e progresso de um job específico.
+*   `GET /jobs/vaga/:vagaId`: Retorna o histórico de jobs de processamento de lotes vinculados a uma vaga.
 
 ### Scraper (`/scraper`)
 *   `POST /scraper/disparar`: Dispara de forma assíncrona o orquestrador do Web Scraper em Python a partir do backend (requer parâmetro `engine`, `query` e limite).

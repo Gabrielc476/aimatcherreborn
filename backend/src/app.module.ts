@@ -13,6 +13,7 @@ import { CurriculoModule } from './presentation/nest-modules/curriculo.module';
 import { VagaModule } from './presentation/nest-modules/vaga.module';
 import { MatchingModule } from './presentation/nest-modules/matching.module';
 import { ScraperModule } from './presentation/nest-modules/scraper.module';
+import { JobModule } from './presentation/nest-modules/job.module';
 import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
 
 @Module({
@@ -33,14 +34,13 @@ import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
     VagaModule,
     MatchingModule,
     ScraperModule,
+    JobModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Aplica o RlsMiddleware em todos os endpoints para capturar o JWT
     // e iniciar o AsyncLocalStorage para o RLS do Prisma/Postgres
-    consumer
-      .apply(RlsMiddleware)
-      .forRoutes('*');
+    consumer.apply(RlsMiddleware).forRoutes('*');
   }
 }

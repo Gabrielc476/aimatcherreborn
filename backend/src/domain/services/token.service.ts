@@ -7,6 +7,9 @@ export interface TokenPayload {
 }
 
 export abstract class TokenService {
-  abstract gerarToken(payload: TokenPayload, tempoExpiracaoHoras?: number): string;
+  abstract gerarToken(
+    payload: TokenPayload,
+    tempoExpiracaoHoras?: number,
+  ): string;
   abstract validarToken(token: string): TokenPayload | null;
 }

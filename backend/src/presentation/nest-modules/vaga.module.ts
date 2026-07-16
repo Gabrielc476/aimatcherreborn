@@ -19,7 +19,7 @@ import { MatchingModule } from './matching.module';
   providers: [
     {
       provide: AnalisarVagaUseCase,
-      useFactory: (repo: VagaRepository, ai: AIService) => 
+      useFactory: (repo: VagaRepository, ai: AIService) =>
         new AnalisarVagaUseCase(repo, ai),
       inject: [VagaRepository, AIService],
     },
@@ -33,15 +33,16 @@ import { MatchingModule } from './matching.module';
         ai: AIService,
         crypto: CryptographyService,
         executarMatching: ExecutarMatchingUseCase,
-      ) => new ProcessarCurriculoRecrutadorUseCase(
-        usuarioRepo,
-        vagaRepo,
-        pdf,
-        storage,
-        ai,
-        crypto,
-        executarMatching,
-      ),
+      ) =>
+        new ProcessarCurriculoRecrutadorUseCase(
+          usuarioRepo,
+          vagaRepo,
+          pdf,
+          storage,
+          ai,
+          crypto,
+          executarMatching,
+        ),
       inject: [
         UsuarioRepository,
         VagaRepository,

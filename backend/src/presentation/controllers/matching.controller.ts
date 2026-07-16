@@ -1,4 +1,19 @@
-import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ExecutarMatchingUseCase } from '../../domain/use-cases/executar-matching.use-case';
 import { NegarCandidaturaUseCase } from '../../domain/use-cases/negar-candidatura.use-case';
 import { MatchingRepository } from '../../domain/repositories/matching.repository';
@@ -7,6 +22,8 @@ import { UsuarioRepository } from '../../domain/repositories/usuario.repository'
 import { StorageService } from '../../domain/services/storage.service';
 import { ExecutarMatchingDto } from '../dtos/executar-matching.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JobProcessamentoRepository } from '../../domain/repositories/job-processamento.repository';
+import { PrismaService } from '../../infrastructure/database/prisma.service';
 
 @Controller('matching')
 export class MatchingController {
@@ -17,6 +34,7 @@ export class MatchingController {
     private readonly vagaRepository: VagaRepository,
     private readonly usuarioRepository: UsuarioRepository,
     private readonly storageService: StorageService,
+    private readonly jobRepository: JobProcessamentoRepository,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -30,14 +48,34 @@ export class MatchingController {
       throw new ForbiddenException('Acesso não autorizado');
     }
 
-    const matching = await this.executarMatchingUseCase.execute({
-      usuarioId,
+    // 1. Cria o job com status PENDENTE
+    const job = await this.jobRepository.criar({
+      tipo: 'MATCH_CANDIDATO',
+      status: 'PENDENTE',
       vagaId: dto.vagaId,
+      usuarioId,
+      totalItens: 1,
+      passoAtual: 'inicializado',
+      mensagem: 'Iniciando análise de compatibilidade...',
+    });
+
+    // 2. Inicia o processamento em segundo plano mantendo a sessão RLS
+    PrismaService.als.run({ userId: req.user.userId }, () => {
+      Promise.resolve().then(async () => {
+        try {
+          await this.executarMatchingUseCase.execute({
+            usuarioId,
+            vagaId: dto.vagaId,
+          }, job.id);
+        } catch (err) {
+          console.error(`Erro ao rodar matching assíncrono no job ${job.id}:`, err);
+        }
+      });
     });
 
     return {
-      mensagem: 'Análise de compatibilidade realizada com sucesso',
-      matching,
+      mensagem: 'Análise de compatibilidade iniciada em segundo plano',
+      jobId: job.id,
     };
   }
 
@@ -53,14 +91,34 @@ export class MatchingController {
       throw new ForbiddenException('Acesso não autorizado');
     }
 
-    const matching = await this.executarMatchingUseCase.execute({
-      usuarioId,
+    // 1. Cria o job
+    const job = await this.jobRepository.criar({
+      tipo: 'MATCH_CANDIDATO',
+      status: 'PENDENTE',
       vagaId,
+      usuarioId,
+      totalItens: 1,
+      passoAtual: 'inicializado',
+      mensagem: 'Iniciando recalculo de compatibilidade...',
+    });
+
+    // 2. Inicia o processamento em segundo plano
+    PrismaService.als.run({ userId: req.user.userId }, () => {
+      Promise.resolve().then(async () => {
+        try {
+          await this.executarMatchingUseCase.execute({
+            usuarioId,
+            vagaId,
+          }, job.id);
+        } catch (err) {
+          console.error(`Erro ao rodar recalculo assíncrono no job ${job.id}:`, err);
+        }
+      });
     });
 
     return {
-      mensagem: 'Matching recalculado com sucesso',
-      matching,
+      mensagem: 'Recalculo de compatibilidade iniciado em segundo plano',
+      jobId: job.id,
     };
   }
 
@@ -190,7 +248,11 @@ export class MatchingController {
         matching,
       };
     } catch (error: any) {
-      if (error.message.includes('não encontrada') || error.message.includes('não encontrado') || error.message.includes('Não encontrada')) {
+      if (
+        error.message.includes('não encontrada') ||
+        error.message.includes('não encontrado') ||
+        error.message.includes('Não encontrada')
+      ) {
         throw new NotFoundException(error.message);
       }
       if (error.message.includes('Não autorizado')) {
@@ -220,8 +282,44 @@ export class MatchingController {
       throw new NotFoundException('Currículo não encontrado');
     }
 
-    const url = await this.storageService.obterUrlDownload(usuario.curriculoUrl);
+    const url = await this.storageService.obterUrlDownload(
+      usuario.curriculoUrl,
+    );
 
     return { url };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':usuarioId/:vagaId/status')
+  @HttpCode(HttpStatus.OK)
+  async atualizarStatus(
+    @Param('usuarioId') usuarioId: string,
+    @Param('vagaId') vagaId: string,
+    @Body('status') status: string,
+    @Req() req: any,
+  ) {
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+    const vaga = await this.vagaRepository.buscarPorId(vagaId);
+    if (!vaga) {
+      throw new NotFoundException('Vaga não encontrada');
+    }
+
+    const isRecrutador = vaga.recrutadorId === req.user.userId;
+    if (!isRecrutador && !req.query.admin) {
+      throw new ForbiddenException('Acesso não autorizado');
+    }
+
+    const matching = await this.matchingRepository.buscar(usuarioId, vagaId);
+    if (!matching) {
+      throw new NotFoundException('Candidatura não encontrada');
+    }
+
+    matching.status = status;
+    const matchingSalvo = await this.matchingRepository.salvar(matching);
+
+    return {
+      mensagem: 'Status da candidatura atualizado com sucesso',
+      matching: matchingSalvo,
+    };
   }
 }

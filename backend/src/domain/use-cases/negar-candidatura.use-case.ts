@@ -28,7 +28,10 @@ export class NegarCandidaturaUseCase {
       throw new Error('Não autorizado a negar candidaturas para esta vaga');
     }
 
-    const matching = await this.matchingRepository.buscar(input.usuarioId, input.vagaId);
+    const matching = await this.matchingRepository.buscar(
+      input.usuarioId,
+      input.vagaId,
+    );
     if (!matching) {
       throw new Error('Candidatura não encontrada');
     }

@@ -13,14 +13,17 @@ import { TokenService } from '../../domain/services/token.service';
   providers: [
     {
       provide: RegistrarUsuarioUseCase,
-      useFactory: (repo: UsuarioRepository, crypto: CryptographyService) => 
+      useFactory: (repo: UsuarioRepository, crypto: CryptographyService) =>
         new RegistrarUsuarioUseCase(repo, crypto),
       inject: [UsuarioRepository, CryptographyService],
     },
     {
       provide: AutenticarUsuarioUseCase,
-      useFactory: (repo: UsuarioRepository, crypto: CryptographyService, token: TokenService) => 
-        new AutenticarUsuarioUseCase(repo, crypto, token),
+      useFactory: (
+        repo: UsuarioRepository,
+        crypto: CryptographyService,
+        token: TokenService,
+      ) => new AutenticarUsuarioUseCase(repo, crypto, token),
       inject: [UsuarioRepository, CryptographyService, TokenService],
     },
   ],

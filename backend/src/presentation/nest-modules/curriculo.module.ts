@@ -12,12 +12,11 @@ import { PDFService } from '../../domain/services/pdf.service';
 import { StorageService } from '../../domain/services/storage.service';
 import { AIService } from '../../domain/services/ai.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { JobEventsService } from '../../domain/services/job-events.service';
+import { JobProcessamentoRepository } from '../../domain/repositories/job-processamento.repository';
 
 @Module({
-  controllers: [
-    CurriculoController, 
-    CurriculoOtimizadoController
-  ],
+  controllers: [CurriculoController, CurriculoOtimizadoController],
   providers: [
     PythonPdfGeneratorService,
     {
@@ -37,8 +36,17 @@ import { PrismaService } from '../../infrastructure/database/prisma.service';
         pdf: PDFService,
         storage: StorageService,
         ai: AIService,
-      ) => new ProcessarCurriculoUseCase(usuarioRepo, pdf, storage, ai),
-      inject: [UsuarioRepository, PDFService, StorageService, AIService],
+        jobRepo: JobProcessamentoRepository,
+        jobEvents: JobEventsService,
+      ) => new ProcessarCurriculoUseCase(usuarioRepo, pdf, storage, ai, jobRepo, jobEvents),
+      inject: [
+        UsuarioRepository,
+        PDFService,
+        StorageService,
+        AIService,
+        JobProcessamentoRepository,
+        JobEventsService,
+      ],
     },
   ],
 })

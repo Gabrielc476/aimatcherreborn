@@ -9,6 +9,9 @@ import { UsuarioRepository } from '../../domain/repositories/usuario.repository'
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { AIService } from '../../domain/services/ai.service';
 
+import { JobEventsService } from '../../domain/services/job-events.service';
+import { JobProcessamentoRepository } from '../../domain/repositories/job-processamento.repository';
+
 @Module({
   controllers: [MatchingController],
   providers: [
@@ -19,8 +22,17 @@ import { AIService } from '../../domain/services/ai.service';
         usuarioRepo: UsuarioRepository,
         vagaRepo: VagaRepository,
         ai: AIService,
-      ) => new ExecutarMatchingUseCase(matchingRepo, usuarioRepo, vagaRepo, ai),
-      inject: [MatchingRepository, UsuarioRepository, VagaRepository, AIService],
+        jobRepo: JobProcessamentoRepository,
+        jobEvents: JobEventsService,
+      ) => new ExecutarMatchingUseCase(matchingRepo, usuarioRepo, vagaRepo, ai, jobRepo, jobEvents),
+      inject: [
+        MatchingRepository,
+        UsuarioRepository,
+        VagaRepository,
+        AIService,
+        JobProcessamentoRepository,
+        JobEventsService,
+      ],
     },
     {
       provide: NegarCandidaturaUseCase,

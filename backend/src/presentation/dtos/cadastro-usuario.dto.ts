@@ -1,6 +1,12 @@
 // src/presentation/dtos/cadastro-usuario.dto.ts
 
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CadastroUsuarioDto {
   @IsNotEmpty({ message: 'O nome completo é obrigatório' })

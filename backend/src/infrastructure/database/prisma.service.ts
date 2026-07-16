@@ -9,13 +9,19 @@ export interface UserSession {
 }
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   // AsyncLocalStorage para armazenar o ID do usuário ativo na thread da requisição HTTP
   public static readonly als = new AsyncLocalStorage<UserSession>();
 
   constructor() {
     super({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+      log:
+        process.env.NODE_ENV === 'development'
+          ? ['query', 'info', 'warn', 'error']
+          : ['error'],
     });
   }
 
@@ -32,7 +38,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * definindo a variável de sessão 'app.current_user_id' antes de executar
    * qualquer query. Isso garante a aplicação correta do RLS (Row Level Security).
    */
-  async runWithRLS<T>(operations: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>): Promise<T> {
+  async runWithRLS<T>(
+    operations: (
+      tx: Omit<
+        PrismaClient,
+        | '$connect'
+        | '$disconnect'
+        | '$on'
+        | '$transaction'
+        | '$use'
+        | '$extends'
+      >,
+    ) => Promise<T>,
+  ): Promise<T> {
     const session = PrismaService.als.getStore();
     const userId = session?.userId;
 
@@ -41,9 +59,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     return this.$transaction(async (tx) => {
       if (userId) {
         // Define a variável de sessão 'app.current_user_id' na transação atual para que as políticas de RLS funcionem
-        await tx.$executeRawUnsafe(`SELECT set_config('app.current_user_id', '${userId}', true);`);
+        await tx.$executeRawUnsafe(
+          `SELECT set_config('app.current_user_id', '${userId}', true);`,
+        );
       } else {
-        await tx.$executeRawUnsafe(`SELECT set_config('app.current_user_id', '', true);`);
+        await tx.$executeRawUnsafe(
+          `SELECT set_config('app.current_user_id', '', true);`,
+        );
       }
       return operations(tx);
     });

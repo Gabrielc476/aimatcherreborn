@@ -12,9 +12,15 @@ export class RlsMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
     let userId = '';
+    let token = '';
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+      token = authHeader.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token as string;
+    }
+
+    if (token) {
       const payload = this.tokenService.validarToken(token);
       if (payload) {
         userId = payload.userId;

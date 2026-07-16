@@ -19,7 +19,7 @@ describe('AutenticarUsuarioUseCase', () => {
       buscarPorEmail: jest.fn(),
       atualizar: jest.fn(),
       listar: jest.fn(),
-    } as any;
+    };
 
     mockCryptographyService = {
       hash: jest.fn(),
@@ -64,8 +64,13 @@ describe('AutenticarUsuarioUseCase', () => {
     expect(resultado.usuario.id).toBe(usuario.id);
     expect(resultado.usuario.nomeCompleto).toBe(usuario.nomeCompleto);
     expect(resultado.usuario.email).toBe(usuario.email);
-    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith(input.email);
-    expect(mockCryptographyService.compare).toHaveBeenCalledWith(input.senhaPlana, 'senha_hash');
+    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith(
+      input.email,
+    );
+    expect(mockCryptographyService.compare).toHaveBeenCalledWith(
+      input.senhaPlana,
+      'senha_hash',
+    );
     expect(mockTokenService.gerarToken).toHaveBeenCalledWith({
       userId: usuario.id,
       email: usuario.email,
@@ -82,7 +87,9 @@ describe('AutenticarUsuarioUseCase', () => {
 
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(null);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Credenciais inválidas');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Credenciais inválidas',
+    );
     expect(mockCryptographyService.compare).not.toHaveBeenCalled();
   });
 
@@ -103,7 +110,9 @@ describe('AutenticarUsuarioUseCase', () => {
 
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(usuarioBloqueado);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Usuário inativo ou bloqueado');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Usuário inativo ou bloqueado',
+    );
   });
 
   it('deve lançar erro se a senha estiver incorreta', async () => {
@@ -124,6 +133,8 @@ describe('AutenticarUsuarioUseCase', () => {
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(usuario);
     mockCryptographyService.compare.mockResolvedValue(false);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Credenciais inválidas');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Credenciais inválidas',
+    );
   });
 });

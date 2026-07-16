@@ -18,4 +18,7 @@ export class AdicionarVagaDto {
   @IsOptional()
   @IsString()
   link?: string;
+
+  @IsOptional()
+  etapas?: any;
 }

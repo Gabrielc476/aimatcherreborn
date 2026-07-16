@@ -22,9 +22,9 @@ async function bootstrap() {
   // Habilita validação global de DTOs via class-validator
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,       // Remove propriedades que não estão no DTO
+      whitelist: true, // Remove propriedades que não estão no DTO
       forbidNonWhitelisted: true, // Retorna erro se propriedades não permitidas forem enviadas
-      transform: true,       // Converte os tipos dos payloads automaticamente
+      transform: true, // Converte os tipos dos payloads automaticamente
     }),
   );
 

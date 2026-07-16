@@ -2,11 +2,15 @@
 
 import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { TokenService, TokenPayload } from '../../domain/services/token.service';
+import {
+  TokenService,
+  TokenPayload,
+} from '../../domain/services/token.service';
 
 @Injectable()
 export class JwtTokenService implements TokenService {
-  private readonly secret = process.env.JWT_SECRET || 'fallback_secret_for_dev_only';
+  private readonly secret =
+    process.env.JWT_SECRET || 'fallback_secret_for_dev_only';
 
   gerarToken(payload: TokenPayload, tempoExpiracaoHoras = 24): string {
     return jwt.sign(payload, this.secret, {

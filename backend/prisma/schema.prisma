@@ -59,6 +59,7 @@ model Usuario {
   matchings            Matching[]
   vagasCriadas         Vaga[]                 @relation("RecrutadorVagas")
   curriculosOtimizados CurriculoOtimizado[]
+  jobsProcessamento    JobProcessamento[]
 
   @@map("usuarios")
 }
@@ -183,11 +184,13 @@ model Vaga {
   salarioMin     Decimal?           @map("salario_min") @db.Decimal(10, 2)
   salarioMax     Decimal?           @map("salario_max") @db.Decimal(10, 2)
   requisitos     Json?              // Estrutura de requisitos extraídos pela IA
+  etapas         Json?              // Configuração de etapas e templates de e-mail
   palavrasChave  String[]           @map("palavras_chave")
   link           String?
   dataCriacao    DateTime           @default(now()) @map("data_criacao")
   
   matchings      Matching[]
+  jobsProcessamento JobProcessamento[]
 
   @@map("vagas")
 }
@@ -225,3 +228,23 @@ model CurriculoOtimizado {
 
   @@map("curriculos_otimizados")
 }
+
+model JobProcessamento {
+  id               String   @id @default(uuid()) @db.Uuid
+  tipo             String   // 'LOTE_RECRUTADOR' ou 'CV_CANDIDATO'
+  status           String   // 'PENDENTE', 'PROCESSANDO', 'CONCLUIDO', 'ERRO'
+  passoAtual       String?  @map("passo_atual")
+  mensagem         String?
+  totalItens       Int      @default(1) @map("total_itens")
+  itensProcessados Int      @default(0) @map("itens_processados")
+  vagaId           String?  @map("vaga_id") @db.Uuid
+  vaga             Vaga?    @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+  usuarioId        String?  @map("usuario_id") @db.Uuid
+  usuario          Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  resultado        Json?
+  criadoEm         DateTime @default(now()) @map("criado_em")
+  atualizadoEm     DateTime @updatedAt @map("atualizado_em")
+
+  @@map("jobs_processamento")
+}
+

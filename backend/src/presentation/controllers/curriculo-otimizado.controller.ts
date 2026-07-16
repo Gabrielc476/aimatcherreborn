@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Body, Param, Req, UseGuards, Res, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  Res,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { IsString, IsOptional, IsUUID, IsArray } from 'class-validator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { OtimizarCurriculoUseCase } from '../../domain/use-cases/otimizar-curriculo.use-case';
@@ -86,10 +98,7 @@ export class CurriculoOtimizadoController {
 
   @Post('otimizar')
   @HttpCode(HttpStatus.CREATED)
-  async otimizar(
-    @Req() req: any,
-    @Body() dto: OtimizarCurriculoDto,
-  ) {
+  async otimizar(@Req() req: any, @Body() dto: OtimizarCurriculoDto) {
     const userId = req.user.userId;
     const resultado = await this.otimizarCurriculoUseCase.execute({
       usuarioId: userId,
@@ -107,7 +116,7 @@ export class CurriculoOtimizadoController {
     return this.prisma.runWithRLS(async (tx) => {
       const registros = await tx.curriculoOtimizado.findMany({
         where: { usuarioId: userId },
-        orderBy: { dataCriacao: 'desc' }
+        orderBy: { dataCriacao: 'desc' },
       });
       return registros;
     });
@@ -115,14 +124,11 @@ export class CurriculoOtimizadoController {
 
   @Get('otimizados/:id')
   @HttpCode(HttpStatus.OK)
-  async buscarOtimizado(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
+  async buscarOtimizado(@Req() req: any, @Param('id') id: string) {
     const userId = req.user.userId;
     const registro = await this.prisma.runWithRLS(async (tx) => {
       return tx.curriculoOtimizado.findFirst({
-        where: { id, usuarioId: userId }
+        where: { id, usuarioId: userId },
       });
     });
 
@@ -135,10 +141,7 @@ export class CurriculoOtimizadoController {
 
   @Post('simular-matching')
   @HttpCode(HttpStatus.OK)
-  async simularMatching(
-    @Req() req: any,
-    @Body() body: SimularMatchingDto,
-  ) {
+  async simularMatching(@Req() req: any, @Body() body: SimularMatchingDto) {
     const userId = req.user.userId;
 
     const vaga = await this.vagaRepository.buscarPorId(body.vagaId);
@@ -167,7 +170,10 @@ export class CurriculoOtimizadoController {
     };
 
     const analiseVaga = `Título: ${vaga.titulo}\nDescrição:\n${vaga.descricao}`;
-    const result = await this.aiService.analisarCompatibilidade(simulatedResume, analiseVaga);
+    const result = await this.aiService.analisarCompatibilidade(
+      simulatedResume,
+      analiseVaga,
+    );
 
     return {
       score: result.score || 0,
@@ -183,11 +189,11 @@ export class CurriculoOtimizadoController {
     @Res() res: any,
   ) {
     const userId = req.user.userId;
-    
+
     // 1. Fetch optimized resume
     const optCv = await this.prisma.runWithRLS(async (tx) => {
       return tx.curriculoOtimizado.findFirst({
-        where: { id, usuarioId: userId }
+        where: { id, usuarioId: userId },
       });
     });
 
@@ -220,7 +226,7 @@ export class CurriculoOtimizadoController {
     // 4. Render and generate PDF buffer
     try {
       const pdfBuffer = await this.pdfGeneratorService.renderToPdf(payload);
-      
+
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="curriculo_otimizado_${id}.pdf"`,
@@ -231,7 +237,7 @@ export class CurriculoOtimizadoController {
     } catch (err: any) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         mensagem: 'Erro ao gerar o PDF do currículo',
-        erro: err.message || err
+        erro: err.message || err,
       });
     }
   }

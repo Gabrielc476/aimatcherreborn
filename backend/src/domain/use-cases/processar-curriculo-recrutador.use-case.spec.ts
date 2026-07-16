@@ -28,7 +28,7 @@ describe('ProcessarCurriculoRecrutadorUseCase', () => {
       salvar: jest.fn(),
       atualizar: jest.fn(),
       listar: jest.fn(),
-    } as any;
+    };
 
     mockVagaRepository = {
       buscarPorId: jest.fn(),
@@ -112,14 +112,23 @@ describe('ProcessarCurriculoRecrutadorUseCase', () => {
     };
 
     mockVagaRepository.buscarPorId.mockResolvedValue(vaga);
-    mockPDFService.extrairTexto.mockResolvedValue('Texto extraido do curriculo');
+    mockPDFService.extrairTexto.mockResolvedValue(
+      'Texto extraido do curriculo',
+    );
     mockAIService.extrairDadosCurriculo.mockResolvedValue(dadosEstruturados);
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(null);
     mockCryptographyService.hash.mockResolvedValue('senha_encriptada');
     mockStorageService.uploadCurriculo.mockResolvedValue('/path/to/storage');
     mockUsuarioRepository.salvar.mockImplementation(async (user) => user);
 
-    const mockMatching = new Matching('match-id', 'candidato-id', 'vaga-uuid', 90, {} as any, new Date());
+    const mockMatching = new Matching(
+      'match-id',
+      'candidato-id',
+      'vaga-uuid',
+      90,
+      {} as any,
+      new Date(),
+    );
     mockExecutarMatchingUseCase.execute.mockResolvedValue(mockMatching);
 
     const result = await useCase.execute(input);
@@ -127,8 +136,12 @@ describe('ProcessarCurriculoRecrutadorUseCase', () => {
     expect(result).toBe(mockMatching);
     expect(mockVagaRepository.buscarPorId).toHaveBeenCalledWith('vaga-uuid');
     expect(mockPDFService.extrairTexto).toHaveBeenCalledWith(input.fileBuffer);
-    expect(mockAIService.extrairDadosCurriculo).toHaveBeenCalledWith('Texto extraido do curriculo');
-    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith('candidato@teste.com');
+    expect(mockAIService.extrairDadosCurriculo).toHaveBeenCalledWith(
+      'Texto extraido do curriculo',
+    );
+    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith(
+      'candidato@teste.com',
+    );
     expect(mockStorageService.uploadCurriculo).toHaveBeenCalled();
     expect(mockUsuarioRepository.salvar).toHaveBeenCalled();
     expect(mockExecutarMatchingUseCase.execute).toHaveBeenCalledWith({
@@ -171,7 +184,7 @@ describe('ProcessarCurriculoRecrutadorUseCase', () => {
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(existenteUser);
     mockCryptographyService.hash.mockResolvedValue('senha_hash');
     mockStorageService.uploadCurriculo.mockResolvedValue('/path');
-    
+
     let savedUser: any = null;
     mockUsuarioRepository.salvar.mockImplementation(async (user) => {
       savedUser = user;

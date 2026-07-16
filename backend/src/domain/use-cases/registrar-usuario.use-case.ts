@@ -22,7 +22,9 @@ export class RegistrarUsuarioUseCase {
 
   async execute(input: RegistrarUsuarioInput): Promise<Usuario> {
     // 1. Verifica se o usuário já existe
-    const usuarioExistente = await this.usuarioRepository.buscarPorEmail(input.email);
+    const usuarioExistente = await this.usuarioRepository.buscarPorEmail(
+      input.email,
+    );
     if (usuarioExistente) {
       throw new Error('E-mail já está em uso');
     }

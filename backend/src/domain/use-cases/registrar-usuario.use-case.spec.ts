@@ -17,14 +17,17 @@ describe('RegistrarUsuarioUseCase', () => {
       buscarPorEmail: jest.fn(),
       atualizar: jest.fn(),
       listar: jest.fn(),
-    } as any;
+    };
 
     mockCryptographyService = {
       hash: jest.fn(),
       compare: jest.fn(),
     };
 
-    useCase = new RegistrarUsuarioUseCase(mockUsuarioRepository, mockCryptographyService);
+    useCase = new RegistrarUsuarioUseCase(
+      mockUsuarioRepository,
+      mockCryptographyService,
+    );
   });
 
   it('deve cadastrar um novo usuário com sucesso', async () => {
@@ -47,7 +50,9 @@ describe('RegistrarUsuarioUseCase', () => {
     expect(resultado.senhaHash).toBe('senha_hash');
     expect(resultado.telefone).toBe(input.telefone);
     expect(resultado.status).toBe('ATIVO');
-    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith(input.email);
+    expect(mockUsuarioRepository.buscarPorEmail).toHaveBeenCalledWith(
+      input.email,
+    );
     expect(mockCryptographyService.hash).toHaveBeenCalledWith(input.senhaPlana);
     expect(mockUsuarioRepository.salvar).toHaveBeenCalled();
   });
@@ -70,7 +75,9 @@ describe('RegistrarUsuarioUseCase', () => {
 
     mockUsuarioRepository.buscarPorEmail.mockResolvedValue(usuarioExistente);
 
-    await expect(useCase.execute(input)).rejects.toThrow('E-mail já está em uso');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'E-mail já está em uso',
+    );
     expect(mockUsuarioRepository.salvar).not.toHaveBeenCalled();
   });
 });

@@ -19,19 +19,20 @@ export interface ProcessarCurriculoRecrutadorInput {
 
 function safeDate(dateStr: string | undefined): Date | undefined {
   if (!dateStr) return undefined;
-  
+
   const normalized = dateStr.replace(/\//g, '-').trim();
   const parts = normalized.split('-');
   const firstPart = parts[0]?.trim() || '';
   const secondPart = parts[1]?.trim() || '';
-  
-  const cleanStr = (
-    parts.length === 2 && 
-    firstPart.length === 4 && 
-    secondPart.length === 4 && 
-    !isNaN(Number(firstPart)) && 
+
+  const cleanStr =
+    parts.length === 2 &&
+    firstPart.length === 4 &&
+    secondPart.length === 4 &&
+    !isNaN(Number(firstPart)) &&
     !isNaN(Number(secondPart))
-  ) ? firstPart : normalized;
+      ? firstPart
+      : normalized;
 
   const date = new Date(cleanStr);
   if (isNaN(date.getTime())) {
@@ -61,16 +62,21 @@ export class ProcessarCurriculoRecrutadorUseCase {
     // 2. Extrai o texto do PDF
     const textoExtraido = await this.pdfService.extrairTexto(input.fileBuffer);
     if (!textoExtraido || !textoExtraido.trim()) {
-      throw new Error('Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.');
+      throw new Error(
+        'Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.',
+      );
     }
 
     // 3. Processa o texto com a IA para obter a estrutura JSON
-    const dadosEstruturados = await this.aiService.extrairDadosCurriculo(textoExtraido);
+    const dadosEstruturados =
+      await this.aiService.extrairDadosCurriculo(textoExtraido);
 
     // 4. Determina um e-mail único
-    let email = dadosEstruturados.email || `candidato_${randomUUID().slice(0, 8)}@aimatcher.com`;
+    let email =
+      dadosEstruturados.email ||
+      `candidato_${randomUUID().slice(0, 8)}@aimatcher.com`;
     email = email.trim().toLowerCase();
-    
+
     // Verifica se já existe um usuário com esse e-mail
     const usuarioExistente = await this.usuarioRepository.buscarPorEmail(email);
     if (usuarioExistente) {
@@ -94,8 +100,9 @@ export class ProcessarCurriculoRecrutadorUseCase {
     );
 
     // 7. Mapeia a entidade do usuário com os dados extraídos
-    const nomeCompleto = dadosEstruturados.nome_completo || input.fileName.replace(/\.pdf$/i, '');
-    
+    const nomeCompleto =
+      dadosEstruturados.nome_completo || input.fileName.replace(/\.pdf$/i, '');
+
     const novoUsuario = new Usuario(
       candidatoId,
       nomeCompleto,
@@ -104,7 +111,9 @@ export class ProcessarCurriculoRecrutadorUseCase {
       'ATIVO',
       new Date(),
       dadosEstruturados.telefone || undefined,
-      dadosEstruturados.data_nascimento ? safeDate(dadosEstruturados.data_nascimento) : undefined,
+      dadosEstruturados.data_nascimento
+        ? safeDate(dadosEstruturados.data_nascimento)
+        : undefined,
       undefined,
       undefined,
       [],
@@ -126,7 +135,9 @@ export class ProcessarCurriculoRecrutadorUseCase {
         titulo: dadosEstruturados.perfil.titulo,
         resumoProfissional: dadosEstruturados.perfil.resumo_profissional,
         anosExperiencia: Number(dadosEstruturados.perfil.anos_experiencia || 0),
-        pretensaoSalarial: dadosEstruturados.perfil.pretensao_salarial ? Number(dadosEstruturados.perfil.pretensao_salarial) : undefined,
+        pretensaoSalarial: dadosEstruturados.perfil.pretensao_salarial
+          ? Number(dadosEstruturados.perfil.pretensao_salarial)
+          : undefined,
         disponibilidade: dadosEstruturados.perfil.disponibilidade,
       };
     }
@@ -137,11 +148,15 @@ export class ProcessarCurriculoRecrutadorUseCase {
         .filter((exp: any) => exp && exp.empresa && exp.cargo)
         .map((exp: any) => {
           let descricaoCompleta = exp.descricao || '';
-          if (exp.principais_realizacoes && Array.isArray(exp.principais_realizacoes) && exp.principais_realizacoes.length > 0) {
+          if (
+            exp.principais_realizacoes &&
+            Array.isArray(exp.principais_realizacoes) &&
+            exp.principais_realizacoes.length > 0
+          ) {
             const realizacoesTexto = exp.principais_realizacoes
               .map((r: string) => `• ${r.trim()}`)
               .join('\n');
-            descricaoCompleta = descricaoCompleta 
+            descricaoCompleta = descricaoCompleta
               ? `${descricaoCompleta}\n\n**Principais Realizações:**\n${realizacoesTexto}`
               : `**Principais Realizações:**\n${realizacoesTexto}`;
           }
@@ -216,7 +231,9 @@ export class ProcessarCurriculoRecrutadorUseCase {
         cidades: dadosEstruturados.preferencias.cidades_interesse || [],
         cargos: dadosEstruturados.preferencias.cargos_interesse || [],
         tipoContrato: dadosEstruturados.preferencias.tipo_contrato || [],
-        mudanca: Boolean(dadosEstruturados.preferencias.disponibilidade_mudanca),
+        mudanca: Boolean(
+          dadosEstruturados.preferencias.disponibilidade_mudanca,
+        ),
       };
     }
 

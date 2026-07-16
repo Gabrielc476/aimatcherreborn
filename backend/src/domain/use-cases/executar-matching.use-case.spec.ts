@@ -31,7 +31,7 @@ describe('ExecutarMatchingUseCase', () => {
       salvar: jest.fn(),
       atualizar: jest.fn(),
       listar: jest.fn(),
-    } as any;
+    };
 
     mockVagaRepository = {
       buscarPorId: jest.fn(),
@@ -94,7 +94,10 @@ describe('ExecutarMatchingUseCase', () => {
       undefined,
       undefined,
       {
-        habilidadesTecnicas: [{ nome: 'NestJS', obrigatorio: true }, { nome: 'TypeScript', obrigatorio: false }],
+        habilidadesTecnicas: [
+          { nome: 'NestJS', obrigatorio: true },
+          { nome: 'TypeScript', obrigatorio: false },
+        ],
         habilidadesComportamentais: [],
         idiomas: [],
         experiencia: { tempoMinimo: 3, areas: [] },
@@ -112,8 +115,12 @@ describe('ExecutarMatchingUseCase', () => {
 
     mockUsuarioRepository.buscarPorId.mockResolvedValue(usuario);
     mockVagaRepository.buscarPorId.mockResolvedValue(vaga);
-    mockAIService.analisarCompatibilidade.mockResolvedValue(mockResultadoAnalise as any);
-    mockMatchingRepository.salvar.mockImplementation(async (matching) => matching);
+    mockAIService.analisarCompatibilidade.mockResolvedValue(
+      mockResultadoAnalise as any,
+    );
+    mockMatchingRepository.salvar.mockImplementation(
+      async (matching) => matching,
+    );
 
     const resultado = await useCase.execute(input);
 
@@ -122,7 +129,9 @@ describe('ExecutarMatchingUseCase', () => {
     expect(resultado.vagaId).toBe(input.vagaId);
     expect(resultado.score).toBe(85);
     expect(resultado.analise).toEqual(mockResultadoAnalise);
-    expect(mockUsuarioRepository.buscarPorId).toHaveBeenCalledWith(input.usuarioId);
+    expect(mockUsuarioRepository.buscarPorId).toHaveBeenCalledWith(
+      input.usuarioId,
+    );
     expect(mockVagaRepository.buscarPorId).toHaveBeenCalledWith(input.vagaId);
     expect(mockAIService.analisarCompatibilidade).toHaveBeenCalledWith(
       usuario.curriculoExtraido,
@@ -131,7 +140,8 @@ describe('ExecutarMatchingUseCase', () => {
         skillScore: expect.any(Number),
         experienceScore: expect.any(Number),
         preferenceScore: expect.any(Number),
-      })
+      }),
+      expect.any(Function),
     );
     expect(mockMatchingRepository.salvar).toHaveBeenCalled();
   });
@@ -144,7 +154,9 @@ describe('ExecutarMatchingUseCase', () => {
 
     mockUsuarioRepository.buscarPorId.mockResolvedValue(null);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Usuário não encontrado');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Usuário não encontrado',
+    );
     expect(mockVagaRepository.buscarPorId).not.toHaveBeenCalled();
   });
 
@@ -165,7 +177,9 @@ describe('ExecutarMatchingUseCase', () => {
 
     mockUsuarioRepository.buscarPorId.mockResolvedValue(usuarioSemCurriculo);
 
-    await expect(useCase.execute(input)).rejects.toThrow('O usuário não possui um currículo processado');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'O usuário não possui um currículo processado',
+    );
   });
 
   it('deve lançar erro se a vaga não for encontrada', async () => {

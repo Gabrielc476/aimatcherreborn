@@ -12,6 +12,8 @@ export class GoogleGenAIService implements AIService {
   private readonly modelName: string;
   private readonly isThinking: boolean;
   private readonly logger = new Logger(GoogleGenAIService.name);
+  private lastRequestTime = 0;
+  private requestQueue: Promise<void> = Promise.resolve();
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -19,14 +21,20 @@ export class GoogleGenAIService implements AIService {
     this.isThinking = this.modelName.includes('thinking');
 
     if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY não configurada no arquivo .env. O serviço de IA não funcionará.');
+      this.logger.warn(
+        'GEMINI_API_KEY não configurada no arquivo .env. O serviço de IA não funcionará.',
+      );
       return;
     }
 
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  private buildConfig(systemInstruction?: string, responseSchema?: Schema, temperature?: number): any {
+  private buildConfig(
+    systemInstruction?: string,
+    responseSchema?: Schema,
+    temperature?: number,
+  ): any {
     const config: any = {
       responseMimeType: 'application/json',
     };
@@ -39,7 +47,7 @@ export class GoogleGenAIService implements AIService {
     if (this.isThinking) {
       config.temperature = 1.0;
       config.thinkingConfig = {
-        thinkingBudget: 2048
+        thinkingBudget: 2048,
       };
     } else if (temperature !== undefined) {
       config.temperature = temperature;
@@ -49,10 +57,13 @@ export class GoogleGenAIService implements AIService {
 
   async extrairDadosCurriculo(textoCurriculo: string): Promise<any> {
     this.checkClientInitialized();
-    this.logger.log(`Iniciando extração de dados do currículo. Tamanho do texto: ${textoCurriculo.length} caracteres.`);
+    this.logger.log(
+      `Iniciando extração de dados do currículo. Tamanho do texto: ${textoCurriculo.length} caracteres.`,
+    );
 
     // ETAPA 1: ANÁLISE SEMÂNTICA (gemma-4-31b-it - Modelo Denso Principal)
-    const analysisSystemInstruction = 'Você é um analista especialista em recrutamento técnico. Sua tarefa é analisar o currículo bruto fornecido e gerar uma análise semântica e factual detalhada de todas as informações profissionais.';
+    const analysisSystemInstruction =
+      'Você é um analista especialista em recrutamento técnico. Sua tarefa é analisar o currículo bruto fornecido e gerar uma análise semântica e factual detalhada de todas as informações profissionais.';
     const analysisPrompt = `Por favor, faça uma análise detalhada do seguinte currículo bruto. Extraia e resuma com precisão:
 1. Nome completo, telefone, e-mail, redes sociais, data de nascimento e localização.
 2. Perfil profissional e resumo da carreira.
@@ -67,12 +78,14 @@ ${textoCurriculo}`;
 
     const analysisResponse = await this.generateContentWithFallback({
       contents: analysisPrompt,
-      config: this.buildConfig(analysisSystemInstruction)
+      config: this.buildConfig(analysisSystemInstruction),
     });
 
     const analiseTextual = analysisResponse.text || '';
     if (!analiseTextual) {
-      throw new Error('A IA retornou uma resposta vazia ao processar o currículo na etapa de análise.');
+      throw new Error(
+        'A IA retornou uma resposta vazia ao processar o currículo na etapa de análise.',
+      );
     }
 
     // ETAPA 2: ESTRUTURAÇÃO JSON (gemma-4-26b-a4b-it - Modelo MoE Rápido)
@@ -96,7 +109,10 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
         nome_completo: { type: Type.STRING },
         email: { type: Type.STRING },
         telefone: { type: Type.STRING },
-        data_nascimento: { type: Type.STRING, description: 'Formato YYYY-MM-DD' },
+        data_nascimento: {
+          type: Type.STRING,
+          description: 'Formato YYYY-MM-DD',
+        },
         perfil: {
           type: Type.OBJECT,
           properties: {
@@ -104,9 +120,9 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
             resumo_profissional: { type: Type.STRING },
             anos_experiencia: { type: Type.INTEGER },
             pretensao_salarial: { type: Type.NUMBER },
-            disponibilidade: { type: Type.STRING }
+            disponibilidade: { type: Type.STRING },
           },
-          required: ['anos_experiencia']
+          required: ['anos_experiencia'],
         },
         experiencias: {
           type: Type.ARRAY,
@@ -116,14 +132,28 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
               empresa: { type: Type.STRING },
               cargo: { type: Type.STRING },
               descricao: { type: Type.STRING },
-              data_inicio: { type: Type.STRING, description: 'Formato YYYY-MM ou YYYY-MM-DD' },
-              data_fim: { type: Type.STRING, description: 'Formato YYYY-MM ou YYYY-MM-DD se não for atual' },
+              data_inicio: {
+                type: Type.STRING,
+                description: 'Formato YYYY-MM ou YYYY-MM-DD',
+              },
+              data_fim: {
+                type: Type.STRING,
+                description: 'Formato YYYY-MM ou YYYY-MM-DD se não for atual',
+              },
               atual: { type: Type.BOOLEAN },
-              tecnologias_utilizadas: { type: Type.ARRAY, items: { type: Type.STRING } },
-              principais_realizacoes: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Lista de principais realizações, projetos e entregas de destaque nesta experiência' }
+              tecnologias_utilizadas: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              principais_realizacoes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description:
+                  'Lista de principais realizações, projetos e entregas de destaque nesta experiência',
+              },
             },
-            required: ['empresa', 'cargo', 'data_inicio', 'atual']
-          }
+            required: ['empresa', 'cargo', 'data_inicio', 'atual'],
+          },
         },
         formacao: {
           type: Type.ARRAY,
@@ -136,10 +166,10 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
               area: { type: Type.STRING },
               data_inicio: { type: Type.STRING },
               data_fim: { type: Type.STRING },
-              concluido: { type: Type.BOOLEAN }
+              concluido: { type: Type.BOOLEAN },
             },
-            required: ['instituicao', 'curso', 'concluido']
-          }
+            required: ['instituicao', 'curso', 'concluido'],
+          },
         },
         habilidades_tecnicas: {
           type: Type.ARRAY,
@@ -148,10 +178,10 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
             properties: {
               nome: { type: Type.STRING },
               nivel: { type: Type.STRING },
-              anos_experiencia: { type: Type.INTEGER }
+              anos_experiencia: { type: Type.INTEGER },
             },
-            required: ['nome']
-          }
+            required: ['nome'],
+          },
         },
         certificacoes: {
           type: Type.ARRAY,
@@ -162,10 +192,10 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
               emissor: { type: Type.STRING },
               data_obtencao: { type: Type.STRING },
               data_validade: { type: Type.STRING },
-              codigo_validacao: { type: Type.STRING }
+              codigo_validacao: { type: Type.STRING },
             },
-            required: ['nome', 'emissor']
-          }
+            required: ['nome', 'emissor'],
+          },
         },
         idiomas: {
           type: Type.ARRAY,
@@ -175,26 +205,32 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
               nome: { type: Type.STRING },
               nivel_leitura: { type: Type.STRING },
               nivel_escrita: { type: Type.STRING },
-              nivel_conversacao: { type: Type.STRING }
+              nivel_conversacao: { type: Type.STRING },
             },
-            required: ['nome']
-          }
+            required: ['nome'],
+          },
         },
         preferencias: {
           type: Type.OBJECT,
           properties: {
-            modalidades: { 
-              type: Type.ARRAY, 
-              items: { 
+            modalidades: {
+              type: Type.ARRAY,
+              items: {
                 type: Type.STRING,
-                enum: ['REMOTO', 'HIBRIDO', 'PRESENCIAL']
-              } 
+                enum: ['REMOTO', 'HIBRIDO', 'PRESENCIAL'],
+              },
             },
-            cidades_interesse: { type: Type.ARRAY, items: { type: Type.STRING } },
-            cargos_interesse: { type: Type.ARRAY, items: { type: Type.STRING } },
+            cidades_interesse: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            cargos_interesse: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
             tipo_contrato: { type: Type.ARRAY, items: { type: Type.STRING } },
-            disponibilidade_mudanca: { type: Type.BOOLEAN }
-          }
+            disponibilidade_mudanca: { type: Type.BOOLEAN },
+          },
         },
         projetos: {
           type: Type.ARRAY,
@@ -204,14 +240,18 @@ Siga estas diretrizes para garantir a maior acurácia e compatibilidade de dados
               nome: { type: Type.STRING },
               descricao: { type: Type.STRING },
               tecnologias: { type: Type.ARRAY, items: { type: Type.STRING } },
-              url: { type: Type.STRING, description: 'Link do repositório ou demonstração do projeto se disponível' }
+              url: {
+                type: Type.STRING,
+                description:
+                  'Link do repositório ou demonstração do projeto se disponível',
+              },
             },
-            required: ['nome']
-          }
+            required: ['nome'],
+          },
         },
-        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } }
+        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      required: ['nome_completo', 'email', 'habilidades_tecnicas']
+      required: ['nome_completo', 'email', 'habilidades_tecnicas'],
     };
 
     let activeInstruction = structuringSystemInstruction;
@@ -303,17 +343,24 @@ ${analiseTextual}`;
     const structResponse = await this.generateContentWithFallback({
       model: structuringModel,
       contents: structPrompt,
-      config: this.buildConfig(activeInstruction, isGemmaStruct ? undefined : cvSchema)
+      config: this.buildConfig(
+        activeInstruction,
+        isGemmaStruct ? undefined : cvSchema,
+      ),
     });
 
     if (!structResponse.text) {
-      throw new Error('A IA retornou uma resposta vazia ao estruturar o currículo.');
+      throw new Error(
+        'A IA retornou uma resposta vazia ao estruturar o currículo.',
+      );
     }
 
     return JSON.parse(this.cleanJsonResponse(structResponse.text));
   }
 
-  async extrairEstruturaVaga(textoVaga: string): Promise<Partial<RequisitosVaga> & any> {
+  async extrairEstruturaVaga(
+    textoVaga: string,
+  ): Promise<Partial<RequisitosVaga> & any> {
     this.checkClientInitialized();
 
     const systemInstruction = `Você é um assistente especializado em recrutamento. Sua tarefa é analisar a descrição de uma vaga de emprego e extrair as informações estruturadas em JSON.`;
@@ -327,25 +374,31 @@ ${analiseTextual}`;
           type: Type.OBJECT,
           properties: {
             nome: { type: Type.STRING },
-            setor: { type: Type.STRING }
-          }
+            setor: { type: Type.STRING },
+          },
         },
         localizacao: {
           type: Type.OBJECT,
           properties: {
             cidade: { type: Type.STRING },
-            estado: { type: Type.STRING }
-          }
+            estado: { type: Type.STRING },
+          },
         },
-        modalidade: { type: Type.STRING, description: 'Deve ser REMOTO, HIBRIDO ou PRESENCIAL' },
+        modalidade: {
+          type: Type.STRING,
+          description: 'Deve ser REMOTO, HIBRIDO ou PRESENCIAL',
+        },
         tipo_contrato: { type: Type.STRING },
-        nivel: { type: Type.STRING, description: 'Junior, Pleno, Senior ou Especialista' },
+        nivel: {
+          type: Type.STRING,
+          description: 'Junior, Pleno, Senior ou Especialista',
+        },
         faixa_salarial: {
           type: Type.OBJECT,
           properties: {
             minimo: { type: Type.NUMBER },
-            maximo: { type: Type.NUMBER }
-          }
+            maximo: { type: Type.NUMBER },
+          },
         },
         resumo: { type: Type.STRING },
         requisitos: {
@@ -356,15 +409,15 @@ ${analiseTextual}`;
               properties: {
                 nivel: { type: Type.STRING },
                 area: { type: Type.STRING },
-                obrigatorio: { type: Type.BOOLEAN }
-              }
+                obrigatorio: { type: Type.BOOLEAN },
+              },
             },
             experiencia: {
               type: Type.OBJECT,
               properties: {
                 tempo_minimo: { type: Type.INTEGER },
-                areas: { type: Type.ARRAY, items: { type: Type.STRING } }
-              }
+                areas: { type: Type.ARRAY, items: { type: Type.STRING } },
+              },
             },
             habilidades_tecnicas: {
               type: Type.ARRAY,
@@ -373,12 +426,15 @@ ${analiseTextual}`;
                 properties: {
                   nome: { type: Type.STRING },
                   nivel: { type: Type.STRING },
-                  obrigatorio: { type: Type.BOOLEAN }
+                  obrigatorio: { type: Type.BOOLEAN },
                 },
-                required: ['nome', 'obrigatorio']
-              }
+                required: ['nome', 'obrigatorio'],
+              },
             },
-            habilidades_comportamentais: { type: Type.ARRAY, items: { type: Type.STRING } },
+            habilidades_comportamentais: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
             idiomas: {
               type: Type.ARRAY,
               items: {
@@ -386,16 +442,16 @@ ${analiseTextual}`;
                 properties: {
                   nome: { type: Type.STRING },
                   nivel: { type: Type.STRING },
-                  obrigatorio: { type: Type.BOOLEAN }
+                  obrigatorio: { type: Type.BOOLEAN },
                 },
-                required: ['nome', 'obrigatorio']
-              }
-            }
-          }
+                required: ['nome', 'obrigatorio'],
+              },
+            },
+          },
         },
-        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } }
+        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      required: ['titulo', 'requisitos']
+      required: ['titulo', 'requisitos'],
     };
 
     const isGemma = this.modelName.toLowerCase().includes('gemma');
@@ -452,13 +508,21 @@ ${analiseTextual}`;
 
     const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: this.buildConfig(activeInstruction, isGemma ? undefined : vagaSchema)
+      config: this.buildConfig(
+        activeInstruction,
+        isGemma ? undefined : vagaSchema,
+      ),
     });
 
     return JSON.parse(this.cleanJsonResponse(response.text));
   }
 
-  async analisarCompatibilidade(dadosCurriculo: any, dadosVaga: any, scoresSuporte?: any): Promise<DetalhesMatching & { score: number }> {
+  async analisarCompatibilidade(
+    dadosCurriculo: any,
+    dadosVaga: any,
+    scoresSuporte?: any,
+    onProgress?: (passo: string, mensagem: string) => Promise<void> | void,
+  ): Promise<DetalhesMatching & { score: number }> {
     this.checkClientInitialized();
 
     // ETAPA 1: ANÁLISE QUALITATIVA DE COMPATIBILIDADE (gemma-4-31b-it - Modelo Denso Principal)
@@ -488,14 +552,20 @@ Instruções para uso dos Scores de Suporte:
 5. Compatibilidade Cultural e Probabilidade de Sucesso (com scores correspondentes e justificativas).
 6. Meta-Análise (Confiabilidade de 0 a 1, Fatores Incertos, Potencial de Desenvolvimento de 0 a 1, Observações).`;
 
+    if (onProgress) {
+      await onProgress('analise_ia_qualitativa', 'IA realizando análise qualitativa profunda...');
+    }
+
     const analysisResponse = await this.generateContentWithFallback({
       contents: analysisPrompt,
-      config: this.buildConfig(analysisSystemInstruction)
+      config: this.buildConfig(analysisSystemInstruction),
     });
 
     const analiseTextual = analysisResponse.text || '';
     if (!analiseTextual) {
-      throw new Error('A IA retornou uma resposta vazia na etapa de análise de compatibilidade.');
+      throw new Error(
+        'A IA retornou uma resposta vazia na etapa de análise de compatibilidade.',
+      );
     }
 
     // ETAPA 2: ESTRUTURAÇÃO DO JSON DE MATCHING (gemma-4-26b-a4b-it - Modelo MoE Rápido)
@@ -504,16 +574,18 @@ Instruções para uso dos Scores de Suporte:
 
     const structuringSystemInstruction = `Você é um tradutor de dados de texto para JSON. Sua tarefa é mapear a análise detalhada de compatibilidade fornecida em um JSON estrito que segue exatamente a estrutura solicitada.`;
 
-    const categoriaSchema = (extraProps: Record<string, Schema> = {}): Schema => ({
+    const categoriaSchema = (
+      extraProps: Record<string, Schema> = {},
+    ): Schema => ({
       type: Type.OBJECT,
       properties: {
         score: { type: Type.NUMBER },
         peso: { type: Type.NUMBER },
         analiseQualitativa: { type: Type.STRING },
         nivelRelevancia: { type: Type.STRING },
-        ...extraProps
+        ...extraProps,
       },
-      required: ['score', 'peso', 'analiseQualitativa', 'nivelRelevancia']
+      required: ['score', 'peso', 'analiseQualitativa', 'nivelRelevancia'],
     });
 
     const matchingSchema: Schema = {
@@ -527,9 +599,9 @@ Instruções para uso dos Scores de Suporte:
           properties: {
             skillScore: { type: Type.NUMBER },
             experienceScore: { type: Type.NUMBER },
-            preferenceScore: { type: Type.NUMBER }
+            preferenceScore: { type: Type.NUMBER },
           },
-          required: ['skillScore', 'experienceScore', 'preferenceScore']
+          required: ['skillScore', 'experienceScore', 'preferenceScore'],
         },
         recruiterBreakdown: {
           type: Type.OBJECT,
@@ -537,42 +609,69 @@ Instruções para uso dos Scores de Suporte:
             trajectoryScore: { type: Type.NUMBER },
             impactScore: { type: Type.NUMBER },
             siblingTechScore: { type: Type.NUMBER },
-            cultureFitScore: { type: Type.NUMBER }
+            cultureFitScore: { type: Type.NUMBER },
           },
-          required: ['trajectoryScore', 'impactScore', 'siblingTechScore', 'cultureFitScore']
+          required: [
+            'trajectoryScore',
+            'impactScore',
+            'siblingTechScore',
+            'cultureFitScore',
+          ],
         },
         categorias: {
           type: Type.OBJECT,
           properties: {
             habilidadesTecnicas: categoriaSchema({
-              correspondentes: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correspondentes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
               faltantes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              excedentes: { type: Type.ARRAY, items: { type: Type.STRING } }
+              excedentes: { type: Type.ARRAY, items: { type: Type.STRING } },
             }),
             experiencia: categoriaSchema({
               tempoAtende: { type: Type.BOOLEAN },
-              areasCorrespondentes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              areasFaltantes: { type: Type.ARRAY, items: { type: Type.STRING } }
+              areasCorrespondentes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              areasFaltantes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
             }),
             formacao: categoriaSchema({
               nivelAtende: { type: Type.BOOLEAN },
               areaAtende: { type: Type.BOOLEAN },
-              formacaoAlternativaRelevante: { type: Type.BOOLEAN }
+              formacaoAlternativaRelevante: { type: Type.BOOLEAN },
             }),
             idiomas: categoriaSchema({
-              correspondentes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              faltantes: { type: Type.ARRAY, items: { type: Type.STRING } }
+              correspondentes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              faltantes: { type: Type.ARRAY, items: { type: Type.STRING } },
             }),
             localizacaoDisponibilidade: categoriaSchema({
               localizacaoCompativel: { type: Type.BOOLEAN },
-              disponibilidadeCompativel: { type: Type.BOOLEAN }
+              disponibilidadeCompativel: { type: Type.BOOLEAN },
             }),
             softSkillsCultura: categoriaSchema({
-              correspondentes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              faltantes: { type: Type.ARRAY, items: { type: Type.STRING } }
-            })
+              correspondentes: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              faltantes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            }),
           },
-          required: ['habilidadesTecnicas', 'experiencia', 'formacao', 'idiomas', 'localizacaoDisponibilidade', 'softSkillsCultura']
+          required: [
+            'habilidadesTecnicas',
+            'experiencia',
+            'formacao',
+            'idiomas',
+            'localizacaoDisponibilidade',
+            'softSkillsCultura',
+          ],
         },
         resumoCandidato: { type: Type.STRING },
         resumoVaga: { type: Type.STRING },
@@ -581,9 +680,12 @@ Instruções para uso dos Scores de Suporte:
           properties: {
             pontosFortes: { type: Type.ARRAY, items: { type: Type.STRING } },
             pontosFracos: { type: Type.ARRAY, items: { type: Type.STRING } },
-            vantagensCompetitivas: { type: Type.ARRAY, items: { type: Type.STRING } }
+            vantagensCompetitivas: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
           },
-          required: ['pontosFortes', 'pontosFracos']
+          required: ['pontosFortes', 'pontosFracos'],
         },
         recomendacoes: {
           type: Type.OBJECT,
@@ -594,28 +696,34 @@ Instruções para uso dos Scores de Suporte:
             formacao: { type: Type.STRING },
             desenvolvimento: { type: Type.STRING },
             abordagemEntrevista: { type: Type.STRING },
-            prioridadeAcao: { type: Type.ARRAY, items: { type: Type.STRING } }
+            prioridadeAcao: { type: Type.ARRAY, items: { type: Type.STRING } },
           },
-          required: ['gerais', 'desenvolvimento', 'prioridadeAcao']
+          required: ['gerais', 'desenvolvimento', 'prioridadeAcao'],
         },
         compatibilidadeCultural: {
           type: Type.OBJECT,
           properties: {
             score: { type: Type.NUMBER },
-            fatoresPositivos: { type: Type.ARRAY, items: { type: Type.STRING } },
-            fatoresNegativos: { type: Type.ARRAY, items: { type: Type.STRING } },
-            analise: { type: Type.STRING }
+            fatoresPositivos: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            fatoresNegativos: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            analise: { type: Type.STRING },
           },
-          required: ['score', 'analise']
+          required: ['score', 'analise'],
         },
         probabilidadeSucesso: {
           type: Type.OBJECT,
           properties: {
             score: { type: Type.NUMBER },
             justificativa: { type: Type.STRING },
-            fatoresCriticos: { type: Type.ARRAY, items: { type: Type.STRING } }
+            fatoresCriticos: { type: Type.ARRAY, items: { type: Type.STRING } },
           },
-          required: ['score', 'justificativa']
+          required: ['score', 'justificativa'],
         },
         metaAnalise: {
           type: Type.OBJECT,
@@ -623,12 +731,26 @@ Instruções para uso dos Scores de Suporte:
             confiabilidade: { type: Type.NUMBER },
             fatoresIncertos: { type: Type.ARRAY, items: { type: Type.STRING } },
             potencialDesenvolvimento: { type: Type.NUMBER },
-            observacoes: { type: Type.STRING }
+            observacoes: { type: Type.STRING },
           },
-          required: ['confiabilidade', 'potencialDesenvolvimento']
-        }
+          required: ['confiabilidade', 'potencialDesenvolvimento'],
+        },
       },
-      required: ['score', 'atsScore', 'recruiterScore', 'atsBreakdown', 'recruiterBreakdown', 'categorias', 'resumoCandidato', 'resumoVaga', 'diferenciais', 'recomendacoes', 'compatibilidadeCultural', 'probabilidadeSucesso', 'metaAnalise']
+      required: [
+        'score',
+        'atsScore',
+        'recruiterScore',
+        'atsBreakdown',
+        'recruiterBreakdown',
+        'categorias',
+        'resumoCandidato',
+        'resumoVaga',
+        'diferenciais',
+        'recomendacoes',
+        'compatibilidadeCultural',
+        'probabilidadeSucesso',
+        'metaAnalise',
+      ],
     };
 
     let activeInstruction = structuringSystemInstruction;
@@ -689,17 +811,28 @@ Instruções para uso dos Scores de Suporte:
 ANÁLISE DE COMPATIBILIDADE:
 ${analiseTextual}`;
 
+    if (onProgress) {
+      await onProgress('analise_ia_estruturacao', 'IA estruturando o relatório de compatibilidade...');
+    }
+
     const structResponse = await this.generateContentWithFallback({
       model: structuringModel,
       contents: structPrompt,
-      config: this.buildConfig(activeInstruction, isGemmaStruct ? undefined : matchingSchema)
+      config: this.buildConfig(
+        activeInstruction,
+        isGemmaStruct ? undefined : matchingSchema,
+      ),
     });
 
     if (!structResponse.text) {
-      throw new Error('A IA retornou uma resposta vazia ao estruturar a análise de compatibilidade.');
+      throw new Error(
+        'A IA retornou uma resposta vazia ao estruturar a análise de compatibilidade.',
+      );
     }
 
-    const parsedResult = JSON.parse(this.cleanJsonResponse(structResponse.text));
+    const parsedResult = JSON.parse(
+      this.cleanJsonResponse(structResponse.text),
+    );
 
     return {
       categorias: parsedResult.categorias,
@@ -711,11 +844,15 @@ ${analiseTextual}`;
       probabilidadeSucesso: parsedResult.probabilidadeSucesso,
       metaAnalise: parsedResult.metaAnalise,
       score: parsedResult.score !== undefined ? Number(parsedResult.score) : 0,
-      atsScore: parsedResult.atsScore !== undefined ? Number(parsedResult.atsScore) : 0,
-      recruiterScore: parsedResult.recruiterScore !== undefined ? Number(parsedResult.recruiterScore) : 0,
+      atsScore:
+        parsedResult.atsScore !== undefined ? Number(parsedResult.atsScore) : 0,
+      recruiterScore:
+        parsedResult.recruiterScore !== undefined
+          ? Number(parsedResult.recruiterScore)
+          : 0,
       atsBreakdown: parsedResult.atsBreakdown,
       recruiterBreakdown: parsedResult.recruiterBreakdown,
-    } as any;
+    };
   }
 
   async gerarPalavrasChave(dadosVaga: any): Promise<string[]> {
@@ -728,15 +865,15 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     const schema: Schema = {
       type: Type.OBJECT,
       properties: {
-        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } }
+        palavras_chave: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      required: ['palavras_chave']
+      required: ['palavras_chave'],
     };
 
     const isGemma = this.modelName.toLowerCase().includes('gemma');
     const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: this.buildConfig(undefined, isGemma ? undefined : schema)
+      config: this.buildConfig(undefined, isGemma ? undefined : schema),
     });
 
     const res = JSON.parse(this.cleanJsonResponse(response.text));
@@ -752,67 +889,106 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     const schema: Schema = {
       type: Type.OBJECT,
       properties: {
-        resumo: { type: Type.STRING }
+        resumo: { type: Type.STRING },
       },
-      required: ['resumo']
+      required: ['resumo'],
     };
 
     const isGemma = this.modelName.toLowerCase().includes('gemma');
     const response = await this.generateContentWithFallback({
       contents: prompt,
-      config: this.buildConfig(undefined, isGemma ? undefined : schema)
+      config: this.buildConfig(undefined, isGemma ? undefined : schema),
     });
 
     const res = JSON.parse(this.cleanJsonResponse(response.text));
     return res.resumo || '';
   }
 
-  private async generateContentWithFallback(params: { contents: any; config?: any; model?: string }): Promise<any> {
+  private async throttle(): Promise<void> {
+    const minInterval = Number(process.env.GEMINI_MIN_REQUEST_INTERVAL_MS) || 2000;
+    const previousQueue = this.requestQueue;
+
+    let resolveThrottle: () => void;
+    const currentThrottlePromise = new Promise<void>((resolve) => {
+      resolveThrottle = resolve;
+    });
+
+    this.requestQueue = currentThrottlePromise;
+
+    await previousQueue;
+
+    const now = Date.now();
+    const timeSinceLast = now - this.lastRequestTime;
+    if (timeSinceLast < minInterval) {
+      const waitTime = minInterval - timeSinceLast;
+      this.logger.log(
+        `[AI Queue] Aguardando ${waitTime}ms para respeitar o limite de taxa (30 RPM)...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+
+    this.lastRequestTime = Date.now();
+    resolveThrottle!();
+  }
+
+  private async generateContentWithFallback(params: {
+    contents: any;
+    config?: any;
+    model?: string;
+  }): Promise<any> {
+    await this.throttle();
+
     const targetModel = params.model || this.modelName;
     const startTime = Date.now();
     const memBefore = process.memoryUsage().heapUsed;
 
-    this.logger.log(`[AI Call] Iniciando chamada com modelo '${targetModel}'. Tamanho do prompt: ${JSON.stringify(params.contents).length} caracteres.`);
+    this.logger.log(
+      `[AI Call] Iniciando chamada com modelo '${targetModel}'. Tamanho do prompt: ${JSON.stringify(params.contents).length} caracteres.`,
+    );
 
     try {
-      const response = await this.callWithRetry(() => this.ai.models.generateContent({
-        model: targetModel,
-        contents: params.contents,
-        config: params.config
-      }));
+      const response = await this.callWithRetry(() =>
+        this.ai.models.generateContent({
+          model: targetModel,
+          contents: params.contents,
+          config: params.config,
+        }),
+      );
 
       const duration = Date.now() - startTime;
       const memAfter = process.memoryUsage().heapUsed;
       const diffMB = Math.round((memAfter - memBefore) / 1024 / 1024);
       const diffSign = diffMB >= 0 ? `+${diffMB}` : `${diffMB}`;
-      
+
       this.logger.log(
-        `[AI Call Success] Modelo '${targetModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB (${diffSign}MB)`
+        `[AI Call Success] Modelo '${targetModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB (${diffSign}MB)`,
       );
-      
+
       return response;
     } catch (primaryError: any) {
       const fallbackModel = 'gemini-3.1-flash-lite';
       if (targetModel !== fallbackModel) {
         this.logger.warn(
-          `[AI Call Fallback] Erro no modelo principal '${targetModel}'. Tentando fallback com '${fallbackModel}'... Erro: ${primaryError.message || primaryError}`
+          `[AI Call Fallback] Erro no modelo principal '${targetModel}'. Tentando fallback com '${fallbackModel}'... Erro: ${primaryError.message || primaryError}`,
         );
         try {
-          const response = await this.callWithRetry(() => this.ai.models.generateContent({
-            model: fallbackModel,
-            contents: params.contents,
-            config: params.config
-          }));
+          const response = await this.callWithRetry(() =>
+            this.ai.models.generateContent({
+              model: fallbackModel,
+              contents: params.contents,
+              config: params.config,
+            }),
+          );
 
           const duration = Date.now() - startTime;
           const memAfter = process.memoryUsage().heapUsed;
           this.logger.log(
-            `[AI Call Success - Fallback] Modelo '${fallbackModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB`
+            `[AI Call Success - Fallback] Modelo '${fallbackModel}' respondeu em ${duration}ms | Heap: ${Math.round(memAfter / 1024 / 1024)}MB`,
           );
           return response;
         } catch (fallbackError: any) {
           this.logger.error(
-            `[AI Call CRITICAL ERROR] Erro também no modelo de fallback '${fallbackModel}': ${fallbackError.message || fallbackError}`
+            `[AI Call CRITICAL ERROR] Erro também no modelo de fallback '${fallbackModel}': ${fallbackError.message || fallbackError}`,
           );
           throw fallbackError;
         }
@@ -821,15 +997,18 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
     }
   }
 
-  private async callWithRetry<T>(fn: () => Promise<T>, retries = 5, delay = 4000): Promise<T> {
+  private async callWithRetry<T>(
+    fn: () => Promise<T>,
+    retries = 5,
+    delay = 4000,
+  ): Promise<T> {
     try {
       return await fn();
     } catch (error: any) {
-      const isTransient = 
-        retries > 0 && 
-        (
-          error?.status === 500 || 
-          error?.status === 429 || 
+      const isTransient =
+        retries > 0 &&
+        (error?.status === 500 ||
+          error?.status === 429 ||
           error?.status === 503 ||
           error?.code === 500 ||
           error?.code === 429 ||
@@ -837,14 +1016,13 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
           String(error).includes('INTERNAL') ||
           String(error).includes('ResourceExhausted') ||
           String(error).includes('500') ||
-          String(error).includes('503')
-        );
+          String(error).includes('503'));
 
       if (isTransient) {
         this.logger.warn(
-          `[AI Call Throttled] Erro transiente na API do Gemini. Retentando em ${delay}ms (${retries} retentativas restantes). Erro: ${error.message || error}`
+          `[AI Call Throttled] Erro transiente na API do Gemini. Retentando em ${delay}ms (${retries} retentativas restantes). Erro: ${error.message || error}`,
         );
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.callWithRetry(fn, retries - 1, delay * 2);
       }
       throw error;
@@ -853,14 +1031,16 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
 
   private checkClientInitialized(): void {
     if (!this.ai) {
-      throw new Error('Google Gen AI Client não inicializado. Verifique se a GEMINI_API_KEY está configurada.');
+      throw new Error(
+        'Google Gen AI Client não inicializado. Verifique se a GEMINI_API_KEY está configurada.',
+      );
     }
   }
 
   private cleanJsonResponse(text: string | null | undefined): string {
     if (!text) return '{}';
     let clean = text.trim();
-    
+
     // Remove delimitadores markdown se presentes no início/fim de forma simples
     if (clean.startsWith('```')) {
       const match = clean.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
@@ -868,30 +1048,37 @@ Vaga: ${JSON.stringify(dadosVaga)}`;
         clean = match[1].trim();
       }
     }
-    
+
     // Tenta isolar o objeto {...} ou array [...] principal caso a resposta contenha texto conversacional no entorno
     const firstBrace = clean.indexOf('{');
     const firstBracket = clean.indexOf('[');
-    
+
     let startIdx = -1;
     let endIdx = -1;
-    
-    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+
+    if (
+      firstBrace !== -1 &&
+      (firstBracket === -1 || firstBrace < firstBracket)
+    ) {
       startIdx = firstBrace;
       endIdx = clean.lastIndexOf('}');
     } else if (firstBracket !== -1) {
       startIdx = firstBracket;
       endIdx = clean.lastIndexOf(']');
     }
-    
+
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
       clean = clean.substring(startIdx, endIdx + 1);
     }
-    
+
     return clean.trim();
   }
 
-  async otimizarCurriculo(dadosOriginais: any, descricaoVaga: string, feedbackMatching?: string): Promise<any> {
+  async otimizarCurriculo(
+    dadosOriginais: any,
+    descricaoVaga: string,
+    feedbackMatching?: string,
+  ): Promise<any> {
     this.checkClientInitialized();
 
     const systemInstruction = `Você é um consultor de carreira e especialista em ATS (Applicant Tracking Systems). 
@@ -925,7 +1112,7 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
 
     const isGemma = this.modelName.toLowerCase().includes('gemma');
     let activeInstruction = systemInstruction;
-    
+
     if (isGemma) {
       activeInstruction += `\nVocê deve retornar o currículo otimizado no seguinte formato JSON estrito:
 {
@@ -985,11 +1172,18 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
             properties: {
               empresa: { type: Type.STRING },
               cargo: { type: Type.STRING },
-              descricao: { type: Type.STRING, description: 'Descrição otimizada focada em realizações e competências da vaga' },
-              tecnologias_utilizadas: { type: Type.ARRAY, items: { type: Type.STRING } }
+              descricao: {
+                type: Type.STRING,
+                description:
+                  'Descrição otimizada focada em realizações e competências da vaga',
+              },
+              tecnologias_utilizadas: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
             },
-            required: ['empresa', 'cargo', 'descricao']
-          }
+            required: ['empresa', 'cargo', 'descricao'],
+          },
         },
         habilidades: { type: Type.ARRAY, items: { type: Type.STRING } },
         projetos: {
@@ -999,10 +1193,10 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
             properties: {
               nome: { type: Type.STRING },
               descricao: { type: Type.STRING },
-              tecnologias: { type: Type.ARRAY, items: { type: Type.STRING } }
+              tecnologias: { type: Type.ARRAY, items: { type: Type.STRING } },
             },
-            required: ['nome', 'descricao']
-          }
+            required: ['nome', 'descricao'],
+          },
         },
         certificacoes: {
           type: Type.ARRAY,
@@ -1012,10 +1206,10 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
               nome: { type: Type.STRING },
               instituicao: { type: Type.STRING },
               dataEmissao: { type: Type.STRING },
-              dataValidade: { type: Type.STRING }
+              dataValidade: { type: Type.STRING },
             },
-            required: ['nome', 'instituicao']
-          }
+            required: ['nome', 'instituicao'],
+          },
         },
         idiomas: {
           type: Type.ARRAY,
@@ -1025,10 +1219,10 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
               nome: { type: Type.STRING },
               nivelLeitura: { type: Type.STRING },
               nivelEscrita: { type: Type.STRING },
-              nivelConversacao: { type: Type.STRING }
+              nivelConversacao: { type: Type.STRING },
             },
-            required: ['nome']
-          }
+            required: ['nome'],
+          },
         },
         formacoes: {
           type: Type.ARRAY,
@@ -1038,17 +1232,20 @@ INSTRUÇÃO ADICIONAL: Utilize a análise de compatibilidade acima para guiar a 
               instituicao: { type: Type.STRING },
               curso: { type: Type.STRING },
               grau: { type: Type.STRING },
-              periodo: { type: Type.STRING }
+              periodo: { type: Type.STRING },
             },
-            required: ['instituicao', 'curso']
-          }
-        }
+            required: ['instituicao', 'curso'],
+          },
+        },
       },
-      required: ['resumo_profissional', 'experiencias', 'habilidades']
+      required: ['resumo_profissional', 'experiencias', 'habilidades'],
     };
 
-    const config = this.buildConfig(activeInstruction, isGemma ? undefined : schema);
-    
+    const config = this.buildConfig(
+      activeInstruction,
+      isGemma ? undefined : schema,
+    );
+
     // Forçar uso do modo de raciocínio se o modelo suportar
     if (this.isThinking) {
       config.thinkingConfig = { thinkingBudget: 4096 };

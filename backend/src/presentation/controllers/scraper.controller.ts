@@ -1,11 +1,20 @@
 // src/presentation/controllers/scraper.controller.ts
 
-import { Controller, Post, Body, HttpCode, HttpStatus, ConflictException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  ConflictException,
+} from '@nestjs/common';
 import { ScraperExecutionService } from '../../infrastructure/scraper/scraper-execution.service';
 
 @Controller('scraper')
 export class ScraperController {
-  constructor(private readonly scraperExecutionService: ScraperExecutionService) {}
+  constructor(
+    private readonly scraperExecutionService: ScraperExecutionService,
+  ) {}
 
   @Post('disparar')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -25,7 +34,8 @@ export class ScraperController {
     }
 
     // Executa em segundo plano de forma assíncrona (não espera terminar)
-    this.scraperExecutionService.executeScraper(engine, query, limit)
+    this.scraperExecutionService
+      .executeScraper(engine, query, limit)
       .catch((err) => {
         console.error('Erro na execução assíncrona do scraper:', err);
       });

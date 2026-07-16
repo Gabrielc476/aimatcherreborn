@@ -15,14 +15,20 @@ export class SupabaseStorageService implements StorageService {
 
     if (!supabaseUrl || !supabaseSecretKey) {
       // Evita travar a inicialização se as variáveis de ambiente não estiverem configuradas ainda
-      console.warn('Configurações do Supabase ausentes no .env. O serviço de Storage não funcionará.');
+      console.warn(
+        'Configurações do Supabase ausentes no .env. O serviço de Storage não funcionará.',
+      );
       return;
     }
 
     this.supabase = createClient(supabaseUrl, supabaseSecretKey);
   }
 
-  async uploadCurriculo(userId: string, fileBuffer: Buffer, fileName: string): Promise<string> {
+  async uploadCurriculo(
+    userId: string,
+    fileBuffer: Buffer,
+    fileName: string,
+  ): Promise<string> {
     this.checkClientInitialized();
 
     const timestamp = Date.now();
@@ -38,10 +44,18 @@ export class SupabaseStorageService implements StorageService {
 
     if (uploadResponse.error) {
       // Se o bucket não existe, tenta criá-lo e refazer o upload
-      if (uploadResponse.error.message.includes('Bucket not found') || uploadResponse.error.message.includes('bucket')) {
-        const createResult = await this.supabase.storage.createBucket(this.bucketName, { public: false });
+      if (
+        uploadResponse.error.message.includes('Bucket not found') ||
+        uploadResponse.error.message.includes('bucket')
+      ) {
+        const createResult = await this.supabase.storage.createBucket(
+          this.bucketName,
+          { public: false },
+        );
         if (createResult.error) {
-          throw new Error(`Erro ao criar o bucket '${this.bucketName}': ${createResult.error.message}`);
+          throw new Error(
+            `Erro ao criar o bucket '${this.bucketName}': ${createResult.error.message}`,
+          );
         }
 
         // Tenta fazer o upload novamente
@@ -55,7 +69,9 @@ export class SupabaseStorageService implements StorageService {
     }
 
     if (uploadResponse.error) {
-      throw new Error(`Erro ao subir currículo para o Supabase Storage: ${uploadResponse.error.message}`);
+      throw new Error(
+        `Erro ao subir currículo para o Supabase Storage: ${uploadResponse.error.message}`,
+      );
     }
 
     return uploadResponse.data.path;
@@ -108,7 +124,9 @@ export class SupabaseStorageService implements StorageService {
 
   private checkClientInitialized(): void {
     if (!this.supabase) {
-      throw new Error('Supabase Client não inicializado. Verifique as variáveis de ambiente.');
+      throw new Error(
+        'Supabase Client não inicializado. Verifique as variáveis de ambiente.',
+      );
     }
   }
 }

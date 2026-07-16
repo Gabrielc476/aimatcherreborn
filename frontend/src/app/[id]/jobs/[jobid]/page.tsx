@@ -29,6 +29,27 @@ export default function JobDetailsPage() {
   const [matchingDialogOpen, setMatchingDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
+  const steps = [
+    { key: "carregando_dados", label: "Carregando Vaga", desc: "Recuperando detalhes e requisitos da vaga" },
+    { key: "comparando_dados", label: "Pré-análise Comparativa", desc: "Comparando habilidades e requisitos" },
+    { key: "analise_ia_qualitativa", label: "Avaliação Cognitiva IA", desc: "Análise profunda de compatibilidade com IA" },
+    { key: "analise_ia_estruturacao", label: "Estruturação de Dados", desc: "IA formatando relatório final" },
+    { key: "salvando", label: "Salvando Resultados", desc: "Registrando análise no banco" },
+  ];
+
+  const getStepIndex = (currentStep: string | null): number => {
+    const stepsOrder = [
+      "inicializado",
+      "carregando_dados",
+      "comparando_dados",
+      "analise_ia_qualitativa",
+      "analise_ia_estruturacao",
+      "salvando",
+      "finalizado",
+    ];
+    return stepsOrder.indexOf(currentStep || "inicializado");
+  };
+
   // Removed unused matchingLoaded state
 
   // Get the job ID from the URL
@@ -42,6 +63,9 @@ export default function JobDetailsPage() {
     error: matchingError,
     analyzeJobMatching,
     fetchExistingMatching,
+    jobStep,
+    jobMessage,
+    jobProgress,
   } = useJobMatching();
 
   // Authentication check and job data fetching
@@ -199,15 +223,72 @@ export default function JobDetailsPage() {
               // Prioritize showing existing data
               <div className="space-y-6">{renderMatchingDetails(matching)}</div>
             ) : isMatchingLoading ? (
-              // Show loading indicator only when actually loading a new analysis
-              <div className="flex justify-center items-center py-12">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="mb-4">Analisando compatibilidade...</p>
-                  <p className="text-sm text-muted-foreground">
-                    Estamos utilizando IA para analisar a compatibilidade entre
-                    seu perfil e esta vaga. Isso pode levar alguns segundos.
+              // Show real-time stepper status
+              <div className="space-y-6 py-6 animate-fade-in text-left">
+                <div className="flex flex-col items-center justify-center space-y-2 mb-2 text-center">
+                  <div className="relative h-12 w-12 flex items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75"></span>
+                    <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                  </div>
+                  <h3 className="font-serif font-bold text-lg text-foreground">Analisando Compatibilidade</h3>
+                  <p className="text-xs text-muted-foreground max-w-[400px]">
+                    {jobMessage || "Iniciando processamento da análise..."}
                   </p>
+                </div>
+
+                {/* Stepper container */}
+                <div className="relative border-l-2 border-border/40 ml-4 pl-6 space-y-6 py-1">
+                  {steps.map((step, idx) => {
+                    const isCompleted = getStepIndex(jobStep) > idx || matching !== null;
+                    const isActive = jobStep === step.key;
+
+                    return (
+                      <div key={step.key} className="relative">
+                        <div
+                          className={`absolute -left-[33px] top-1 h-3.5 w-3.5 rounded-full border-2 bg-background flex items-center justify-center transition-all duration-500 ${
+                            isCompleted
+                              ? "border-green-500 bg-green-500 scale-110 shadow-sm"
+                              : isActive
+                              ? "border-primary animate-pulse scale-110 shadow-md ring-2 ring-primary/20"
+                              : "border-muted-foreground/30"
+                          }`}
+                        >
+                          {isCompleted && <span className="h-1 w-1 rounded-full bg-background" />}
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <h4
+                            className={`text-sm font-semibold transition-colors ${
+                              isCompleted
+                                ? "text-foreground/80"
+                                : isActive
+                                ? "text-primary font-bold"
+                                : "text-muted-foreground/60"
+                            }`}
+                          >
+                            {step.label}
+                          </h4>
+                          <p className="text-xs text-muted-foreground/60">
+                            {step.desc}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1.5 pt-2">
+                  <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+                    <span>PROGRESSO</span>
+                    <span>{jobProgress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-500 ease-out"
+                      style={{ width: `${jobProgress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             ) : matchingError ? (
@@ -297,6 +378,16 @@ export default function JobDetailsPage() {
 // Helper function to render matching details in the dialog
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderMatchingDetails(matching: any) {
+  if (!matching || !matching.analise) return null;
+
+  const analise = matching.analise;
+  const categorias = analise.categorias || {};
+  const habilidadesTecnicas = categorias.habilidadesTecnicas || {};
+  const experiencia = categorias.experiencia || {};
+  const formacao = categorias.formacao || {};
+  const recomendacoes = analise.recomendacoes || {};
+  const probabilidadeSucesso = analise.probabilidadeSucesso || {};
+
   return (
     <>
       {/* Overview score */}
@@ -304,12 +395,12 @@ function renderMatchingDetails(matching: any) {
         <div>
           <h3 className="text-lg font-medium">Compatibilidade geral</h3>
           <p className="text-sm text-muted-foreground">
-            {matching.analise.resumoCandidato}
+            {analise.resumoCandidato || "Nenhum resumo disponível."}
           </p>
         </div>
         <div className="text-center">
           <div className="text-3xl font-bold">
-            {Math.round(matching.score)}%
+            {Math.round(matching.score || 0)}%
           </div>
           <div className="text-sm text-muted-foreground">
             Score de compatibilidade
@@ -326,22 +417,21 @@ function renderMatchingDetails(matching: any) {
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Habilidades Técnicas</h4>
             <div className="font-semibold">
-              {Math.round(matching.analise.categorias.habilidadesTecnicas.score)}%
+              {Math.round(habilidadesTecnicas.score || 0)}%
             </div>
           </div>
 
           <p className="text-sm mb-3">
-            {matching.analise.categorias.habilidadesTecnicas.analiseQualitativa}
+            {habilidadesTecnicas.analiseQualitativa || "Nenhuma análise detalhada disponível."}
           </p>
 
-          {matching.analise.categorias.habilidadesTecnicas.correspondentes.length >
-            0 && (
+          {habilidadesTecnicas.correspondentes && habilidadesTecnicas.correspondentes.length > 0 && (
             <div className="mb-2">
               <p className="text-sm font-medium text-emerald-400">
                 Pontos fortes:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.analise.categorias.habilidadesTecnicas.correspondentes.map(
+                {habilidadesTecnicas.correspondentes.map(
                   (skill: string, index: number) => (
                     <span
                       key={index}
@@ -355,13 +445,13 @@ function renderMatchingDetails(matching: any) {
             </div>
           )}
 
-          {matching.analise.categorias.habilidadesTecnicas.faltantes.length > 0 && (
+          {habilidadesTecnicas.faltantes && habilidadesTecnicas.faltantes.length > 0 && (
             <div>
               <p className="text-sm font-medium text-red-400">
                 Áreas para desenvolvimento:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.analise.categorias.habilidadesTecnicas.faltantes.map(
+                {habilidadesTecnicas.faltantes.map(
                   (skill: string, index: number) => (
                     <span
                       key={index}
@@ -381,30 +471,30 @@ function renderMatchingDetails(matching: any) {
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Experiência</h4>
             <div className="font-semibold">
-              {Math.round(matching.analise.categorias.experiencia.score)}%
+              {Math.round(experiencia.score || 0)}%
             </div>
           </div>
 
           <p className="text-sm mb-2">
-            {matching.analise.categorias.experiencia.analiseQualitativa}
+            {experiencia.analiseQualitativa || "Nenhuma análise detalhada disponível."}
           </p>
 
           <p className="text-sm">
             <span className="font-medium">Tempo de experiência:</span>{" "}
-            {matching.analise.categorias.experiencia.tempoAtende ? (
+            {experiencia.tempoAtende ? (
               <span className="text-emerald-400 font-medium">Atende aos requisitos</span>
             ) : (
               <span className="text-red-400 font-medium">Não atende aos requisitos</span>
             )}
           </p>
 
-          {matching.analise.categorias.experiencia.areasCorrespondentes.length > 0 && (
+          {experiencia.areasCorrespondentes && experiencia.areasCorrespondentes.length > 0 && (
             <div className="mt-2">
               <p className="text-sm font-medium text-emerald-400">
                 Áreas de experiência compatíveis:
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {matching.analise.categorias.experiencia.areasCorrespondentes.map(
+                {experiencia.areasCorrespondentes.map(
                   (area: string, index: number) => (
                     <span
                       key={index}
@@ -419,23 +509,23 @@ function renderMatchingDetails(matching: any) {
           )}
         </div>
 
-        {/* Other Categories... */}
+        {/* Formation */}
         <div className="border rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
             <h4 className="font-medium">Formação</h4>
             <div className="font-semibold">
-              {Math.round(matching.analise.categorias.formacao.score)}%
+              {Math.round(formacao.score || 0)}%
             </div>
           </div>
 
           <p className="text-sm mb-2">
-            {matching.analise.categorias.formacao.analiseQualitativa}
+            {formacao.analiseQualitativa || "Nenhuma análise detalhada disponível."}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             <div>
               <span className="font-medium">Nível acadêmico:</span>{" "}
-              {matching.analise.categorias.formacao.nivelAtende ? (
+              {formacao.nivelAtende ? (
                 <span className="text-emerald-400 font-medium">Adequado</span>
               ) : (
                 <span className="text-red-400 font-medium">Não adequado</span>
@@ -443,7 +533,7 @@ function renderMatchingDetails(matching: any) {
             </div>
             <div>
               <span className="font-medium">Área de formação:</span>{" "}
-              {matching.analise.categorias.formacao.areaAtende ? (
+              {formacao.areaAtende ? (
                 <span className="text-emerald-400 font-medium">Compatível</span>
               ) : (
                 <span className="text-red-400 font-medium">Não compatível</span>
@@ -456,13 +546,13 @@ function renderMatchingDetails(matching: any) {
       {/* Recommendations */}
       <div className="border rounded-lg p-4">
         <h3 className="text-lg font-medium mb-2">Recomendações</h3>
-        <p className="text-sm mb-3">{matching.analise.recomendacoes.gerais}</p>
+        <p className="text-sm mb-3">{recomendacoes.gerais || "Nenhuma recomendação disponível."}</p>
 
-        {matching.analise.recomendacoes.prioridadeAcao.length > 0 && (
+        {recomendacoes.prioridadeAcao && recomendacoes.prioridadeAcao.length > 0 && (
           <div>
             <p className="text-sm font-medium">Ações prioritárias:</p>
             <ul className="list-disc pl-5 mt-1 space-y-1">
-              {matching.analise.recomendacoes.prioridadeAcao.map(
+              {recomendacoes.prioridadeAcao.map(
                 (action: string, index: number) => (
                   <li key={index} className="text-sm">
                     {action}
@@ -479,11 +569,11 @@ function renderMatchingDetails(matching: any) {
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-medium">Probabilidade de sucesso</h3>
           <div className="text-xl font-bold">
-            {Math.round(matching.analise.probabilidadeSucesso.score)}%
+            {Math.round(probabilidadeSucesso.score || 0)}%
           </div>
         </div>
         <p className="text-sm">
-          {matching.analise.probabilidadeSucesso.justificativa}
+          {probabilidadeSucesso.justificativa || "Nenhuma justificativa disponível."}
         </p>
       </div>
     </>

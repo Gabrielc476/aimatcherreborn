@@ -29,7 +29,10 @@ describe('NegarCandidaturaUseCase', () => {
       excluir: jest.fn(),
     };
 
-    useCase = new NegarCandidaturaUseCase(mockMatchingRepository, mockVagaRepository);
+    useCase = new NegarCandidaturaUseCase(
+      mockMatchingRepository,
+      mockVagaRepository,
+    );
   });
 
   it('deve rejeitar a candidatura com sucesso', async () => {
@@ -70,8 +73,13 @@ describe('NegarCandidaturaUseCase', () => {
 
     expect(result.status).toBe('rejeitado');
     expect(mockVagaRepository.buscarPorId).toHaveBeenCalledWith('vaga-uuid');
-    expect(mockMatchingRepository.buscar).toHaveBeenCalledWith('candidato-uuid', 'vaga-uuid');
-    expect(mockMatchingRepository.salvar).toHaveBeenCalledWith(expect.objectContaining({ status: 'rejeitado' }));
+    expect(mockMatchingRepository.buscar).toHaveBeenCalledWith(
+      'candidato-uuid',
+      'vaga-uuid',
+    );
+    expect(mockMatchingRepository.salvar).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'rejeitado' }),
+    );
   });
 
   it('deve lancar erro se a vaga nao for encontrada', async () => {
@@ -108,7 +116,9 @@ describe('NegarCandidaturaUseCase', () => {
 
     mockVagaRepository.buscarPorId.mockResolvedValue(vaga);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Não autorizado a negar candidaturas para esta vaga');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Não autorizado a negar candidaturas para esta vaga',
+    );
   });
 
   it('deve lancar erro se a candidatura nao for encontrada', async () => {
@@ -134,6 +144,8 @@ describe('NegarCandidaturaUseCase', () => {
     mockVagaRepository.buscarPorId.mockResolvedValue(vaga);
     mockMatchingRepository.buscar.mockResolvedValue(null);
 
-    await expect(useCase.execute(input)).rejects.toThrow('Candidatura não encontrada');
+    await expect(useCase.execute(input)).rejects.toThrow(
+      'Candidatura não encontrada',
+    );
   });
 });

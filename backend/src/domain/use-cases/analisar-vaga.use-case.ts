@@ -15,6 +15,7 @@ export interface AnalisarVagaInput {
   tipoContrato?: string;
   nivel?: string;
   link?: string;
+  etapas?: any;
 }
 
 export class AnalisarVagaUseCase {
@@ -33,11 +34,19 @@ export class AnalisarVagaUseCase {
     let resumo = '';
 
     // 1. Chama a IA para estruturar a descrição da vaga
-    console.log('[AnalisarVagaUseCase] Descrição recebida pela IA para extração:', input.textoVaga);
+    console.log(
+      '[AnalisarVagaUseCase] Descrição recebida pela IA para extração:',
+      input.textoVaga,
+    );
     try {
-      dadosEstruturados = await this.aiService.extrairEstruturaVaga(input.textoVaga);
+      dadosEstruturados = await this.aiService.extrairEstruturaVaga(
+        input.textoVaga,
+      );
     } catch (err) {
-      console.error('[AnalisarVagaUseCase] Erro ao extrair estrutura com a IA (usando fallbacks):', err);
+      console.error(
+        '[AnalisarVagaUseCase] Erro ao extrair estrutura com a IA (usando fallbacks):',
+        err,
+      );
       dadosEstruturados = {
         titulo: input.titulo,
         resumo: input.textoVaga.substring(0, 250),
@@ -54,12 +63,21 @@ export class AnalisarVagaUseCase {
     try {
       palavrasChave = dadosEstruturados.palavras_chave || [];
       if (palavrasChave.length < 5) {
-        palavrasChave = await this.aiService.gerarPalavrasChave(dadosEstruturados);
+        palavrasChave =
+          await this.aiService.gerarPalavrasChave(dadosEstruturados);
       }
     } catch (err) {
-      console.error('[AnalisarVagaUseCase] Erro ao gerar palavras-chave com a IA:', err);
-      const termos = `${input.titulo || ''} ${input.empresaNome || ''} ${input.nivel || ''}`.split(/\s+/);
-      palavrasChave = Array.from(new Set(termos.filter(t => t.length > 3))).slice(0, 10);
+      console.error(
+        '[AnalisarVagaUseCase] Erro ao gerar palavras-chave com a IA:',
+        err,
+      );
+      const termos =
+        `${input.titulo || ''} ${input.empresaNome || ''} ${input.nivel || ''}`.split(
+          /\s+/,
+        );
+      palavrasChave = Array.from(
+        new Set(termos.filter((t) => t.length > 3)),
+      ).slice(0, 10);
     }
 
     // 3. Garante resumo
@@ -69,7 +87,10 @@ export class AnalisarVagaUseCase {
         resumo = await this.aiService.gerarResumoVaga(dadosEstruturados);
       }
     } catch (err) {
-      console.error('[AnalisarVagaUseCase] Erro ao gerar resumo com a IA:', err);
+      console.error(
+        '[AnalisarVagaUseCase] Erro ao gerar resumo com a IA:',
+        err,
+      );
       resumo = input.textoVaga.substring(0, 280) + '...';
     }
 
@@ -80,18 +101,25 @@ export class AnalisarVagaUseCase {
       input.titulo || dadosEstruturados.titulo || 'Vaga Sem Título',
       input.textoVaga,
       'ativa',
-      input.empresaNome || dadosEstruturados.empresa?.nome || 'Empresa Confidencial',
-      (input.modalidade || dadosEstruturados.modalidade || 'PRESENCIAL') as any,
+      input.empresaNome ||
+        dadosEstruturados.empresa?.nome ||
+        'Empresa Confidencial',
+      input.modalidade || dadosEstruturados.modalidade || 'PRESENCIAL',
       input.tipoContrato || dadosEstruturados.tipo_contrato || 'CLT',
       input.nivel || dadosEstruturados.nivel || 'Pleno',
       new Date(),
       resumo,
       input.localizacao || dadosEstruturados.localizacao?.cidade || '',
-      dadosEstruturados.faixa_salarial?.minimo ? Number(dadosEstruturados.faixa_salarial.minimo) : undefined,
-      dadosEstruturados.faixa_salarial?.maximo ? Number(dadosEstruturados.faixa_salarial.maximo) : undefined,
+      dadosEstruturados.faixa_salarial?.minimo
+        ? Number(dadosEstruturados.faixa_salarial.minimo)
+        : undefined,
+      dadosEstruturados.faixa_salarial?.maximo
+        ? Number(dadosEstruturados.faixa_salarial.maximo)
+        : undefined,
       dadosEstruturados.requisitos as RequisitosVaga,
       palavrasChave,
       input.link,
+      input.etapas,
     );
 
     // 5. Salva no banco de dados

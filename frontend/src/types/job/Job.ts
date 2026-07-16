@@ -51,6 +51,7 @@ export interface Job {
     };
   };
 
+  etapas?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   palavrasChave: string[];
   dataCriacao?: string;
 

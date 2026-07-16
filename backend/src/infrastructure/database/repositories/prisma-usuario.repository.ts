@@ -2,7 +2,11 @@
 
 import { Injectable } from '@nestjs/common';
 import { UsuarioRepository } from '../../../domain/repositories/usuario.repository';
-import { Usuario, StatusUsuario, ModalidadeTrabalho } from '../../../domain/entities/usuario.entity';
+import {
+  Usuario,
+  StatusUsuario,
+  ModalidadeTrabalho,
+} from '../../../domain/entities/usuario.entity';
 import { PrismaService } from '../prisma.service';
 import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 
@@ -31,7 +35,9 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
             titulo: dbUser.perfil.titulo || undefined,
             resumoProfissional: dbUser.perfil.resumoProfissional || undefined,
             anosExperiencia: dbUser.perfil.anosExperiencia,
-            pretensaoSalarial: dbUser.perfil.pretensaoSalarial ? Number(dbUser.perfil.pretensaoSalarial) : undefined,
+            pretensaoSalarial: dbUser.perfil.pretensaoSalarial
+              ? Number(dbUser.perfil.pretensaoSalarial)
+              : undefined,
             disponibilidade: dbUser.perfil.disponibilidade || undefined,
           }
         : undefined,
@@ -78,7 +84,8 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
       })),
       dbUser.preferencias
         ? {
-            modalidades: dbUser.preferencias.modalidades as ModalidadeTrabalho[],
+            modalidades: dbUser.preferencias
+              .modalidades as ModalidadeTrabalho[],
             cidades: dbUser.preferencias.cidades,
             cargos: dbUser.preferencias.cargos,
             tipoContrato: dbUser.preferencias.tipoContrato,
@@ -95,7 +102,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
       dbUser.curriculoUrl || undefined,
       dbUser.curriculoTexto || undefined,
       dbUser.curriculoExtraido || undefined,
-      dbUser.role as any,
+      dbUser.role,
     );
   }
 
@@ -507,7 +514,10 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     });
   }
 
-  async listar(limite: number, pagina: number): Promise<{ total: number; usuarios: Usuario[] }> {
+  async listar(
+    limite: number,
+    pagina: number,
+  ): Promise<{ total: number; usuarios: Usuario[] }> {
     return this.prisma.runWithRLS(async (tx) => {
       const skip = (pagina - 1) * limite;
 

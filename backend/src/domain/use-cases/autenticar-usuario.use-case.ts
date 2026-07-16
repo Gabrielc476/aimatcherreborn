@@ -27,7 +27,9 @@ export class AutenticarUsuarioUseCase {
     private readonly tokenService: TokenService,
   ) {}
 
-  async execute(input: AutenticarUsuarioInput): Promise<AutenticarUsuarioOutput> {
+  async execute(
+    input: AutenticarUsuarioInput,
+  ): Promise<AutenticarUsuarioOutput> {
     // 1. Busca o usuário
     const usuario = await this.usuarioRepository.buscarPorEmail(input.email);
     if (!usuario) {
@@ -40,14 +42,19 @@ export class AutenticarUsuarioUseCase {
     }
 
     // 3. Valida a senha
-    const senhaValida = await this.cryptographyService.compare(input.senhaPlana, usuario.senhaHash);
+    const senhaValida = await this.cryptographyService.compare(
+      input.senhaPlana,
+      usuario.senhaHash,
+    );
     if (!senhaValida) {
       throw new Error('Credenciais inválidas');
     }
 
     // 4. Atualiza o timestamp de último acesso
     usuario.atualizarUltimoAcesso();
-    await this.usuarioRepository.atualizar(usuario.id, { ultimoAcesso: usuario.ultimoAcesso });
+    await this.usuarioRepository.atualizar(usuario.id, {
+      ultimoAcesso: usuario.ultimoAcesso,
+    });
 
     // 5. Gera o token JWT
     const token = this.tokenService.gerarToken({

@@ -102,6 +102,7 @@ export class VagasApi {
     textoVaga: string;
     empresaNome?: string;
     localizacao?: string;
+    etapas?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }): Promise<ApiResponse<{ vagaId: string; vaga: Job }>> {
     try {
       const response = await apiClient.post<{
@@ -136,17 +137,10 @@ export class VagasApi {
     }
   }
 
-  /**
-   * Analyze compatibility between a user and a specific job
-   *
-   * @param userId User ID
-   * @param jobId Job ID to analyze compatibility with
-   * @returns Matching analysis result
-   */
   public static async analisarMatchingComVaga(
     userId: string,
     jobId: string
-  ): Promise<ApiResponse<{ matching: any }>> {
+  ): Promise<ApiResponse<{ jobId?: string; matching?: any; mensagem: string }>> {
     try {
       const requestData = {
         usuarioId: userId,
@@ -155,14 +149,13 @@ export class VagasApi {
 
       const response = await apiClient.post<{
         mensagem: string;
-        matching: any;
+        jobId?: string;
+        matching?: any;
       }>(`/matching/analisar`, requestData);
 
-      if (response.status === 200 && response.data) {
+      if ((response.status === 200 || response.status === 202) && response.data) {
         return {
-          data: {
-            matching: response.data.matching,
-          },
+          data: response.data,
           status: response.status,
         };
       } else {

@@ -5,6 +5,8 @@ import { UsuarioRepository } from '../repositories/usuario.repository';
 import { PDFService } from '../services/pdf.service';
 import { StorageService } from '../services/storage.service';
 import { AIService } from '../services/ai.service';
+import { JobEventsService } from '../services/job-events.service';
+import { JobProcessamentoRepository } from '../repositories/job-processamento.repository';
 
 export interface ProcessarCurriculoInput {
   userId: string;
@@ -33,19 +35,20 @@ export interface ProcessarCurriculoOutput {
  */
 function safeDate(dateStr: string | undefined): Date | undefined {
   if (!dateStr) return undefined;
-  
+
   const normalized = dateStr.replace(/\//g, '-').trim();
   const parts = normalized.split('-');
   const firstPart = parts[0]?.trim() || '';
   const secondPart = parts[1]?.trim() || '';
-  
-  const cleanStr = (
-    parts.length === 2 && 
-    firstPart.length === 4 && 
-    secondPart.length === 4 && 
-    !isNaN(Number(firstPart)) && 
+
+  const cleanStr =
+    parts.length === 2 &&
+    firstPart.length === 4 &&
+    secondPart.length === 4 &&
+    !isNaN(Number(firstPart)) &&
     !isNaN(Number(secondPart))
-  ) ? firstPart : normalized;
+      ? firstPart
+      : normalized;
 
   const date = new Date(cleanStr);
   if (isNaN(date.getTime())) {
@@ -60,34 +63,81 @@ export class ProcessarCurriculoUseCase {
     private readonly pdfService: PDFService,
     private readonly storageService: StorageService,
     private readonly aiService: AIService,
-  ) { }
+    private readonly jobRepository: JobProcessamentoRepository,
+    private readonly jobEventsService: JobEventsService,
+  ) {}
 
-  async execute(input: ProcessarCurriculoInput): Promise<ProcessarCurriculoOutput> {
-    // 1. Verifica se o usuário existe
-    const usuario = await this.usuarioRepository.buscarPorId(input.userId);
-    if (!usuario) {
-      throw new Error('Usuário não encontrado');
+  private async updateJob(
+    jobId: string | undefined,
+    status: string,
+    passoAtual: string,
+    mensagem: string,
+    resultado?: any,
+  ) {
+    if (!jobId) return;
+    try {
+      await this.jobRepository.atualizar(jobId, {
+        status,
+        passoAtual,
+        mensagem,
+        resultado,
+        itensProcessados: status === 'CONCLUIDO' ? 1 : undefined,
+      });
+      this.jobEventsService.emit(jobId, {
+        id: jobId,
+        status,
+        passoAtual,
+        mensagem,
+        resultado,
+        totalItens: 1,
+        itensProcessados: status === 'CONCLUIDO' ? 1 : 0,
+      });
+    } catch (err) {
+      console.error('Failed to update job status:', err);
     }
+  }
+
+  async execute(
+    input: ProcessarCurriculoInput,
+    jobId?: string,
+  ): Promise<ProcessarCurriculoOutput> {
+    try {
+      await this.updateJob(jobId, 'PROCESSANDO', 'extraindo_pdf', 'Extraindo texto do PDF...');
+
+      // 1. Verifica se o usuário existe
+      const usuario = await this.usuarioRepository.buscarPorId(input.userId);
+      if (!usuario) {
+        throw new Error('Usuário não encontrado');
+      }
 
     // 2. Extrai o texto do PDF
     const textoExtraido = await this.pdfService.extrairTexto(input.fileBuffer);
     if (!textoExtraido || !textoExtraido.trim()) {
-      throw new Error('Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.');
+      throw new Error(
+        'Não foi possível extrair texto do PDF. O arquivo pode estar vazio ou protegido.',
+      );
     }
 
+      await this.updateJob(jobId, 'PROCESSANDO', 'armazenando_pdf', 'Enviando arquivo PDF para o storage...');
 
-    // 3. Faz o upload do arquivo PDF para o Storage
-    const pathStorage = await this.storageService.uploadCurriculo(
-      usuario.id,
-      input.fileBuffer,
-      input.fileName,
-    );
+      // 3. Faz o upload do arquivo PDF para o Storage
+      const pathStorage = await this.storageService.uploadCurriculo(
+        usuario.id,
+        input.fileBuffer,
+        input.fileName,
+      );
 
-    // 4. Processa o texto com a IA para obter a estrutura JSON
-    const dadosEstruturados = await this.aiService.extrairDadosCurriculo(textoExtraido);
+      await this.updateJob(jobId, 'PROCESSANDO', 'analise_ia', 'IA estruturando dados do currículo...');
+
+      // 4. Processa o texto com a IA para obter a estrutura JSON
+      const dadosEstruturados =
+        await this.aiService.extrairDadosCurriculo(textoExtraido);
+
+      await this.updateJob(jobId, 'PROCESSANDO', 'finalizando', 'Salvando perfil do candidato...');
 
     // 5. Atualiza a entidade do usuário com os dados extraídos e metadados
-    usuario.nomeCompleto = dadosEstruturados.nome_completo || usuario.nomeCompleto;
+    usuario.nomeCompleto =
+      dadosEstruturados.nome_completo || usuario.nomeCompleto;
     usuario.telefone = dadosEstruturados.telefone || usuario.telefone;
     if (dadosEstruturados.data_nascimento) {
       usuario.dataNascimento = safeDate(dadosEstruturados.data_nascimento);
@@ -99,7 +149,9 @@ export class ProcessarCurriculoUseCase {
         titulo: dadosEstruturados.perfil.titulo,
         resumoProfissional: dadosEstruturados.perfil.resumo_profissional,
         anosExperiencia: Number(dadosEstruturados.perfil.anos_experiencia || 0),
-        pretensaoSalarial: dadosEstruturados.perfil.pretensao_salarial ? Number(dadosEstruturados.perfil.pretensao_salarial) : undefined,
+        pretensaoSalarial: dadosEstruturados.perfil.pretensao_salarial
+          ? Number(dadosEstruturados.perfil.pretensao_salarial)
+          : undefined,
         disponibilidade: dadosEstruturados.perfil.disponibilidade,
       };
     }
@@ -110,11 +162,15 @@ export class ProcessarCurriculoUseCase {
         .filter((exp: any) => exp && exp.empresa && exp.cargo)
         .map((exp: any) => {
           let descricaoCompleta = exp.descricao || '';
-          if (exp.principais_realizacoes && Array.isArray(exp.principais_realizacoes) && exp.principais_realizacoes.length > 0) {
+          if (
+            exp.principais_realizacoes &&
+            Array.isArray(exp.principais_realizacoes) &&
+            exp.principais_realizacoes.length > 0
+          ) {
             const realizacoesTexto = exp.principais_realizacoes
               .map((r: string) => `• ${r.trim()}`)
               .join('\n');
-            descricaoCompleta = descricaoCompleta 
+            descricaoCompleta = descricaoCompleta
               ? `${descricaoCompleta}\n\n**Principais Realizações:**\n${realizacoesTexto}`
               : `**Principais Realizações:**\n${realizacoesTexto}`;
           }
@@ -189,7 +245,9 @@ export class ProcessarCurriculoUseCase {
         cidades: dadosEstruturados.preferencias.cidades_interesse || [],
         cargos: dadosEstruturados.preferencias.cargos_interesse || [],
         tipoContrato: dadosEstruturados.preferencias.tipo_contrato || [],
-        mudanca: Boolean(dadosEstruturados.preferencias.disponibilidade_mudanca),
+        mudanca: Boolean(
+          dadosEstruturados.preferencias.disponibilidade_mudanca,
+        ),
       };
     }
 
@@ -208,24 +266,33 @@ export class ProcessarCurriculoUseCase {
     usuario.curriculoUrl = pathStorage;
     usuario.curriculoTexto = textoExtraido;
     usuario.curriculoExtraido = dadosEstruturados;
-    console.log(usuario.preferencias)
+    console.log(usuario.preferencias);
 
-    // 6. Salva as atualizações do perfil do usuário no banco
-    await this.usuarioRepository.salvar(usuario);
+      // 6. Salva as atualizações do perfil do usuário no banco
+      await this.usuarioRepository.salvar(usuario);
 
-    return {
-      mensagem: 'Currículo processado e salvo com sucesso',
-      nomeArquivo: input.fileName,
-      dadosExtraidos: {
-        nome: usuario.nomeCompleto,
-        email: usuario.email,
-        perfil: usuario.perfil?.titulo || '',
-        experiencias: usuario.experiencias.length,
-        formacao: usuario.formacoes.length,
-        habilidades: usuario.habilidades.length,
-        idiomas: usuario.idiomas.length,
-        projetos: usuario.projetos.length,
-      },
-    };
+      const output = {
+        mensagem: 'Currículo processado e salvo com sucesso',
+        nomeArquivo: input.fileName,
+        dadosExtraidos: {
+          nome: usuario.nomeCompleto,
+          email: usuario.email,
+          perfil: usuario.perfil?.titulo || '',
+          experiencias: usuario.experiencias.length,
+          formacao: usuario.formacoes.length,
+          habilidades: usuario.habilidades.length,
+          idiomas: usuario.idiomas.length,
+          projetos: usuario.projetos.length,
+        },
+      };
+
+      await this.updateJob(jobId, 'CONCLUIDO', 'finalizado', 'Processamento concluído com sucesso!', output);
+
+      return output;
+    } catch (error: any) {
+      const errorMsg = error instanceof Error ? error.message : 'Erro interno ao processar currículo';
+      await this.updateJob(jobId, 'ERRO', 'erro', errorMsg);
+      throw error;
+    }
   }
 }

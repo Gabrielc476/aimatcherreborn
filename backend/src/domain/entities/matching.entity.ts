@@ -26,10 +26,21 @@ export interface DetalhesMatching {
   };
   categorias: {
     habilidadesTecnicas: CategoriaMatching;
-    experiencia: CategoriaMatching & { tempoAtende: boolean; areasCorrespondentes: string[]; areasFaltantes: string[] };
-    formacao: CategoriaMatching & { nivelAtende: boolean; areaAtende: boolean; formacaoAlternativaRelevante: boolean };
+    experiencia: CategoriaMatching & {
+      tempoAtende: boolean;
+      areasCorrespondentes: string[];
+      areasFaltantes: string[];
+    };
+    formacao: CategoriaMatching & {
+      nivelAtende: boolean;
+      areaAtende: boolean;
+      formacaoAlternativaRelevante: boolean;
+    };
     idiomas: CategoriaMatching;
-    localizacaoDisponibilidade: CategoriaMatching & { localizacaoCompativel: boolean; disponibilidadeCompativel: boolean };
+    localizacaoDisponibilidade: CategoriaMatching & {
+      localizacaoCompativel: boolean;
+      disponibilidadeCompativel: boolean;
+    };
     softSkillsCultura: CategoriaMatching;
   };
   resumoCandidato: string;

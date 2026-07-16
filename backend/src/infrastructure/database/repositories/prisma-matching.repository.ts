@@ -2,7 +2,10 @@
 
 import { Injectable } from '@nestjs/common';
 import { MatchingRepository } from '../../../domain/repositories/matching.repository';
-import { Matching, DetalhesMatching } from '../../../domain/entities/matching.entity';
+import {
+  Matching,
+  DetalhesMatching,
+} from '../../../domain/entities/matching.entity';
 import { PrismaService } from '../prisma.service';
 import { InMemoryCacheService } from '../../cache/in-memory-cache.service';
 
@@ -59,8 +62,12 @@ export class PrismaMatchingRepository implements MatchingRepository {
         },
       });
 
-      this.cache.deleteByPrefix(`matching:lista:usuario:${matching.usuarioId}:`);
-      this.cache.delete(`matching:single:${matching.usuarioId}:${matching.vagaId}`);
+      this.cache.deleteByPrefix(
+        `matching:lista:usuario:${matching.usuarioId}:`,
+      );
+      this.cache.delete(
+        `matching:single:${matching.usuarioId}:${matching.vagaId}`,
+      );
 
       return this.mapToDomain(dbMatching)!;
     });
@@ -86,9 +93,15 @@ export class PrismaMatchingRepository implements MatchingRepository {
     });
   }
 
-  async buscarPorUsuario(usuarioId: string, limite: number, pagina: number): Promise<{ total: number; matchings: Matching[] }> {
+  async buscarPorUsuario(
+    usuarioId: string,
+    limite: number,
+    pagina: number,
+  ): Promise<{ total: number; matchings: Matching[] }> {
     const cacheKey = `matching:lista:usuario:${usuarioId}:pag:${pagina}:lim:${limite}`;
-    const cached = this.cache.get<{ total: number; matchings: Matching[] }>(cacheKey);
+    const cached = this.cache.get<{ total: number; matchings: Matching[] }>(
+      cacheKey,
+    );
     if (cached) return cached;
 
     return this.prisma.runWithRLS(async (tx) => {
@@ -113,7 +126,12 @@ export class PrismaMatchingRepository implements MatchingRepository {
     });
   }
 
-  async buscarPorVaga(vagaId: string, scoreMinimo: number, limite: number, pagina: number): Promise<{ total: number; matchings: Matching[] }> {
+  async buscarPorVaga(
+    vagaId: string,
+    scoreMinimo: number,
+    limite: number,
+    pagina: number,
+  ): Promise<{ total: number; matchings: Matching[] }> {
     return this.prisma.runWithRLS(async (tx) => {
       const skip = (pagina - 1) * limite;
 
@@ -122,14 +140,12 @@ export class PrismaMatchingRepository implements MatchingRepository {
           where: {
             vagaId,
             score: { gte: scoreMinimo },
-            status: { not: 'rejeitado' },
           },
         }),
         tx.matching.findMany({
           where: {
             vagaId,
             score: { gte: scoreMinimo },
-            status: { not: 'rejeitado' },
           },
           include: {
             usuario: {
