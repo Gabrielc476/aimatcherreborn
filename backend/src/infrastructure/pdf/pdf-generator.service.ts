@@ -1,80 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { spawn } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as tmp from 'tmp';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 
 @Injectable()
 export class PythonPdfGeneratorService {
   private readonly logger = new Logger(PythonPdfGeneratorService.name);
+  private queueEvents: QueueEvents;
+
+  constructor(
+    @InjectQueue('pdf-generation') private readonly pdfQueue: Queue,
+  ) {
+    const host = process.env.REDIS_HOST || 'localhost';
+    const port = Number(process.env.REDIS_PORT) || 6379;
+    this.queueEvents = new QueueEvents('pdf-generation', {
+      connection: { host, port },
+    });
+  }
 
   async renderToPdf(resumeData: any): Promise<Buffer> {
-    const scriptPath = path.resolve(
-      __dirname,
-      '../../../../scraper/pdf_generator.py',
-    );
-    const scraperDir = path.resolve(__dirname, '../../../../scraper');
+    this.logger.log(`Enqueuing PDF generation job in BullMQ...`);
+    const job = await this.pdfQueue.add('generate', resumeData);
+    
+    this.logger.log(`Awaiting completion of job ${job.id}...`);
+    const base64Pdf = await job.waitUntilFinished(this.queueEvents);
 
-    // Create temporary files
-    const tempJson = tmp.fileSync({ postfix: '.json' });
-    const tempPdf = tmp.fileSync({ postfix: '.pdf' });
-
-    fs.writeFileSync(
-      tempJson.name,
-      JSON.stringify(resumeData, null, 2),
-      'utf-8',
-    );
-
-    this.logger.log(
-      `Starting PDF generation. JSON: ${tempJson.name}, Output PDF: ${tempPdf.name}`,
-    );
-
-    return new Promise((resolve, reject) => {
-      // In Windows, we spawn using shell: true to resolve python executable in system PATH
-      const child = spawn('python', [scriptPath, tempJson.name, tempPdf.name], {
-        cwd: scraperDir,
-        shell: true,
-      });
-
-      let stderrOutput = '';
-
-      child.stderr.on('data', (data) => {
-        stderrOutput += data.toString();
-        this.logger.error(`[Python PDF Gen Stderr] ${data.toString()}`);
-      });
-
-      child.on('close', (code) => {
-        this.logger.log(`Python PDF process exited with code ${code}`);
-
-        if (code === 0) {
-          try {
-            const pdfBuffer = fs.readFileSync(tempPdf.name);
-
-            // Clean up temp files
-            try {
-              tempJson.removeCallback();
-              tempPdf.removeCallback();
-            } catch (cleanupErr) {
-              this.logger.warn(`Failed to clean up temp files: ${cleanupErr}`);
-            }
-
-            resolve(pdfBuffer);
-          } catch (err) {
-            reject(err);
-          }
-        } else {
-          reject(
-            new Error(
-              `Python PDF process exited with code ${code}. Error: ${stderrOutput}`,
-            ),
-          );
-        }
-      });
-
-      child.on('error', (err) => {
-        this.logger.error(`Failed to start Python process: ${err.message}`);
-        reject(err);
-      });
-    });
+    this.logger.log(`Job ${job.id} completed. Converting result to PDF buffer.`);
+    return Buffer.from(base64Pdf, 'base64');
   }
 }

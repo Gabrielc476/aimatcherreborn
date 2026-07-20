@@ -38,8 +38,12 @@
     "pdfreader": "^3.0.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "tmp": "^0.2.7"
+    "tmp": "^0.2.7",
+    "bullmq": "^5.41.3",
+    "@nestjs/bullmq": "^11.0.2",
+    "ioredis": "^5.4.1"
   },
+
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",

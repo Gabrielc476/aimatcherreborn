@@ -43,10 +43,14 @@ export class MatchingApi {
    * Fetch all matchings for a specific user
    *
    * @param userId User ID to fetch matchings for
+   * @param limite Max number of matchings to return
+   * @param pagina Page number
    * @returns List of matchings for the user
    */
   public static async getUserMatchings(
-    userId: string
+    userId: string,
+    limite: number = 100,
+    pagina: number = 1
   ): Promise<ApiResponse<PaginatedResponse<Matching>>> {
     try {
       const response = await apiClient.get<{
@@ -54,7 +58,7 @@ export class MatchingApi {
         pagina: number;
         limite: number;
         matchings: Matching[];
-      }>(`${this.BASE_PATH}/usuario/${userId}`);
+      }>(`${this.BASE_PATH}/usuario/${userId}?limite=${limite}&pagina=${pagina}`);
 
       if (response.status === 200 && response.data) {
         return {

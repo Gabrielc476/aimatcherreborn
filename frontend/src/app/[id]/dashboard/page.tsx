@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/dashboard/Header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecruiterDashboard } from "@/components/dashboard/RecruiterDashboard";
+import { AdBanner } from "@/components/dashboard/AdBanner";
 import {
   Shield,
   FileUp,
@@ -285,6 +286,9 @@ export default function DashboardPage() {
             </Button>
           </Card>
         </div>
+
+        {/* Ad Banner below the 3 cards */}
+        <AdBanner />
 
       </div>
     </div>

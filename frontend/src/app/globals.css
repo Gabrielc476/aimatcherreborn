@@ -4,6 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --animate-loading-bar: loading-bar 2s infinite linear;
+  @keyframes loading-bar {
+    0% { transform: translateX(-150%); }
+    100% { transform: translateX(300%); }
+  }
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

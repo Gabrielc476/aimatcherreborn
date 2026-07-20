@@ -8,7 +8,7 @@ import { VagasApi } from "@/lib/api/vagasApi";
 import { useJobMatching } from "@/lib/hooks/useJobMatching";
 import { Job } from "@/types/job/Job";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, Shield } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/dashboard/Header";
 import {
@@ -19,6 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { checkAndRecordAnalysis } from "@/lib/utils/adManager";
+import { VideoAdPlayer } from "@/components/dashboard/VideoAdPlayer";
+import { useAdBlockDetector } from "@/lib/hooks/useAdBlockDetector";
 
 export default function JobDetailsPage() {
   const router = useRouter();
@@ -28,6 +31,12 @@ export default function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [matchingDialogOpen, setMatchingDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shouldShowAd, setShouldShowAd] = useState(false);
+  const [adStatus, setAdStatus] = useState<"idle" | "playing" | "completed">("idle");
+  const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
+  const [adBlockDetected, setAdBlockDetected] = useState(false);
+
+  const { detectAdBlock } = useAdBlockDetector();
 
   const steps = [
     { key: "carregando_dados", label: "Carregando Vaga", desc: "Recuperando detalhes e requisitos da vaga" },
@@ -60,6 +69,7 @@ export default function JobDetailsPage() {
   const {
     matching,
     isLoading: isMatchingLoading,
+    isCheckingExisting,
     error: matchingError,
     analyzeJobMatching,
     fetchExistingMatching,
@@ -124,13 +134,18 @@ export default function JobDetailsPage() {
     fetchJobDetails();
   }, [router, jobId, userId]); // Better dependency array
 
-  // Fetch existing matching data when job loads
+  // Reset hasCheckedExisting when job or user changes
   useEffect(() => {
-    if (job && !loading && userId && jobId && !matching && !isMatchingLoading) {
-      // Fetch existing matching data without affecting loading state
+    setHasCheckedExisting(false);
+  }, [userId, jobId]);
+
+  // Fetch existing matching data in parallel on mount
+  useEffect(() => {
+    if (userId && jobId && !matching && !hasCheckedExisting && !isMatchingLoading && !isCheckingExisting) {
+      setHasCheckedExisting(true);
       fetchExistingMatching(userId, jobId);
     }
-  }, [job, loading, userId, jobId, matching, isMatchingLoading, fetchExistingMatching]);
+  }, [userId, jobId, matching, hasCheckedExisting, isMatchingLoading, isCheckingExisting, fetchExistingMatching]);
 
   // Handle back button click
   const handleBack = () => {
@@ -143,12 +158,52 @@ export default function JobDetailsPage() {
   };
 
   // Handle matching analysis
-  const handleMatchAnalysis = () => {
+  const handleMatchAnalysis = async () => {
+    // Check for AdBlocker first
+    const isAdBlockerActive = await detectAdBlock();
+    if (isAdBlockerActive) {
+      setAdBlockDetected(true);
+      setMatchingDialogOpen(true);
+      return;
+    }
+
+    setAdBlockDetected(false);
     setMatchingDialogOpen(true);
 
     // No need to attempt a new analysis if we already have matching data
     if (!matching && !isMatchingLoading) {
+      const showAd = checkAndRecordAnalysis();
+      setShouldShowAd(showAd);
+      if (showAd) {
+        setAdStatus("playing");
+      } else {
+        setAdStatus("idle");
+      }
       analyzeJobMatching(jobId);
+    } else {
+      setShouldShowAd(false);
+      setAdStatus("idle");
+    }
+  };
+
+  // Re-verify AdBlock status and run matching if deactivated
+  const handleRecheckAdBlock = async () => {
+    const isAdBlockerActive = await detectAdBlock();
+    if (!isAdBlockerActive) {
+      setAdBlockDetected(false);
+      
+      if (!matching && !isMatchingLoading) {
+        const showAd = checkAndRecordAnalysis();
+        setShouldShowAd(showAd);
+        if (showAd) {
+          setAdStatus("playing");
+        } else {
+          setAdStatus("idle");
+        }
+        analyzeJobMatching(jobId);
+      }
+    } else {
+      alert("AdBlock ainda está ativo. Por favor, desative a extensão para prosseguir.");
     }
   };
 
@@ -192,10 +247,11 @@ export default function JobDetailsPage() {
             </Button>
           </div>
         ) : job ? (
-          <JobDetails
+           <JobDetails
             job={job}
             matching={matching}
             isLoading={false} // Never show loading state for buttons
+            isCheckingMatching={isCheckingExisting}
             onShare={handleShare}
             onMatchAnalysis={handleMatchAnalysis}
             onBack={handleBack}
@@ -219,75 +275,110 @@ export default function JobDetailsPage() {
               </DialogDescription>
             </DialogHeader>
 
-            {matching ? (
-              // Prioritize showing existing data
-              <div className="space-y-6">{renderMatchingDetails(matching)}</div>
-            ) : isMatchingLoading ? (
-              // Show real-time stepper status
-              <div className="space-y-6 py-6 animate-fade-in text-left">
-                <div className="flex flex-col items-center justify-center space-y-2 mb-2 text-center">
-                  <div className="relative h-12 w-12 flex items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75"></span>
-                    <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-                  </div>
-                  <h3 className="font-serif font-bold text-lg text-foreground">Analisando Compatibilidade</h3>
-                  <p className="text-xs text-muted-foreground max-w-[400px]">
-                    {jobMessage || "Iniciando processamento da análise..."}
+            {adBlockDetected ? (
+              // Block screen if AdBlock is active
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-6 animate-fade-in">
+                <div className="h-16 w-16 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center relative">
+                  <Shield className="h-8 w-8 text-destructive animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-serif font-bold text-xl text-foreground">
+                    Desative o Bloqueador de Anúncios
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-[480px] leading-relaxed">
+                    Identificamos que você está utilizando um bloqueador de anúncios (AdBlock).
+                    Para mantermos o processamento de Inteligência Artificial gratuito para todos os candidatos, solicitamos a desativação do bloqueador em nossa plataforma.
                   </p>
                 </div>
+                <div className="pt-2">
+                  <Button
+                    onClick={handleRecheckAdBlock}
+                    className="h-11 px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
+                  >
+                    Já desativei, verificar novamente
+                  </Button>
+                </div>
+              </div>
+            ) : matching && (!shouldShowAd || adStatus === "completed") ? (
+              // Prioritize showing existing data or completed ad state
+              <div className="space-y-6">{renderMatchingDetails(matching)}</div>
+            ) : isMatchingLoading || (shouldShowAd && adStatus === "playing") ? (
+              // Show real-time stepper status AND/OR video ad in parallel
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4 items-center">
+                {shouldShowAd && adStatus === "playing" && (
+                  <div className="flex flex-col space-y-3">
+                    <VideoAdPlayer onComplete={() => setAdStatus("completed")} />
+                    <p className="text-[11px] text-muted-foreground text-center font-mono uppercase tracking-wider">
+                      Patrocinador: Otimize seu tempo enquanto processamos a IA
+                    </p>
+                  </div>
+                )}
+                
+                <div className={`space-y-6 ${shouldShowAd && adStatus === "playing" ? "" : "col-span-2"}`}>
+                  <div className="flex flex-col items-center justify-center space-y-2 mb-2 text-center">
+                    <div className="relative h-12 w-12 flex items-center justify-center">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/20 opacity-75"></span>
+                      <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                    </div>
+                    <h3 className="font-serif font-bold text-lg text-foreground">Analisando Compatibilidade</h3>
+                    <p className="text-xs text-muted-foreground max-w-[400px]">
+                      {matching ? "Análise por IA concluída! Aguardando o anúncio..." : (jobMessage || "Iniciando processamento da análise...")}
+                    </p>
+                  </div>
 
-                {/* Stepper container */}
-                <div className="relative border-l-2 border-border/40 ml-4 pl-6 space-y-6 py-1">
-                  {steps.map((step, idx) => {
-                    const isCompleted = getStepIndex(jobStep) > idx || matching !== null;
-                    const isActive = jobStep === step.key;
+                  {/* Stepper container */}
+                  <div className="relative border-l-2 border-border/40 ml-4 pl-6 space-y-6 py-1">
+                    {steps.map((step, idx) => {
+                      const isCompleted = getStepIndex(jobStep) > idx || matching !== null;
+                      const isActive = jobStep === step.key && !matching;
 
-                    return (
-                      <div key={step.key} className="relative">
-                        <div
-                          className={`absolute -left-[33px] top-1 h-3.5 w-3.5 rounded-full border-2 bg-background flex items-center justify-center transition-all duration-500 ${
-                            isCompleted
-                              ? "border-green-500 bg-green-500 scale-110 shadow-sm"
-                              : isActive
-                              ? "border-primary animate-pulse scale-110 shadow-md ring-2 ring-primary/20"
-                              : "border-muted-foreground/30"
-                          }`}
-                        >
-                          {isCompleted && <span className="h-1 w-1 rounded-full bg-background" />}
-                        </div>
-
-                        <div className="space-y-0.5">
-                          <h4
-                            className={`text-sm font-semibold transition-colors ${
+                      return (
+                        <div key={step.key} className="relative">
+                          <div
+                            className={`absolute -left-[33px] top-1 h-3.5 w-3.5 rounded-full border-2 bg-background flex items-center justify-center transition-all duration-500 ${
                               isCompleted
-                                ? "text-foreground/80"
+                                ? "border-green-500 bg-green-500 scale-110 shadow-sm"
                                 : isActive
-                                ? "text-primary font-bold"
-                                : "text-muted-foreground/60"
+                                ? "border-primary animate-pulse scale-110 shadow-md ring-2 ring-primary/20"
+                                : "border-muted-foreground/30"
                             }`}
                           >
-                            {step.label}
-                          </h4>
-                          <p className="text-xs text-muted-foreground/60">
-                            {step.desc}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                            {isCompleted && <span className="h-1 w-1 rounded-full bg-background" />}
+                          </div>
 
-                {/* Progress bar */}
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
-                    <span>PROGRESSO</span>
-                    <span>{jobProgress}%</span>
+                          <div className="space-y-0.5">
+                            <h4
+                              className={`text-sm font-semibold transition-colors ${
+                                isCompleted
+                                  ? "text-foreground/80"
+                                  : isActive
+                                  ? "text-primary font-bold"
+                                  : "text-muted-foreground/60"
+                              }`}
+                            >
+                              {step.label}
+                            </h4>
+                            <p className="text-xs text-muted-foreground/60">
+                              {step.desc}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-500 ease-out"
-                      style={{ width: `${jobProgress}%` }}
-                    />
+
+                  {/* Progress bar */}
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+                      <span>PROGRESSO</span>
+                      <span>{matching ? 100 : jobProgress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-500 ease-out"
+                        style={{ width: `${matching ? 100 : jobProgress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -312,7 +403,7 @@ export default function JobDetailsPage() {
             )}
 
             <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 border-t pt-4">
-              {matching ? (
+              {matching && (!shouldShowAd || adStatus === "completed") ? (
                 <Button 
                   className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold flex items-center justify-center gap-1.5"
                   onClick={() => {

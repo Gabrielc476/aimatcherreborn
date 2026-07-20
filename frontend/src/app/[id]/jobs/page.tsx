@@ -231,14 +231,14 @@ export default function JobsPage() {
     setLoading(false);
   }, [router, params]);
 
-  // Fetch existing matchings when the page loads
+  // Fetch existing matchings when the page loads or when jobs list changes
   useEffect(() => {
     const loadExistingMatchings = async () => {
       if (loading) return; // Don't fetch if still loading
 
       try {
-        // Fetch existing matchings using the hook's function
-        const existingMatchings = await fetchUserMatchings();
+        // Fetch existing matchings using the hook's function with a limit of 100
+        const existingMatchings = await fetchUserMatchings(100, 1);
         setJobMatchings(existingMatchings);
       } catch (error) {
         console.error("Error fetching existing matchings:", error);
@@ -246,7 +246,7 @@ export default function JobsPage() {
     };
 
     loadExistingMatchings();
-  }, [loading, fetchUserMatchings]);
+  }, [loading, fetchUserMatchings, jobs]);
 
   // Handle view job details
   const handleViewJobDetails = (jobId: string) => {

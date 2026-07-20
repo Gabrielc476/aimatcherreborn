@@ -22,12 +22,14 @@ import {
   CheckCircle2,
   XCircle,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 
 interface JobDetailsProps {
   job: Job;
   matching?: Matching | null;
   isLoading?: boolean;
+  isCheckingMatching?: boolean;
   onShare?: () => void;
   onMatchAnalysis?: () => void;
   onBack?: () => void;
@@ -37,6 +39,7 @@ export function JobDetails({
   job,
   matching,
   isLoading = false,
+  isCheckingMatching = false,
   onShare,
   onMatchAnalysis,
   onBack,
@@ -354,7 +357,12 @@ export function JobDetails({
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {matching ? (
+              {isCheckingMatching ? (
+                <div className="text-center py-8 space-y-3 bg-input/10 border border-dashed border-border/50 rounded-lg animate-pulse">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary mx-auto" />
+                  <p className="text-xs text-muted-foreground">Carregando compatibilidade...</p>
+                </div>
+              ) : matching ? (
                 <div className="space-y-4">
                   {/* Score circle banner */}
                   <div className={`border p-4 rounded-xl flex items-center gap-4 ${getScoreBg(matching.score)}`}>

@@ -5,7 +5,7 @@ import { CurriculoController } from '../controllers/curriculo.controller';
 import { CurriculoOtimizadoController } from '../controllers/curriculo-otimizado.controller';
 import { ProcessarCurriculoUseCase } from '../../domain/use-cases/processar-curriculo.use-case';
 import { OtimizarCurriculoUseCase } from '../../domain/use-cases/otimizar-curriculo.use-case';
-import { PythonPdfGeneratorService } from '../../infrastructure/pdf/pdf-generator.service';
+import { PdfQueueModule } from '../../infrastructure/pdf/pdf-queue.module';
 import { UsuarioRepository } from '../../domain/repositories/usuario.repository';
 import { VagaRepository } from '../../domain/repositories/vaga.repository';
 import { PDFService } from '../../domain/services/pdf.service';
@@ -16,9 +16,9 @@ import { JobEventsService } from '../../domain/services/job-events.service';
 import { JobProcessamentoRepository } from '../../domain/repositories/job-processamento.repository';
 
 @Module({
+  imports: [PdfQueueModule],
   controllers: [CurriculoController, CurriculoOtimizadoController],
   providers: [
-    PythonPdfGeneratorService,
     {
       provide: OtimizarCurriculoUseCase,
       useFactory: (

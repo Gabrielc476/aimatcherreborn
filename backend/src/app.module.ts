@@ -3,6 +3,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { DatabaseModule } from './presentation/nest-modules/database.module';
 import { SecurityModule } from './presentation/nest-modules/security.module';
 import { AIModule } from './presentation/nest-modules/ai.module';
@@ -20,6 +21,15 @@ import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
   imports: [
     // Habilita agendamentos crons
     ScheduleModule.forRoot(),
+    // Configura o BullMQ com Redis
+    BullModule.forRootAsync({
+      useFactory: () => ({
+        connection: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: Number(process.env.REDIS_PORT) || 6379,
+        },
+      }),
+    }),
     // Carrega variáveis de ambiente globalmente
     ConfigModule.forRoot({
       isGlobal: true,

@@ -38,39 +38,37 @@ export class PrismaMatchingRepository implements MatchingRepository {
   }
 
   async salvar(matching: Matching): Promise<Matching> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const dbMatching = await tx.matching.upsert({
-        where: {
-          usuarioId_vagaId: {
-            usuarioId: matching.usuarioId,
-            vagaId: matching.vagaId,
-          },
-        },
-        update: {
-          score: matching.score,
-          analise: (matching.analise as any) || undefined,
-          status: matching.status,
-        },
-        create: {
-          id: matching.id,
+    const dbMatching = await this.prisma.matching.upsert({
+      where: {
+        usuarioId_vagaId: {
           usuarioId: matching.usuarioId,
           vagaId: matching.vagaId,
-          score: matching.score,
-          analise: (matching.analise as any) || undefined,
-          dataMatching: matching.dataMatching,
-          status: matching.status,
         },
-      });
-
-      this.cache.deleteByPrefix(
-        `matching:lista:usuario:${matching.usuarioId}:`,
-      );
-      this.cache.delete(
-        `matching:single:${matching.usuarioId}:${matching.vagaId}`,
-      );
-
-      return this.mapToDomain(dbMatching)!;
+      },
+      update: {
+        score: matching.score,
+        analise: (matching.analise as any) || undefined,
+        status: matching.status,
+      },
+      create: {
+        id: matching.id,
+        usuarioId: matching.usuarioId,
+        vagaId: matching.vagaId,
+        score: matching.score,
+        analise: (matching.analise as any) || undefined,
+        dataMatching: matching.dataMatching,
+        status: matching.status,
+      },
     });
+
+    this.cache.deleteByPrefix(
+      `matching:lista:usuario:${matching.usuarioId}:`,
+    );
+    this.cache.delete(
+      `matching:single:${matching.usuarioId}:${matching.vagaId}`,
+    );
+
+    return this.mapToDomain(dbMatching)!;
   }
 
   async buscar(usuarioId: string, vagaId: string): Promise<Matching | null> {
@@ -78,19 +76,17 @@ export class PrismaMatchingRepository implements MatchingRepository {
     const cached = this.cache.get<Matching | null>(cacheKey);
     if (cached !== null) return cached;
 
-    return this.prisma.runWithRLS(async (tx) => {
-      const dbMatching = await tx.matching.findUnique({
-        where: {
-          usuarioId_vagaId: {
-            usuarioId,
-            vagaId,
-          },
+    const dbMatching = await this.prisma.matching.findUnique({
+      where: {
+        usuarioId_vagaId: {
+          usuarioId,
+          vagaId,
         },
-      });
-      const result = this.mapToDomain(dbMatching);
-      this.cache.set(cacheKey, result, 30); // 30 segundos
-      return result;
+      },
     });
+    const result = this.mapToDomain(dbMatching);
+    this.cache.set(cacheKey, result, 30); // 30 segundos
+    return result;
   }
 
   async buscarPorUsuario(
@@ -104,26 +100,24 @@ export class PrismaMatchingRepository implements MatchingRepository {
     );
     if (cached) return cached;
 
-    return this.prisma.runWithRLS(async (tx) => {
-      const skip = (pagina - 1) * limite;
+    const skip = (pagina - 1) * limite;
 
-      const [total, dbMatchings] = await Promise.all([
-        tx.matching.count({ where: { usuarioId } }),
-        tx.matching.findMany({
-          where: { usuarioId },
-          skip,
-          take: limite,
-          orderBy: { score: 'desc' },
-        }),
-      ]);
+    const [total, dbMatchings] = await Promise.all([
+      this.prisma.matching.count({ where: { usuarioId } }),
+      this.prisma.matching.findMany({
+        where: { usuarioId },
+        skip,
+        take: limite,
+        orderBy: { score: 'desc' },
+      }),
+    ]);
 
-      const result = {
-        total,
-        matchings: dbMatchings.map((m) => this.mapToDomain(m)!),
-      };
-      this.cache.set(cacheKey, result, 30); // 30 segundos
-      return result;
-    });
+    const result = {
+      total,
+      matchings: dbMatchings.map((m) => this.mapToDomain(m)!),
+    };
+    this.cache.set(cacheKey, result, 30); // 30 segundos
+    return result;
   }
 
   async buscarPorVaga(
@@ -132,59 +126,55 @@ export class PrismaMatchingRepository implements MatchingRepository {
     limite: number,
     pagina: number,
   ): Promise<{ total: number; matchings: Matching[] }> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const skip = (pagina - 1) * limite;
+    const skip = (pagina - 1) * limite;
 
-      const [total, dbMatchings] = await Promise.all([
-        tx.matching.count({
-          where: {
-            vagaId,
-            score: { gte: scoreMinimo },
-          },
-        }),
-        tx.matching.findMany({
-          where: {
-            vagaId,
-            score: { gte: scoreMinimo },
-          },
-          include: {
-            usuario: {
-              select: {
-                id: true,
-                nomeCompleto: true,
-                email: true,
-                telefone: true,
-              },
+    const [total, dbMatchings] = await Promise.all([
+      this.prisma.matching.count({
+        where: {
+          vagaId,
+          score: { gte: scoreMinimo },
+        },
+      }),
+      this.prisma.matching.findMany({
+        where: {
+          vagaId,
+          score: { gte: scoreMinimo },
+        },
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              nomeCompleto: true,
+              email: true,
+              telefone: true,
             },
           },
-          skip,
-          take: limite,
-          orderBy: { score: 'desc' },
-        }),
-      ]);
+        },
+        skip,
+        take: limite,
+        orderBy: { score: 'desc' },
+      }),
+    ]);
 
-      return {
-        total,
-        matchings: dbMatchings.map((m) => this.mapToDomain(m)!),
-      };
-    });
+    return {
+      total,
+      matchings: dbMatchings.map((m) => this.mapToDomain(m)!),
+    };
   }
 
   async excluir(usuarioId: string, vagaId: string): Promise<boolean> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const result = await tx.matching.delete({
-        where: {
-          usuarioId_vagaId: {
-            usuarioId,
-            vagaId,
-          },
+    const result = await this.prisma.matching.delete({
+      where: {
+        usuarioId_vagaId: {
+          usuarioId,
+          vagaId,
         },
-      });
-
-      this.cache.deleteByPrefix(`matching:lista:usuario:${usuarioId}:`);
-      this.cache.delete(`matching:single:${usuarioId}:${vagaId}`);
-
-      return !!result;
+      },
     });
+
+    this.cache.deleteByPrefix(`matching:lista:usuario:${usuarioId}:`);
+    this.cache.delete(`matching:single:${usuarioId}:${vagaId}`);
+
+    return !!result;
   }
 }

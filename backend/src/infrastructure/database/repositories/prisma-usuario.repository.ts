@@ -107,7 +107,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
   }
 
   async salvar(usuario: Usuario): Promise<Usuario> {
-    return this.prisma.runWithRLS(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       // Upsert do usuário principal
       const dbUser = await tx.usuario.upsert({
         where: { id: usuario.id },
@@ -299,25 +299,23 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     const cached = this.cache.get<Usuario | null>(cacheKey);
     if (cached !== null) return cached;
 
-    return this.prisma.runWithRLS(async (tx) => {
-      const dbUser = await tx.usuario.findUnique({
-        where: { id },
-        relationLoadStrategy: 'join',
-        include: {
-          perfil: true,
-          experiencias: true,
-          formacoes: true,
-          habilidades: true,
-          certificacoes: true,
-          idiomas: true,
-          preferencias: true,
-          projetos: true,
-        },
-      });
-      const result = this.mapToDomain(dbUser);
-      this.cache.set(cacheKey, result, 120); // 120 segundos
-      return result;
+    const dbUser = await this.prisma.usuario.findUnique({
+      where: { id },
+      relationLoadStrategy: 'join',
+      include: {
+        perfil: true,
+        experiencias: true,
+        formacoes: true,
+        habilidades: true,
+        certificacoes: true,
+        idiomas: true,
+        preferencias: true,
+        projetos: true,
+      },
     });
+    const result = this.mapToDomain(dbUser);
+    this.cache.set(cacheKey, result, 120); // 120 segundos
+    return result;
   }
 
   async buscarPorEmail(email: string): Promise<Usuario | null> {
@@ -341,7 +339,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
   }
 
   async atualizar(id: string, usuario: Partial<Usuario>): Promise<Usuario> {
-    return this.prisma.runWithRLS(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       // Sincroniza relações se passadas no objeto parcial
       if (usuario.perfil) {
         await tx.perfil.upsert({
@@ -518,31 +516,29 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     limite: number,
     pagina: number,
   ): Promise<{ total: number; usuarios: Usuario[] }> {
-    return this.prisma.runWithRLS(async (tx) => {
-      const skip = (pagina - 1) * limite;
+    const skip = (pagina - 1) * limite;
 
-      const [total, dbUsers] = await Promise.all([
-        tx.usuario.count(),
-        tx.usuario.findMany({
-          skip,
-          take: limite,
-          include: {
-            perfil: true,
-            experiencias: true,
-            formacoes: true,
-            habilidades: true,
-            certificacoes: true,
-            idiomas: true,
-            preferencias: true,
-            projetos: true,
-          },
-        }),
-      ]);
+    const [total, dbUsers] = await Promise.all([
+      this.prisma.usuario.count(),
+      this.prisma.usuario.findMany({
+        skip,
+        take: limite,
+        include: {
+          perfil: true,
+          experiencias: true,
+          formacoes: true,
+          habilidades: true,
+          certificacoes: true,
+          idiomas: true,
+          preferencias: true,
+          projetos: true,
+        },
+      }),
+    ]);
 
-      return {
-        total,
-        usuarios: dbUsers.map((u) => this.mapToDomain(u)!),
-      };
-    });
+    return {
+      total,
+      usuarios: dbUsers.map((u) => this.mapToDomain(u)!),
+    };
   }
 }

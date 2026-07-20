@@ -9,10 +9,11 @@ import { apiClient } from "../api/apiClient";
 interface UseJobMatchingReturn {
   matching: Matching | null;
   isLoading: boolean;
+  isCheckingExisting: boolean;
   error: string | null;
   success: boolean;
   analyzeJobMatching: (jobId: string, userId?: string) => Promise<boolean>;
-  fetchUserMatchings: () => Promise<Record<string, Matching>>;
+  fetchUserMatchings: (limite?: number, pagina?: number) => Promise<Record<string, Matching>>;
   fetchExistingMatching: (userId: string, jobId: string) => Promise<boolean>;
   // Real-time progress properties
   jobStep: string | null;
@@ -28,6 +29,7 @@ interface UseJobMatchingReturn {
 export const useJobMatching = (): UseJobMatchingReturn => {
   const [matching, setMatching] = useState<Matching | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCheckingExisting, setIsCheckingExisting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
 
@@ -176,9 +178,14 @@ export const useJobMatching = (): UseJobMatchingReturn => {
   /**
    * Fetch all matchings for the current user
    *
+   * @param limite Max number of matchings to return
+   * @param pagina Page number
    * @returns Promise that resolves to a map of job IDs to matchings
    */
-  const fetchUserMatchings = useCallback(async (): Promise<Record<string, Matching>> => {
+  const fetchUserMatchings = useCallback(async (
+    limite: number = 100,
+    pagina: number = 1
+  ): Promise<Record<string, Matching>> => {
     const currentUserId = AuthApi.getCurrentUserId();
 
     if (!currentUserId) {
@@ -187,7 +194,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     }
 
     try {
-      const response = await MatchingApi.getUserMatchings(currentUserId);
+      const response = await MatchingApi.getUserMatchings(currentUserId, limite, pagina);
 
       if (response.status === 200 && response.data) {
         const matchingsMap: Record<string, Matching> = {};
@@ -224,6 +231,7 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     jobId: string
   ): Promise<boolean> => {
     setError(null);
+    setIsCheckingExisting(true);
 
     try {
       const response = await MatchingApi.getExistingMatching(userId, jobId);
@@ -255,12 +263,15 @@ export const useJobMatching = (): UseJobMatchingReturn => {
     } catch (err) {
       console.error("Erro ao buscar análise existente:", err);
       return false;
+    } finally {
+      setIsCheckingExisting(false);
     }
   }, []);
 
   return {
     matching,
     isLoading,
+    isCheckingExisting,
     error,
     success,
     analyzeJobMatching,
