@@ -11,10 +11,32 @@ async function bootstrap() {
   // Registra interceptador global de logging e RAM
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  // Habilita CORS
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  // Habilita CORS flexível para Vercel, domínios customizados e localhost
   app.enableCors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      const configuredUrl = process.env.FRONTEND_URL;
+      const allowedOrigins = [
+        configuredUrl,
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ].filter(Boolean);
+
+      // Permite requisições sem cabeçalho Origin (curl, mobile apps, servidor a servidor)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Permite se corresponder às URLs configuradas ou se for qualquer subdomínio .vercel.app
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
