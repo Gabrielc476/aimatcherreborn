@@ -23,14 +23,29 @@ import { RlsMiddleware } from './presentation/middlewares/rls.middleware';
     ScheduleModule.forRoot(),
     // Configura o BullMQ com Redis
     BullModule.forRootAsync({
-      useFactory: () => ({
-        connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379,
-          password: process.env.REDIS_PASSWORD || undefined,
-          tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-        },
-      }),
+      useFactory: () => {
+        let rawHost = process.env.REDIS_HOST || 'localhost';
+        // Sanitiza caso a variável contenha o prefixo redis:// ou a porta grudada
+        if (rawHost.startsWith('redis://') || rawHost.startsWith('rediss://')) {
+          try {
+            const parsed = new URL(rawHost);
+            rawHost = parsed.hostname;
+          } catch {
+            rawHost = rawHost.replace(/^rediss?:\/\//, '').split(':')[0];
+          }
+        } else if (rawHost.includes(':')) {
+          rawHost = rawHost.split(':')[0];
+        }
+
+        return {
+          connection: {
+            host: rawHost,
+            port: Number(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD || undefined,
+            tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+          },
+        };
+      },
     }),
     // Carrega variáveis de ambiente globalmente
     ConfigModule.forRoot({
