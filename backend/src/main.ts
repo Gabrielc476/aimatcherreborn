@@ -13,7 +13,10 @@ async function bootstrap() {
 
   // Habilita CORS flexível para Vercel, domínios customizados e localhost
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       const configuredUrl = process.env.FRONTEND_URL;
       const allowedOrigins = [
         configuredUrl,
