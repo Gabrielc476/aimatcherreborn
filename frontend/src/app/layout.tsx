@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 import Footer from "@/components/Footer";
+import AdSenseLoader from "@/components/AdSenseLoader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,18 +40,11 @@ export default function RootLayout({
           src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"
           strategy="afterInteractive"
         />
-
-        {/* Google AdSense Script */}
-        <Script
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased flex flex-col min-h-screen justify-between`}
       >
+        <AdSenseLoader clientId={adsenseClientId} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
