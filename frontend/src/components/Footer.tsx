@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, ShieldCheck, FileText, Heart } from "lucide-react";
+import { Sparkles, ShieldCheck, FileText, Heart, BookOpen } from "lucide-react";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -25,8 +25,16 @@ export function Footer() {
           </p>
         </div>
 
-        {/* Legal & Policy Links */}
+        {/* Legal, Blog & Policy Links */}
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-mono">
+          <Link
+            href="/blog"
+            className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Blog & Recursos
+          </Link>
+
           <Link
             href="/politica-de-privacidade"
             className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5"

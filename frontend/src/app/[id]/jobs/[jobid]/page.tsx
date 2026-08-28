@@ -172,7 +172,8 @@ export default function JobDetailsPage() {
 
     // No need to attempt a new analysis if we already have matching data
     if (!matching && !isMatchingLoading) {
-      const showAd = checkAndRecordAnalysis();
+      const enableVideoAds = process.env.NEXT_PUBLIC_ENABLE_VIDEO_ADS === "true";
+      const showAd = enableVideoAds && checkAndRecordAnalysis();
       setShouldShowAd(showAd);
       if (showAd) {
         setAdStatus("playing");
@@ -193,7 +194,8 @@ export default function JobDetailsPage() {
       setAdBlockDetected(false);
       
       if (!matching && !isMatchingLoading) {
-        const showAd = checkAndRecordAnalysis();
+        const enableVideoAds = process.env.NEXT_PUBLIC_ENABLE_VIDEO_ADS === "true";
+        const showAd = enableVideoAds && checkAndRecordAnalysis();
         setShouldShowAd(showAd);
         if (showAd) {
           setAdStatus("playing");
